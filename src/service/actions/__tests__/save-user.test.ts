@@ -35,10 +35,10 @@ mockProvider.saveUser = (user: User, attribNames?: string[]): Promise<void> => {
 const authService = new AuthService(mockProvider)
 
 // test reducer validates action flows
-const requestTester = new ServiceRequestTester(logger,
+const requestTester = new ServiceRequestTester<AuthUserPayload>(logger,
   SAVE_USER_REQ,
   (counter, state, action): AuthUserState => {
-    let payload = <AuthUserPayload>action.payload;
+    let payload = action.payload!;
     expect(payload.user).toBeDefined();
     expectTestUserToBeSet(payload.user!)
     return state;
@@ -51,7 +51,7 @@ const requestTester = new ServiceRequestTester(logger,
   },
   (counter, state, action): AuthUserState => {
     expect(counter).toBe(1);
-    expect(action.meta.errorPayload!.message).toEqual('Error: No user logged in. The user needs to be logged in before it can be saved.');
+    expect(action.payload!.message).toEqual('Error: No user logged in. The user needs to be logged in before it can be saved.');
     return state;
   },
 );

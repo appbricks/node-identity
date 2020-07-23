@@ -13,12 +13,12 @@ export const validateMFACodeAction =
 export const validateMFACodeEpic = (csProvider: Provider): Epic => {
 
   return serviceEpic(VALIDATE_MFA_CODE_REQ, 
-    async (action: Action, state$: StateObservable<State>) => {
+    async (action: Action<AuthMultiFactorAuthPayload>, state$: StateObservable<State>) => {
       if (await csProvider.isLoggedIn()) {
         throw Error('The current session is already logged in.')
       }
 
-      let payload = (<AuthMultiFactorAuthPayload>action.payload);
+      let payload = action.payload!;
       payload.isLoggedIn = await csProvider.validateMFACode(payload.mfaCode);
       return createFollowUpAction(action, SERVICE_RESPONSE_OK);
     }

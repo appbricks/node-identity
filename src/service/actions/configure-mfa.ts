@@ -15,8 +15,8 @@ export const configureMFAEpic = (csProvider: Provider): Epic => {
 
   return serviceEpic(
     CONFIGURE_MFA_REQ, 
-    async (action: Action, state$: StateObservable<State>) => {
-      await csProvider.configureMFA((<AuthUserPayload>action.payload).user!);
+    async (action: Action<AuthUserPayload>, state$: StateObservable<State>) => {
+      await csProvider.configureMFA(action.payload!.user!);
       return createFollowUpAction(action, SERVICE_RESPONSE_OK);
     }
   );

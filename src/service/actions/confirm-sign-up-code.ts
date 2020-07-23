@@ -15,9 +15,8 @@ export const confirmSignUpCodeEpic = (csProvider: Provider): Epic => {
 
   return serviceEpic(
     CONFIRM_SIGN_UP_CODE_REQ, 
-    async (action: Action, state$: StateObservable<State>) => {
-      let payload = <AuthUserPayload>action.payload;
-      payload.user.userConfirmed = await csProvider.confirmSignUpCode(payload.user, payload.code!);
+    async (action: Action<AuthUserPayload>, state$: StateObservable<State>) => {
+      action.payload!.user.userConfirmed = await csProvider.confirmSignUpCode(action.payload!.user, action.payload!.code!);
       return createFollowUpAction(action, SERVICE_RESPONSE_OK);
     }
   );

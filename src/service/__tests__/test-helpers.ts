@@ -1,5 +1,5 @@
 import { Reducer } from 'redux';
-import { Logger, ERROR, Action } from '@appbricks/utils';
+import { Logger, ERROR, Action, ErrorPayload } from '@appbricks/utils';
 
 import Provider from '../provider';
 import User from '../../model/user';
@@ -8,9 +8,9 @@ import { AuthUserPayload, SERVICE_RESPONSE_OK } from '../action';
 import { AuthUserState } from '../../state/state';
 
 export const requestTesterForUserOnlyRequests = (logger: Logger, reqActionType: string, checkConfirmed = false, code?: string) => {
-  return new ServiceRequestTester(logger, reqActionType,
+  return new ServiceRequestTester<AuthUserPayload>(logger, reqActionType,
     (counter: number, state, action): AuthUserState => {
-      let payload = <AuthUserPayload>action.payload;
+      let payload = action.payload!;
       expect(payload.user).toBeDefined();
       if (code) { expect(payload.code).toBeDefined(); }
       expect(action.meta.relatedAction).toBeUndefined();
@@ -46,11 +46,11 @@ export const requestTesterForUserOnlyRequests = (logger: Logger, reqActionType: 
 
       if (code) {
         // this tester is for a user+code - error created with invalid code
-        expect(action.meta.errorPayload!.message).toEqual('Error: invalid code');
+        expect(action.payload!.message).toEqual('Error: invalid code');
         expect((<AuthUserPayload>action.meta.relatedAction!.payload).code!).not.toEqual(code);
       } else {
         // this tester is for a user - error created with empty username
-        expect(action.meta.errorPayload!.message).toEqual('Error: zero length username');
+        expect(action.payload!.message).toEqual('Error: zero length username');
         expect((<AuthUserPayload>action.meta.relatedAction!.payload).user!.username.length).toEqual(0);
       }
       return state;
@@ -58,7 +58,7 @@ export const requestTesterForUserOnlyRequests = (logger: Logger, reqActionType: 
   );
 };
 
-export class ServiceRequestTester {
+export class ServiceRequestTester<T> {
 
   logger: Logger;
   
@@ -69,16 +69,16 @@ export class ServiceRequestTester {
   matchRelatedAction: boolean;
 
   reqActionType: string;
-  reqActionValidator: ActionValidator;
-  okActionValidator: ActionValidator;
-  errorActionValidator: ActionValidator;
+  reqActionValidator: ActionValidator<T>;
+  okActionValidator: ActionValidator<T>;
+  errorActionValidator: ActionValidator<ErrorPayload>;
 
   constructor(
     logger: Logger,
     reqActionType: string,
-    reqActionValidator: ActionValidator,
-    okActionValidator: ActionValidator,
-    errorActionValidator: ActionValidator = (counter, state, action): AuthUserState => { 
+    reqActionValidator: ActionValidator<T>,
+    okActionValidator: ActionValidator<T>,
+    errorActionValidator: ActionValidator<ErrorPayload> = (counter, state, action): AuthUserState => { 
       fail('no errors conditions are being tested');
       return state; 
     },
@@ -96,32 +96,32 @@ export class ServiceRequestTester {
     this.errorActionValidator = errorActionValidator;
   }
 
-  reducer(): Reducer<AuthUserState, Action> {
+  reducer(): Reducer<AuthUserState, Action<T | ErrorPayload>> {
     const tester = this;
     
-    return (state: AuthUserState = <AuthUserState>{}, action: Action): AuthUserState => {
+    return (state: AuthUserState = <AuthUserState>{}, action: Action<T | ErrorPayload>): AuthUserState => {
       tester.logger.trace('Reducer called with action', action.type);
       try {
         switch (action.type) {
           case tester.reqActionType:
             tester.reqCounter++;
             expect(action.meta.relatedAction).toBeUndefined();
-            return tester.reqActionValidator(tester.reqCounter, state, action);
+            return tester.reqActionValidator(tester.reqCounter, state, <Action<T>>action);
           case SERVICE_RESPONSE_OK:
             tester.okCounter++;
             expect(action.meta.relatedAction).toBeDefined();          
             if (this.matchRelatedAction) {
               expect(action.meta.relatedAction!.type).toEqual(tester.reqActionType);
             }
-            return tester.okActionValidator(tester.okCounter, state, action);
+            return tester.okActionValidator(tester.okCounter, state, <Action<T>>action);
           case ERROR:
             tester.errorCounter++;
-            expect(action.meta.errorPayload).toBeDefined();
+            expect(action.payload).toBeDefined();
             expect(action.meta.relatedAction).toBeDefined();            
             if (this.matchRelatedAction) {
               expect(action.meta.relatedAction!.type).toEqual(tester.reqActionType);
             }
-            return tester.errorActionValidator(tester.errorCounter, state, action);
+            return tester.errorActionValidator(tester.errorCounter, state, <Action<ErrorPayload>>action);
         }
       } catch (err) {
         tester.logger.error('Test reducer failed with', err);
@@ -131,10 +131,10 @@ export class ServiceRequestTester {
     }
   }
 }
-type ActionValidator = <A extends Action>(
+type ActionValidator<T> = (
   counter: number, 
   state: AuthUserState, 
-  action: Action
+  action: Action<T>
 ) => AuthUserState;
 
 export const mockProviderCallWithUser = (user: User): Promise<boolean | void> => {

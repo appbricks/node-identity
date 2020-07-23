@@ -34,10 +34,11 @@ mockProvider.readUser = (attribNames?: string[]): Promise<User> => {
 const authService = new AuthService(mockProvider)
 
 // test reducer validates action flows
-const requestTester = new ServiceRequestTester(logger,
+const requestTester = new ServiceRequestTester<AuthUserPayload>(logger,
   READ_USER_REQ,
   (counter, state, action): AuthUserState => {
-    expect((<AuthUserPayload>action.payload).user).toBeUndefined();
+    expect(counter).toBeLessThanOrEqual(2);
+    expect(action.payload).toBeUndefined();
     return state;
   },
   (counter, state, action): AuthUserState => {
@@ -48,7 +49,7 @@ const requestTester = new ServiceRequestTester(logger,
   },
   (counter, state, action): AuthUserState => {
     expect(counter).toBe(1);
-    expect(action.meta.errorPayload!.message).toEqual('Error: No user logged in. The user needs to be logged in before it can be read.');
+    expect(action.payload!.message).toEqual('Error: No user logged in. The user needs to be logged in before it can be read.');
     return state;
   },
 );

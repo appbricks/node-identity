@@ -14,8 +14,10 @@ export const loadAuthStateEpic = (csProvider: Provider): Epic => {
 
   return serviceEpic(
     LOAD_AUTH_STATE_REQ, 
-    async (action: Action, state$: StateObservable<State>) => {
-      (<AuthStatePayload>action.payload).isLoggedIn = await csProvider.isLoggedIn();
+    async (action: Action<AuthStatePayload>, state$: StateObservable<State>) => {
+      action.payload = <AuthStatePayload>{
+        isLoggedIn: await csProvider.isLoggedIn()
+      };
       return createFollowUpAction(action, SERVICE_RESPONSE_OK);
     }
   );

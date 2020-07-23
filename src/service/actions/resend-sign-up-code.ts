@@ -15,8 +15,8 @@ export const resendSignUpCodeEpic = (csProvider: Provider): Epic => {
 
   return serviceEpic(
     RESEND_SIGN_UP_CODE_REQ, 
-    async (action: Action, state$: StateObservable<State>) => {
-      await csProvider.resendSignUpCode((<AuthUserPayload>action.payload).user);
+    async (action: Action<AuthUserPayload>, state$: StateObservable<State>) => {
+      await csProvider.resendSignUpCode(action.payload!.user);
       return createFollowUpAction(action, SERVICE_RESPONSE_OK);
     }
   );

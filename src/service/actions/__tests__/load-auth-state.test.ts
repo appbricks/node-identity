@@ -25,10 +25,11 @@ mockProvider.isLoggedIn = (): Promise<boolean> => {
 const authService = new AuthService(mockProvider)
 
 // test reducer validates action flows
-const requestTester = new ServiceRequestTester(logger,
+const requestTester = new ServiceRequestTester<AuthStatePayload>(logger,
   LOAD_AUTH_STATE_REQ,
   (counter, state, action): AuthUserState => {
-    expect((<AuthStatePayload>action.payload).isLoggedIn).toBeUndefined();
+    expect(counter).toBeLessThanOrEqual(2);
+    expect(action.payload).toBeUndefined();
     return state;
   },
   (counter, state, action): AuthUserState => {

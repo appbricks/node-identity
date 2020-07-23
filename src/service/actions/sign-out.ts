@@ -13,11 +13,14 @@ export const signOutAction =
 export const signOutEpic = (csProvider: Provider): Epic => {
 
   return serviceEpic(SIGN_OUT_REQ, 
-    async (action: Action, state$: StateObservable<State>) => {
+    async (action: Action<AuthStatePayload>, state$: StateObservable<State>) => {
       if (await csProvider.isLoggedIn()) {
         await csProvider.signOut();
       }
-      (<AuthStatePayload>action.payload).isLoggedIn = false;
+            
+      action.payload = <AuthStatePayload>{
+        isLoggedIn: false
+      }
       return createFollowUpAction(action, SERVICE_RESPONSE_OK);
     }
   );

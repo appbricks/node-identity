@@ -32,21 +32,21 @@ mockProvider.validateMFACode = (code: string): Promise<boolean> => {
 const authService = new AuthService(mockProvider)
 
 // test reducer validates action flows
-const requestTester = new ServiceRequestTester(logger,
+const requestTester = new ServiceRequestTester<AuthMultiFactorAuthPayload>(logger,
   VALIDATE_MFA_CODE_REQ,
   (counter, state, action): AuthUserState => {
 
     switch (counter) {
       case 1: {
-        expect((<AuthMultiFactorAuthPayload>action.payload).mfaCode).toEqual('12345');
+        expect(action.payload!.mfaCode).toEqual('12345');
         break;
       }
       case 2: {
-        expect((<AuthMultiFactorAuthPayload>action.payload).mfaCode).toEqual('00000');
+        expect(action.payload!.mfaCode).toEqual('00000');
         break;
       }
       case 3: {
-        expect((<AuthMultiFactorAuthPayload>action.payload).mfaCode).toEqual('12345');
+        expect(action.payload!.mfaCode).toEqual('12345');
         break;
       }
     }
@@ -67,11 +67,11 @@ const requestTester = new ServiceRequestTester(logger,
 
     switch (counter) {
       case 1: {
-        expect(action.meta.errorPayload!.message).toEqual('Error: The current session is already logged in.');
+        expect(action.payload!.message).toEqual('Error: The current session is already logged in.');
         break;
       }
       case 2: {
-        expect(action.meta.errorPayload!.message).toEqual('Error: invalid code');
+        expect(action.payload!.message).toEqual('Error: invalid code');
         break;
       }
     }

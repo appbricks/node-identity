@@ -14,12 +14,14 @@ export const readUserEpic = (csProvider: Provider): Epic => {
 
   return serviceEpic(
     READ_USER_REQ, 
-    async (action: Action, state$: StateObservable<State>) => {
+    async (action: Action<AuthUserPayload>, state$: StateObservable<State>) => {
       if (!await csProvider.isLoggedIn()) {
         throw Error('No user logged in. The user needs to be logged in before it can be read.')
       }
 
-      (<AuthUserPayload>action.payload).user = await csProvider.readUser();
+      action.payload = <AuthUserPayload>{
+        user: await csProvider.readUser()
+      };
       return createFollowUpAction(action, SERVICE_RESPONSE_OK);
     }
   );

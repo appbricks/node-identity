@@ -31,10 +31,10 @@ mockProvider.confirmVerificationCodeForAttribute = (attribute: string, code: str
 const authService = new AuthService(mockProvider)
 
 // test reducer validates action flows
-const requestTester = new ServiceRequestTester(logger,
+const requestTester = new ServiceRequestTester<AuthLoggedInUserAttrPayload>(logger,
   CONFIRM_ATTRIBUTE_REQ,
   (counter, state, action): AuthUserState => {
-    let payload = <AuthLoggedInUserAttrPayload>action.payload;
+    let payload = action.payload!;
     expect(payload.attrName).toBeDefined();
     expect(payload.code).toBeDefined();
 
@@ -64,11 +64,11 @@ const requestTester = new ServiceRequestTester(logger,
 
     switch (counter) {
       case 1: {
-        expect(action.meta.errorPayload!.message).toEqual('Error: No user logged in. You can confirm an attribute only for logged in user.');
+        expect(action.payload!.message).toEqual('Error: No user logged in. You can confirm an attribute only for logged in user.');
         break;
       }
       case 2: {
-        expect(action.meta.errorPayload!.message).toEqual('Error: confirmVerificationCodeForAttribute request action does not have an attribute name and code to confirm.');
+        expect(action.payload!.message).toEqual('Error: confirmVerificationCodeForAttribute request action does not have an attribute name and code to confirm.');
         expect((<AuthLoggedInUserAttrPayload>action.meta.relatedAction!.payload).attrName!.length).toEqual(0);
         break;
       }

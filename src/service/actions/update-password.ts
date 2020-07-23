@@ -15,8 +15,8 @@ export const updatePasswordEpic = (csProvider: Provider): Epic => {
 
   return serviceEpic(
     UPDATE_PASSWORD_REQ, 
-    async (action: Action, state$: StateObservable<State>) => {
-      let payload = (<AuthUserPayload>action.payload);
+    async (action: Action<AuthUserPayload>, state$: StateObservable<State>) => {
+      let payload = action.payload!;
       await csProvider.updatePassword(payload.user, payload.code!);
       return createFollowUpAction(action, SERVICE_RESPONSE_OK);
     }

@@ -29,10 +29,10 @@ mockProvider.sendVerificationCodeForAttribute = (attribute: string): Promise<voi
 const authService = new AuthService(mockProvider)
 
 // test reducer validates action flows
-const requestTester = new ServiceRequestTester(logger,
+const requestTester = new ServiceRequestTester<AuthLoggedInUserAttrPayload>(logger,
   VERIFY_ATTRIBUTE_REQ,
   (counter, state, action): AuthUserState => {
-    let payload = <AuthLoggedInUserAttrPayload>action.payload;
+    let payload = action.payload!;
     expect(payload.attrName).toBeDefined();
 
     switch (counter) {
@@ -57,11 +57,11 @@ const requestTester = new ServiceRequestTester(logger,
 
     switch (counter) {
       case 1: {
-        expect(action.meta.errorPayload!.message).toEqual('Error: No user logged in. You can validate an attribute only for logged in user.');
+        expect(action.payload!.message).toEqual('Error: No user logged in. You can validate an attribute only for logged in user.');
         break;
       }
       case 2: {
-        expect(action.meta.errorPayload!.message).toEqual('Error: sendVerificationCodeForAttribute request action does not have an attribute name to verify.');
+        expect(action.payload!.message).toEqual('Error: sendVerificationCodeForAttribute request action does not have an attribute name to verify.');
         expect((<AuthLoggedInUserAttrPayload>action.meta.relatedAction!.payload).attrName!.length).toEqual(0);
         break;
       }

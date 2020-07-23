@@ -29,10 +29,11 @@ mockProvider.signOut = (): Promise<void> => {
 const authService = new AuthService(mockProvider)
 
 // test reducer validates action flows
-const requestTester = new ServiceRequestTester(logger,
+const requestTester = new ServiceRequestTester<AuthStatePayload>(logger,
   SIGN_OUT_REQ,
   (counter, state, action): AuthUserState => {
     expect(counter).toBe(1);
+    expect(action.payload).toBeUndefined();
     return state;
   },
   (counter, state, action): AuthUserState => {

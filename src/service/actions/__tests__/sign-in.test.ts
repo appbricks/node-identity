@@ -44,21 +44,21 @@ mockProvider.readUser = (attribNames?: string[]): Promise<User> => {
 const authService = new AuthService(mockProvider)
 
 // test reducer validates action flows
-const requestTester = new ServiceRequestTester(logger,
+const requestTester = new ServiceRequestTester<AuthSignInPayload>(logger,
   SIGN_IN_REQ,
   (counter, state, action): AuthUserState => {
-    expect((<AuthSignInPayload>action.payload).username).toEqual('johndoe');
+    expect(action.payload!.username).toEqual('johndoe');
 
     switch (counter) {
       case 1: {
         // login error
-        expect((<AuthSignInPayload>action.payload).password).toEqual('00000');
+        expect(action.payload!.password).toEqual('00000');
         break;
       }
       case 2:
       case 3: {
         // successful login
-        expect((<AuthSignInPayload>action.payload).password).toEqual('@ppBricks2020');
+        expect(action.payload!.password).toEqual('@ppBricks2020');
         break;
       }
     }
@@ -88,7 +88,7 @@ const requestTester = new ServiceRequestTester(logger,
     switch (counter) {
       case 1: {
         // login error
-        expect(action.meta.errorPayload!.message).toEqual('Error: invalid password');
+        expect(action.payload!.message).toEqual('Error: invalid password');
       }
     }
     return state;
