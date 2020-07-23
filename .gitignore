@@ -105,3 +105,11 @@ dist
 
 # TS Build Ouput
 lib/
+
+# VSCode
+.vscode
+
+# Test configuration
+aws-exports.js
+gmail-creds.json
+.gmail-token
