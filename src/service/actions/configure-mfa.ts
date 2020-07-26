@@ -16,6 +16,10 @@ export const configureMFAEpic = (csProvider: Provider): Epic => {
   return serviceEpic(
     CONFIGURE_MFA_REQ, 
     async (action: Action<AuthUserPayload>, state$: StateObservable<State>) => {
+      if (!await csProvider.isLoggedIn()) {
+        throw Error('No user logged in. The user needs to be logged in before MFA can be configured.')
+      }
+
       await csProvider.configureMFA(action.payload!.user!);
       return createFollowUpAction(action, SERVICE_RESPONSE_OK);
     }

@@ -32,13 +32,6 @@ import User from '../model/user';
   confirmSignUpCode(user: User, code: string): Promise<boolean>;
 
   /**
-   * Config multi-factor authentication for the user
-   * 
-   * @param {User} User object with MFA preferences
-   */
-  configureMFA(user: User): Promise<void>;
-
-  /**
    * Initiates a password reset flow for the given user.
    * 
    * @param {User} user 
@@ -72,7 +65,8 @@ import User from '../model/user';
   /**
    * Signs in the given user
    * 
-   * @param {User} user  The user to sign in
+   * @param {string} username  The username to sign in with
+   * @param {string} password  The password to sign in with
    */
   signIn(username: string, password: string): Promise<number>;
 
@@ -87,6 +81,13 @@ import User from '../model/user';
    * Signs out the logged in user
    */
   signOut(): Promise<void>;
+
+  /**
+   * Config multi-factor authentication for the user
+   * 
+   * @param {User} User object with MFA preferences
+   */
+  configureMFA(user: User): Promise<void>;
 
   /**
    * Sends a verifaction code to validate the given attribute.

@@ -2,7 +2,7 @@ import { CognitoUserSession, CognitoUser } from 'amazon-cognito-identity-js';
 import { AuthClass } from '@aws-amplify/auth/lib-esm/Auth'
 import { Auth } from 'aws-amplify';
 
-import { Logger } from '@appbricks/utils';
+import { Logger, Error } from '@appbricks/utils';
 
 import ProviderInterface from '../../provider'
 import User from '../../../model/user'
@@ -10,7 +10,27 @@ import User from '../../../model/user'
 import {
   AUTH_NO_MFA,
   AUTH_MFA_SMS,
-  AUTH_MFA_TOTP
+  AUTH_MFA_TOTP,
+
+  ERROR_SIGN_UP,
+  ERROR_RESEND_SIGN_UP_CODE,
+  ERROR_CONFIRM_SIGN_UP_CODE,
+  ERROR_CONFIGURE_MFA,
+  ERROR_RESET_PASSWORD,
+  ERROR_UPDATE_PASSWORD,
+  ERROR_SIGN_IN,
+  ERROR_VALIDATE_MFA_CODE,
+  ERROR_SIGN_OUT,
+  ERROR_SEND_VERIFICATION_CODE_FOR_ATTRIBUTE,
+  ERROR_CONFIRM_VERIFICATION_CODE_FOR_ATTRIBUTE,
+  ERROR_READ_USER,
+  ERROR_SAVE_USER,
+
+  ERROR_NOT_VERIFIED,
+  ERROR_NOT_CONFIRMED,
+  ERROR_INVALID_LOGIN,
+  ERROR_INVALID_CODE
+  
 } from '../../constants'
 
 /**
@@ -69,18 +89,18 @@ export default class Provider implements ProviderInterface {
         }
       })
         .then(
-          data => {
-            logger.trace('successful sign up: ', data);
-            resolve(data.userConfirmed);
+          result => {
+            logger.trace('successful sign up: ', result);
+            resolve(result.userConfirmed);
           },
           error => {
             logger.error('unable sign up: ', error);
-            reject(error.message || error);
+            reject(new Error(ERROR_SIGN_UP, error));
           }
         ).catch(
           exception => {
             logger.error('unable sign up: ', exception);
-            reject(exception.message || exception);
+            reject(new Error(ERROR_SIGN_UP, exception));
           }
         );
     });
@@ -105,7 +125,7 @@ export default class Provider implements ProviderInterface {
           },
           error => {
             logger.error('unable send sign-up confirmation code: ', error);
-            reject(error.message || error);
+            reject(new Error(ERROR_RESEND_SIGN_UP_CODE, error));
           }
         );
     });
@@ -125,45 +145,19 @@ export default class Provider implements ProviderInterface {
     return new Promise<boolean>(function (resolve, reject) {
       auth.confirmSignUp(user.username, code)
         .then(
-          data => {
-            user.mobilePhoneVerified = true;
-
-            logger.trace('successful confirmation: ', data);
+          result => {
+            logger.trace('successful confirmation: ', result);
             resolve(true);
           },
           error => {
             logger.error('unable verify signup: ', error);
-            reject(error.message || error);
-          }
-        );
-    });
-  }
 
-  /**
-   * Config multi-factor authentication for the user
-   * 
-   * @param {User} User object with MFA preferences
-   */
-  async configureMFA(user: User): Promise<void> {
-
-    const logger = this.logger;
-    const auth = this.auth;
-    const cognitoUser = this.cognitoUser;
-
-    let mfaMethod: 'TOTP' | 'SMS' | 'NOMFA' = user.enableMFA
-      ? (user.enableTOTP ? 'TOTP' : 'SMS')
-      : 'NOMFA';
-
-    return new Promise<void>(function (resolve, reject) {
-      auth.setPreferredMFA(cognitoUser, mfaMethod)
-        .then(
-          () => {
-            logger.trace('successful update of MFA method.');
-            resolve();
-          },
-          error => {
-            logger.error('unable to configure MFA method: ', mfaMethod, error);
-            reject(error.message || error);
+            let message = (error.message || error);
+            if (message == 'Invalid verification code provided, please try again.') {
+              reject(new Error(ERROR_INVALID_CODE, error));
+            } else {
+              reject(new Error(ERROR_CONFIRM_SIGN_UP_CODE, error));
+            }
           }
         );
     });
@@ -183,6 +177,7 @@ export default class Provider implements ProviderInterface {
       auth.forgotPassword(user.username)
         .then(
           () => {
+            logger.trace('reset password flow successfully initiated.');
             resolve();
           },
           error => {
@@ -191,14 +186,14 @@ export default class Provider implements ProviderInterface {
             let message = (error.invalidCredentialsMessage || error.message || error);
             switch (message) {
               case 'Username/client id combination not found.':
-                message = 'invalidLogin';
+                reject(new Error(ERROR_INVALID_LOGIN, error));
                 break;
               case 'Cannot reset password for the user as there is no registered/verified email or phone_number':
-                message = 'notVerified';
+                reject(new Error(ERROR_NOT_VERIFIED, error));
                 break;
+              default:
+                reject(new Error(ERROR_RESET_PASSWORD, error));
             }
-
-            reject(message);
           }
         );
     });
@@ -219,11 +214,12 @@ export default class Provider implements ProviderInterface {
       auth.forgotPasswordSubmit(user.username, code, user.password)
         .then(
           () => {
+            logger.trace('password updated.');
             resolve();
           },
           error => {
             logger.error('unable update password: ', error);
-            reject(error.message || error);
+            reject(new Error(ERROR_UPDATE_PASSWORD, error));
           }
         );
     });
@@ -301,27 +297,29 @@ export default class Provider implements ProviderInterface {
           async error => {
             logger.error('sign in error: ', error);
 
+            setCognitoUser(undefined);
+            auth.signOut();
+
             let message = (error.invalidCredentialsMessage || error.message || error);
             switch (message) {
               case 'User is not confirmed.':
-                message = 'notConfirmed';
+                reject(new Error(ERROR_NOT_CONFIRMED, error));
                 break;
               case 'User does not exist.':
               case 'Incorrect username or password.':
-                message = 'invalidLogin';
+                reject(new Error(ERROR_INVALID_LOGIN, error));
                 break;
+              default:
+                reject(new Error(ERROR_SIGN_IN, error));
             }
-
-            setCognitoUser(undefined);
-            auth.signOut();
-            reject(message);
           }
         )
         .catch(exception => {
+          logger.error('sign in exception: ', exception);
 
           setCognitoUser(undefined);
           auth.signOut();
-          reject(exception);
+          reject(new Error(ERROR_SIGN_IN, exception));
         });
     });
   }
@@ -349,14 +347,15 @@ export default class Provider implements ProviderInterface {
           error => {
             logger.error('mfa code validation error: ', error);
 
-            let message = (error.invalidCredentialsMessage || error.message || error);
-            if (message == 'Invalid code or auth state for the user.') {
-              message = 'invalidCode';
-            }
-
             setCognitoUser(undefined);
             auth.signOut();
-            reject(message);
+
+            let message = (error.invalidCredentialsMessage || error.message || error);
+            if (message == 'Invalid code or auth state for the user.') {
+              reject(new Error(ERROR_INVALID_CODE, error));
+            } else {
+              reject(new Error(ERROR_VALIDATE_MFA_CODE, error));
+            }
           }
         );
     });
@@ -380,7 +379,37 @@ export default class Provider implements ProviderInterface {
           },
           error => {
             logger.error('unable sign-out: ', error);
-            reject(error.message || error);
+            reject(new Error(ERROR_SIGN_OUT, error));
+          }
+        );
+    });
+  }
+
+  /**
+   * Config multi-factor authentication for the user
+   * 
+   * @param {User} User object with MFA preferences
+   */
+  async configureMFA(user: User): Promise<void> {
+
+    const logger = this.logger;
+    const auth = this.auth;
+    const cognitoUser = this.cognitoUser;
+
+    let mfaMethod: 'TOTP' | 'SMS' | 'NOMFA' = user.enableMFA
+      ? (user.enableTOTP ? 'TOTP' : 'SMS')
+      : 'NOMFA';
+
+    return new Promise<void>(function (resolve, reject) {
+      auth.setPreferredMFA(cognitoUser, mfaMethod)
+        .then(
+          () => {
+            logger.trace('successful update of MFA method.');
+            resolve();
+          },
+          error => {
+            logger.error('unable to configure MFA method: ', mfaMethod, error);
+            reject(new Error(ERROR_CONFIGURE_MFA, error));
           }
         );
     });
@@ -400,15 +429,15 @@ export default class Provider implements ProviderInterface {
     return new Promise(function (resolve, reject) {
       auth.verifyUserAttribute(cognitoUser, attribute)
         .then(
-          data => {
+          result => {
             logger.trace('successfully sent confirmation code ' +
-              'to initiate verification of attribute ', attribute);
+              'to initiate verification of attribute ', attribute, result);
 
             resolve();
           },
           error => {
             logger.error('error sending confirmation code for attribute: ', attribute, error);
-            reject(error.message || error);
+            reject(new Error(ERROR_SEND_VERIFICATION_CODE_FOR_ATTRIBUTE, error));
           }
         );
     });
@@ -429,13 +458,19 @@ export default class Provider implements ProviderInterface {
     return new Promise(function (resolve, reject) {
       auth.verifyUserAttributeSubmit(cognitoUser, attribute, code)
         .then(
-          data => {
-            logger.trace('successfully confirmed attribute ', attribute);
+          result => {
+            logger.trace('successfully confirmed attribute ', attribute, result);
             resolve();
           },
           error => {
             logger.error('error confirming verification code for attribute: ', attribute, error);
-            reject(error.message || error);
+
+            let message = (error.message || error);
+            if (message == 'Invalid verification code provided, please try again.') {
+              reject(new Error(ERROR_INVALID_CODE, error));
+            } else {
+              reject(new Error(ERROR_CONFIRM_VERIFICATION_CODE_FOR_ATTRIBUTE, error));
+            }
           }
         );
     });
@@ -465,6 +500,8 @@ export default class Provider implements ProviderInterface {
             logger.debug('reading attributes', attribNames,
               ' from user attributes:', attributes);
 
+            user.username = <string>cognitoUser?.getUsername();
+
             attributes
               .filter(
                 a => !attribNames || attribNames.find(
@@ -474,6 +511,15 @@ export default class Provider implements ProviderInterface {
               .map(a => {
 
                 switch (a.getName()) {
+                  case 'given_name':
+                    user.firstName = a.getValue();
+                    break;
+                  case 'middle_name':
+                    user.middleName = a.getValue();
+                    break;
+                  case 'family_name':
+                    user.familyName = a.getValue();
+                    break;
                   case 'email':
                     user.emailAddress = a.getValue();
                     break;
@@ -496,15 +542,15 @@ export default class Provider implements ProviderInterface {
                 }
               })
 
-            logger.debug('read user: ', user);
+            logger.debug('user attributes read from cognito: ', user);
             resolve(user);
           },
           error => {
-            reject(error);
+            reject(new Error(ERROR_READ_USER, error));
           }
         )
         .catch(exception => {
-          reject(exception);
+          reject(new Error(ERROR_READ_USER, exception));
         });
     });
   }
@@ -522,10 +568,11 @@ export default class Provider implements ProviderInterface {
     let attributes = {};
 
     [
+      'given_name',
+      'middle_name',
+      'family_name',
       'email',
-      'email_verified',
       'phone_number',
-      'phone_number_verified',
       'custom:preferences'
     ]
       .filter(
@@ -536,6 +583,27 @@ export default class Provider implements ProviderInterface {
       .map(a => {
 
         switch (a) {
+          case 'given_name':
+            if (user.firstName) {
+              attributes = Object.assign(attributes, {
+                given_name: user.firstName
+              });
+            }
+            break;
+          case 'middle_name':
+            if (user.middleName) {
+              attributes = Object.assign(attributes, {
+                middle_name: user.middleName
+              });
+            }
+            break;
+          case 'family_name':
+            if (user.familyName) {
+              attributes = Object.assign(attributes, {
+                family_name: user.familyName
+              });  
+            }
+            break;
           case 'email':
             attributes = Object.assign(attributes, {
               email: user.emailAddress
@@ -543,17 +611,7 @@ export default class Provider implements ProviderInterface {
             break;
           case 'phone_number':
             attributes = Object.assign(attributes, {
-              email_verified: user.emailAddressVerified
-            });
-            break;
-          case 'email_verified':
-            attributes = Object.assign(attributes, {
               phone_number: user.mobilePhone
-            });
-            break;
-          case 'phone_number_verified':
-            attributes = Object.assign(attributes, {
-              phone_number_verified: user.mobilePhoneVerified
             });
             break;
           case 'custom:preferences':
@@ -571,7 +629,25 @@ export default class Provider implements ProviderInterface {
         }
       });
 
-    this.logger.debug('saving user attributes: ', attributes);
-    await this.auth.updateUserAttributes(this.cognitoUser, attributes);
+    const logger = this.logger;
+    const auth = this.auth;
+    const cognitoUser = this.cognitoUser;
+
+    return new Promise<void>(function (resolve, reject) {
+      logger.debug('saving user attributes: ', attributes, user);
+      auth.updateUserAttributes(cognitoUser, attributes)
+        .then(
+          result => {
+            logger.trace('successfully saved user attributes: ', result);
+            resolve();
+          },
+          error => {
+            reject(new Error(ERROR_SAVE_USER, error));
+          }
+        )
+        .catch(exception => {
+          reject(new Error(ERROR_SAVE_USER, exception));
+        });
+    });
   }
 }

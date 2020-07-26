@@ -11,8 +11,9 @@ export default class User {
 
   username: string;
 
-  firstName: string;
-  familyName: string;
+  firstName?: string;
+  middleName?: string;
+  familyName?: string;
 
   userConfirmed: boolean;
 
@@ -38,9 +39,6 @@ export default class User {
     this.username = username;
     this.password = password;
 
-    this.firstName = '';
-    this.familyName = '';
-
     this.userConfirmed = false;
 
     this.emailAddress = '';
@@ -63,6 +61,7 @@ export default class User {
   toJSON() {
     return {
       firstName: this.firstName,
+      middleName: this.middleName,
       familyName: this.familyName,
       emailAddress: this.emailAddress,
       emailAddressVerified: this.emailAddressVerified,
@@ -77,6 +76,7 @@ export default class User {
 
   fromJSON(data: {
     firstName: string
+    middleName: string
     familyName: string
     address: string
     emailAddress: string
@@ -89,17 +89,18 @@ export default class User {
     enableTOTP: boolean
     rememberFor24h: boolean
   }) {
-    this.firstName = data['firstName'];
-    this.familyName = data['familyName'];
-    this.emailAddress = data['emailAddress'];
-    this.emailAddressVerified = data['emailAddressVerified'];
-    this.mobilePhone = data['mobilePhone'];
-    this.mobilePhoneVerified = data['mobilePhoneVerified'];
-    this.profilePictureUrl = data['profilePictureUrl']
-    this.enableBiometric = data['enableBiometric'];
-    this.enableMFA = data['enableMFA'];
-    this.enableTOTP = data['enableTOTP'];
-    this.rememberFor24h = data['rememberFor24h'];
+    this.firstName = data.firstName;
+    this.middleName = data.middleName;
+    this.familyName = data.familyName;
+    this.emailAddress = data.emailAddress;
+    this.emailAddressVerified = data.emailAddressVerified;
+    this.mobilePhone = data.mobilePhone;
+    this.mobilePhoneVerified = data.mobilePhoneVerified;
+    this.profilePictureUrl = data.profilePictureUrl;
+    this.enableBiometric = data.enableBiometric;
+    this.enableMFA = data.enableMFA;
+    this.enableTOTP = data.enableTOTP;
+    this.rememberFor24h = data.rememberFor24h;
   }
 
   /**
