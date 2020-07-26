@@ -7,32 +7,32 @@ Parameters:
 Outputs:
   Region:
     Description: The AWS region of the user pool
-    Value: 
+    Value:
       Ref: AWS::Region
   UserPoolId:
     Description: The user pool Id
-    Value: 
+    Value:
       Ref: UserPool
   UserPoolWebClientId:
     Description: The user pool's web client Id
-    Value: 
+    Value:
       Ref: UserPoolWebClient
   # UserPoolWebClientSecret:
   #   Description: The user pool's web client secret
-  #   Value: 
+  #   Value:
   #     Fn::GetAtt: UserPoolWebClientInputs.appSecret
   UserPoolAppClientId:
     Description: The user pool's app client id
-    Value: 
+    Value:
       Ref: UserPoolAppClient
   UserPoolAppClientSecret:
     Description: The user pool's app client secret
-    Value: 
+    Value:
       Fn::GetAtt: UserPoolAppClientInputs.appSecret
   CognitoJSConfig:
     Description: The cognito configuration javascript import
     Value:
-      Fn::Sub: 
+      Fn::Sub:
         - |
           const awsconfig = {
             'aws_cognito_region': '${region}',
@@ -50,44 +50,44 @@ Outputs:
             Ref: UserPoolWebClient
 
 Resources:
-  # Allow the UserPool SMS Config to publish via the 
+  # Allow the UserPool SMS Config to publish via the
   # Simple Notification Service during MFA Process
-  SNSRole: 
+  SNSRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: 
+      RoleName:
         Fn::Sub: '${prefix}_snsRole'
-      AssumeRolePolicyDocument: 
+      AssumeRolePolicyDocument:
         Version: "2012-10-17"
-        Statement: 
+        Statement:
           - Sid: ""
             Effect: "Allow"
-            Principal: 
+            Principal:
               Service: "cognito-idp.amazonaws.com"
-            Action: 
+            Action:
               - "sts:AssumeRole"
-            Condition: 
+            Condition:
               StringEquals:
                 sts:ExternalId:
                   Fn::Sub: '${prefix}_roleExternalId'
-      Policies: 
-        - PolicyName: 
+      Policies:
+        - PolicyName:
             Fn::Sub: '${prefix}_snsPolicy'
-          PolicyDocument: 
+          PolicyDocument:
             Version: "2012-10-17"
-            Statement: 
+            Statement:
               - Effect: "Allow"
-                Action: 
+                Action:
                   - "sns:Publish"
                 Resource: "*"
-  
+
   # The AWS Cognito User Pool
   UserPool:
     Type: AWS::Cognito::UserPool
     UpdateReplacePolicy: Retain
     DependsOn: SNSRole
     Properties:
-      UserPoolName: 
+      UserPoolName:
         Fn::Sub: '${prefix}_userPool'
       AccountRecoverySetting:
         RecoveryMechanisms:
@@ -95,6 +95,10 @@ Resources:
             Priority: 1
       AdminCreateUserConfig:
         AllowAdminCreateUserOnly: False
+        InviteMessageTemplate:
+          EmailSubject: Your temporary password for Identity Test Module
+          EmailMessage: Your username is {username} and temporary password for Identity Test Module is {####}. 
+          SMSMessage: Your username is {username} and temporary password for Identity Test Module is {####}. 
       MfaConfiguration: OPTIONAL
       AutoVerifiedAttributes:
         - email
@@ -102,17 +106,17 @@ Resources:
         Your verification code for Identity Test Module.
       EmailVerificationMessage:
         Your email address verification code for Identity Test Module is {####}.
-      SmsConfiguration: 
-        SnsCallerArn: 
+      SmsConfiguration:
+        SnsCallerArn:
           Fn::GetAtt: SNSRole.Arn
         ExternalId:
-          Fn::Sub: ${prefix}_roleExternalId       
+          Fn::Sub: ${prefix}_roleExternalId
       SmsAuthenticationMessage:
         Your SMS verification code for Identity Test Module is {####}.
       SmsVerificationMessage:
-        Your verification code is {####}.
+        Your mobile phone verification code for Identity Test Module is {####}.
       VerificationMessageTemplate:
-        DefaultEmailOption: CONFIRM_WITH_CODE
+        DefaultEmailOption: CONFIRM_WITH_CODE      
       Policies:
         PasswordPolicy:
           MinimumLength: 8
@@ -123,22 +127,16 @@ Resources:
       Schema:
         - Name: given_name
           Required: false
-          Mutable: true        
+          Mutable: true
         - Name: middle_name
           Required: false
-          Mutable: true        
+          Mutable: true
         - Name: family_name
           Required: false
-          Mutable: true        
-        - Name: address
-          Required: false
-          Mutable: true        
-        - Name: birthdate
-          Required: false
-          Mutable: true        
+          Mutable: true
         - Name: email
           Required: true
-          Mutable: true        
+          Mutable: true
         - Name: phone_number
           Required: true
           Mutable: true
@@ -162,12 +160,10 @@ Resources:
         - ALLOW_USER_PASSWORD_AUTH
         - ALLOW_USER_SRP_AUTH
         - ALLOW_REFRESH_TOKEN_AUTH
-      ReadAttributes: 
+      ReadAttributes:
         - given_name
         - middle_name
         - family_name
-        - address
-        - birthdate
         - email
         - email_verified
         - phone_number
@@ -177,13 +173,11 @@ Resources:
         - given_name
         - middle_name
         - family_name
-        - address
-        - birthdate
         - email
         - phone_number
         - custom:preferences
       RefreshTokenValidity: 30
-      UserPoolId: 
+      UserPoolId:
         Ref: UserPool
 
   # Provide mobile application access to user pool
@@ -201,8 +195,6 @@ Resources:
         - given_name
         - middle_name
         - family_name
-        - address
-        - birthdate
         - email
         - email_verified
         - phone_number
@@ -212,13 +204,11 @@ Resources:
         - given_name
         - middle_name
         - family_name
-        - address
-        - birthdate
         - email
         - phone_number
         - custom:preferences
       RefreshTokenValidity: 30
-      UserPoolId: 
+      UserPoolId:
         Ref: UserPool
 
   ########################################
@@ -227,11 +217,11 @@ Resources:
 
   UserPoolClientFnRole:
     Type: 'AWS::IAM::Role'
-    DependsOn: 
+    DependsOn:
     - UserPoolWebClient
     - UserPoolAppClient
     Properties:
-      RoleName: 
+      RoleName:
         Fn::Sub: '${prefix}_userPoolClientInfoFn'
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
@@ -246,7 +236,7 @@ Resources:
     Type: 'AWS::Lambda::Function'
     DependsOn: UserPoolClientFnRole
     Properties:
-      FunctionName: 
+      FunctionName:
         Fn::Sub: '${prefix}_userPoolClientInfoFn'
       Code:
         ZipFile: |
@@ -275,15 +265,15 @@ Resources:
       Handler: index.handler
       Runtime: nodejs10.x
       Timeout: '300'
-      Role: 
+      Role:
         Fn::GetAtt: UserPoolClientFnRole.Arn
   UserPoolClientFnPolicy:
     Type: 'AWS::IAM::Policy'
     DependsOn: UserPoolClientFn
     Properties:
-      PolicyName: 
+      PolicyName:
         Fn::Sub: '${prefix}_userPoolClientInfoFn'
-      Roles: 
+      Roles:
         - Ref: UserPoolClientFnRole
       PolicyDocument:
         Version: '2012-10-17'
@@ -291,15 +281,15 @@ Resources:
           - Effect: Allow
             Action:
               - 'cognito-idp:DescribeUserPoolClient'
-            Resource: 
+            Resource:
               Fn::GetAtt: UserPool.Arn
   UserPoolClientFnLogPolicy:
-    DependsOn: UserPoolClientFnPolicy  
+    DependsOn: UserPoolClientFnPolicy
     Type: 'AWS::IAM::Policy'
     Properties:
-      PolicyName: 
+      PolicyName:
         Fn::Sub: '${prefix}_userPoolClientInfoFn_log'
-      Roles: 
+      Roles:
         - Ref: UserPoolClientFnRole
       PolicyDocument:
         Version: 2012-10-17
@@ -309,28 +299,28 @@ Resources:
               - 'logs:CreateLogGroup'
               - 'logs:CreateLogStream'
               - 'logs:PutLogEvents'
-            Resource: 
+            Resource:
               Fn::Sub:
                 - arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${lambda}:log-stream:*
-                - lambda: 
+                - lambda:
                     Ref: UserPoolClientFn
   # UserPoolWebClientInputs:
   #   Type: 'Custom::LambdaCallout'
   #   DependsOn: UserPoolClientFnLogPolicy
   #   Properties:
-  #     ServiceToken: 
+  #     ServiceToken:
   #       Fn::GetAtt: UserPoolClientFn.Arn
   #     clientId:
   #       Ref: UserPoolWebClient
-  #     userPoolId: 
+  #     userPoolId:
   #       Ref: UserPool
   UserPoolAppClientInputs:
     Type: 'Custom::LambdaCallout'
     DependsOn: UserPoolClientFnLogPolicy
     Properties:
-      ServiceToken: 
+      ServiceToken:
         Fn::GetAtt: UserPoolClientFn.Arn
       clientId:
         Ref: UserPoolAppClient
-      userPoolId: 
+      userPoolId:
         Ref: UserPool
