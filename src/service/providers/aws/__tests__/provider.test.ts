@@ -7,7 +7,7 @@ Object.defineProperty(global, 'fetch', {
 });
 
 // const sleep = promisify(setTimeout);
-jest.setTimeout(60000);
+jest.setTimeout(120000);
 
 // these tests are done end-to-end and require
 // a pre-confgured cognito user pool accessible 
@@ -32,7 +32,49 @@ Auth.configure({
   authenticationFlowType: 'USER_PASSWORD_AUTH'
 })
 
+// gmail test account credentials
+const gmail = require("gmail-tester");
+const GMAIL_CREDS_PATH = '../../../../../etc/gmail-creds.json';
+const GMAIL_AUTH_TOKEN_PATH = '../../../../../.gmail-token';
+
+async function lookupCodeFromEmail(subject: string, bodyPattern: RegExp): Promise<string> {
+  console.info('Waiting for an email with a verification or authentication code...');
+
+  // pause to allow propagation of verification or 
+  // authentication message to test email account
+  await sleep(10000);
+
+  let email = await gmail.check_inbox(
+    path.resolve(__dirname, GMAIL_CREDS_PATH),
+    path.resolve(__dirname, GMAIL_AUTH_TOKEN_PATH),
+    {
+      subject: subject,
+      wait_time_sec: 10,
+      max_wait_time_sec: 60,
+      after: signUpTime,
+      include_body: true
+    }
+  );
+
+  expect(email).toBeDefined();
+  expect(email.receiver).toEqual('test.appbricks@gmail.com');
+
+  let matches = bodyPattern.exec(email.body.html);
+  expect(matches).toBeDefined();
+  let code = matches![1];
+  expect(code).toBeDefined();
+  expect(code.length).toBeGreaterThan(0);
+  return code;
+}
+
 import { LOG_LEVEL_TRACE, setLogLevel, sleep } from '@appbricks/utils';
+
+// set log levels
+if (process.env.DEBUG) {
+  Amplify.Logger.LOG_LEVEL = 'DEBUG';
+  setLogLevel(LOG_LEVEL_TRACE);
+}
+
 import User from '../../../../model/user';
 import Provider from '../provider';
 
@@ -47,17 +89,6 @@ import {
 
 let provider = new Provider(Auth);
 
-// gmail test account credentials
-const gmail = require("gmail-tester");
-const GMAIL_CREDS_PATH = '../../../../../etc/gmail-creds.json';
-const GMAIL_AUTH_TOKEN_PATH = '../../../../../.gmail-token';
-
-// set log levels
-if (process.env.DEBUG) {
-  Amplify.Logger.LOG_LEVEL = 'DEBUG';
-  setLogLevel(LOG_LEVEL_TRACE);
-}
-
 it('detects invalid initial session', async () => {
   expect(await provider.validateSession()).toBeFalsy();
 });
@@ -68,7 +99,6 @@ it('detects invalid initial session', async () => {
 // for the verification message
 let signUpTime = new Date();
 let signUpUserName = 'appbricks-test-user-' + signUpTime.getTime();
-let verificationCode: string;
 
 it('registers a new user, confirms registration and signs-in', async () => {
 
@@ -82,46 +112,29 @@ it('registers a new user, confirms registration and signs-in', async () => {
   await provider.signUp(user)
     .then(userConfirmed => expect(userConfirmed).toBeFalsy());
 
-  // pause to allow propagation of
-  // verification email to test email
-  // account
-  await sleep(10000);
-
   console.info('Attempting to sign-in and expecting failure as user has not been confirmed...');
   await provider.signIn(signUpUserName, '@ppBr!cks2020')
     .catch(err => expect(err.name).toEqual(ERROR_NOT_CONFIRMED));
-
-  console.info('Waiting for new user verification email...');
-  const email = await gmail.check_inbox(
-    path.resolve(__dirname, GMAIL_CREDS_PATH),
-    path.resolve(__dirname, GMAIL_AUTH_TOKEN_PATH),
-    {
-      subject: "Your verification code for Identity Test Module",
-      wait_time_sec: 10,
-      max_wait_time_sec: 60,
-      after: signUpTime,
-      include_body: true
-    }
-  );
-
-  expect(email).toBeDefined();
-  expect(email.receiver).toEqual('test.appbricks@gmail.com');
-  console.info("Verification email with code was found...", email);
-
-  let bodyPattern = /^Your email address verification code for Identity Test Module is ([0-9]+).$/;
-  let matches = bodyPattern.exec(email.body.html);
-  expect(matches).toBeDefined();
-  verificationCode = matches![1];
 
   console.info('Attempting to confirm newly registered user with invalid code and expecting error...');
   await provider.confirmSignUpCode(user, '999999')
     .catch(err => expect(err.name).toEqual(ERROR_INVALID_CODE));
 
-  console.info('Confirming newly registered user with valid code...');
-  expect(verificationCode).toBeDefined();
-  expect(verificationCode.length).toBeGreaterThan(0);
-  
-  await provider.confirmSignUpCode(user, verificationCode)
+  let verificationCode1 = await lookupCodeFromEmail(
+    'Your verification code for Identity Test Module',
+    /^Your email address verification code for Identity Test Module is ([0-9]+).$/);
+
+  console.info('Requesting new sign code...');
+  await provider.resendSignUpCode(user);
+
+  let verificationCode2 = await lookupCodeFromEmail(
+    'Your verification code for Identity Test Module',
+    /^Your email address verification code for Identity Test Module is ([0-9]+).$/);
+
+  expect(verificationCode2).not.toEqual(verificationCode1);
+
+  console.info(`Confirming newly registered user with code ${verificationCode2}...`);  
+  await provider.confirmSignUpCode(user, verificationCode2)
     .then(confirm => expect(confirm).toBeTruthy());
 
   console.info('Signing in with an invalid password and expecting an error...');
@@ -145,38 +158,15 @@ it('initiates verification of the new user\'s mobile phone', async () => {
   console.info('Initiating phone number verification...')
   await provider.sendVerificationCodeForAttribute('phone_number');
 
-  // pause to allow propagation of
-  // SMS to test email account
-  await sleep(10000);
-
-  console.info('Waiting for phone number verification text to be forwarded to the test email inbox...');
-  const email = await gmail.check_inbox(
-    path.resolve(__dirname, GMAIL_CREDS_PATH),
-    path.resolve(__dirname, GMAIL_AUTH_TOKEN_PATH),
-    {
-      subject: "New text message from",
-      wait_time_sec: 10,
-      max_wait_time_sec: 60,
-      after: signUpTime,
-      include_body: true
-    }
-  );
-
-  expect(email).toBeDefined();
-  expect(email.receiver).toEqual('test.appbricks@gmail.com');
-  console.log("Email with text message!", email);
-
-  let bodyPattern = /Your mobile phone verification code for Identity Test Module is ([0-9]+)/;
-  let matches = bodyPattern.exec(email.body.html);
-  expect(matches).toBeDefined();
-  expect(matches!.length).toBeGreaterThan(0);
-  verificationCode = matches![1];
+  let verificationCode = await lookupCodeFromEmail(
+    'New text message from',
+    /Your mobile phone verification code for Identity Test Module is ([0-9]+)/);
 
   console.info('Attempting to confirm phone number with invalid verification code and expecting an error...');
   await provider.confirmVerificationCodeForAttribute('phone_number', '0000')
     .catch(err => expect(err.name).toEqual(ERROR_INVALID_CODE));
 
-  console.info('Confirming phone number with valid verification code...');
+  console.info(`Confirming phone number with verification code ${verificationCode}...`);
   await provider.confirmVerificationCodeForAttribute('phone_number', verificationCode);
 });
 
@@ -219,35 +209,12 @@ it('signs in using mfa and reads the user\'s attributes', async () => {
   await provider.signIn(testUser, '@ppBr!cks2020')
     .then(authType => expect(authType).toEqual(AUTH_MFA_SMS));
 
-  // pause to allow propagation of
-  // SMS to test email account
-  await sleep(10000);
+  let authCode = await lookupCodeFromEmail(
+    'New text message from',
+    /Your SMS authentication code for Identity Test Module is ([0-9]+)/);
 
-  console.info('Waiting for phone number verification text to be forwarded to the test email inbox...');
-  const email = await gmail.check_inbox(
-    path.resolve(__dirname, GMAIL_CREDS_PATH),
-    path.resolve(__dirname, GMAIL_AUTH_TOKEN_PATH),
-    {
-      subject: "New text message from",
-      wait_time_sec: 10,
-      max_wait_time_sec: 60,
-      after: signUpTime,
-      include_body: true
-    }
-  );
-
-  expect(email).toBeDefined();
-  expect(email.receiver).toEqual('test.appbricks@gmail.com');
-  console.log("Email with text message!", email);
-
-  let bodyPattern = /Your SMS authentication code for Identity Test Module is ([0-9]+)/;
-  let matches = bodyPattern.exec(email.body.html);
-  expect(matches).toBeDefined();
-  expect(matches!.length).toBeGreaterThan(0);
-  verificationCode = matches![1];
-
-  console.info('Performing MFA authentication with valid code...');
-  await provider.validateMFACode(verificationCode);
+  console.info(`Performing MFA authentication with valid code ${authCode}...`);
+  await provider.validateMFACode(authCode);
   expect(await provider.isLoggedIn()).toBeTruthy();
 
   let user = await provider.readUser();
@@ -265,4 +232,33 @@ it('signs in using mfa and reads the user\'s attributes', async () => {
 
   await provider.signOut();
   expect(await provider.isLoggedIn()).toBeFalsy();
-})
+});
+
+it('does a password reset and signs-in using the new password', async () => {
+
+  let user = new User();
+  user.username = testUser;
+
+  console.info('Initiating a password reset flow...');
+  await provider.resetPassword(user);
+
+  let resetCode = await lookupCodeFromEmail(
+    'Your verification code for Identity Test Module',
+    /^Your email address verification code for Identity Test Module is ([0-9]+).$/);
+
+  console.info(`Updating user with new password using confirmation code ${resetCode}...`);
+  user.password = '@ppBricks1!2@';
+  await provider.updatePassword(user, resetCode);
+
+  console.info(`Logging in test user ${testUser} with new password...`);
+  await provider.signIn(user.username, user.password)
+    .then(authType => expect(authType).toEqual(AUTH_MFA_SMS));
+
+  let authCode = await lookupCodeFromEmail(
+    'New text message from',
+    /Your SMS authentication code for Identity Test Module is ([0-9]+)/);
+
+  console.info(`Performing MFA authentication with code ${authCode}...`);
+  await provider.validateMFACode(authCode);
+  expect(await provider.isLoggedIn()).toBeTruthy();
+});
