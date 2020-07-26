@@ -112,7 +112,7 @@ Resources:
         ExternalId:
           Fn::Sub: ${prefix}_roleExternalId
       SmsAuthenticationMessage:
-        Your SMS verification code for Identity Test Module is {####}.
+        Your SMS authentication code for Identity Test Module is {####}.
       SmsVerificationMessage:
         Your mobile phone verification code for Identity Test Module is {####}.
       VerificationMessageTemplate:
