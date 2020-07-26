@@ -25,7 +25,11 @@ const logger = new Logger('configure-mfa.test');
 // test reducer validates action flows
 const requestTester = requestTesterForUserOnlyRequests(logger, CONFIGURE_MFA_REQ);
 
+var isLoggedIn = false;
 const mockProvider = createMockProvider();
+mockProvider.isLoggedIn = (): Promise<boolean> => {
+  return Promise.resolve(isLoggedIn);
+}
 mockProvider.configureMFA = (user: User): Promise<void> => {
   if (user.username.length > 0) {
     expectTestUserToBeSet(user);
@@ -50,16 +54,21 @@ let rootEpic = combineEpicsWithGlobalErrorHandler(authService.epics())
 epicMiddleware.run(rootEpic);
 
 it('dispatches an action to configure MFA for a user', async () => {
+  // expect error as user is not logged in
   configureMFAAction(store.dispatch, getTestUser());
+  isLoggedIn = true;
 
   // expect error from provider call as user is empty
   configureMFAAction(store.dispatch, new User());
+
+  // expect no errors
+  configureMFAAction(store.dispatch, getTestUser());
 });
 
 it('calls reducer as expected when configure MFA action is dispatched', () => {
-  expect(requestTester.reqCounter).toEqual(2);
+  expect(requestTester.reqCounter).toEqual(3);
   expect(requestTester.okCounter).toEqual(1);
-  expect(requestTester.errorCounter).toEqual(1);
+  expect(requestTester.errorCounter).toEqual(2);
 });
 
 it('has saved the correct user changes to the state', () => {

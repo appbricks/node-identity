@@ -42,16 +42,20 @@ export const requestTesterForUserOnlyRequests = (logger: Logger, reqActionType: 
       return {...state, user: user!}
     },
     (counter, state, action): AuthUserState => {
-      expect(counter).toEqual(1);
+      expect(counter).toBeLessThanOrEqual(2);
 
       if (code) {
         // this tester is for a user+code - error created with invalid code
         expect(action.payload!.message).toEqual('Error: invalid code');
         expect((<AuthUserPayload>action.meta.relatedAction!.payload).code!).not.toEqual(code);
-      } else {
+
+      } else if ((<AuthUserPayload>action.meta.relatedAction!.payload).user.username.length == 0) {
         // this tester is for a user - error created with empty username
         expect(action.payload!.message).toEqual('Error: zero length username');
         expect((<AuthUserPayload>action.meta.relatedAction!.payload).user!.username.length).toEqual(0);
+
+      } else {
+        expect(action.payload!.message).toEqual('Error: No user logged in. The user needs to be logged in before MFA can be configured.');
       }
       return state;
     }
