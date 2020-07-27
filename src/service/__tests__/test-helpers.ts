@@ -5,32 +5,20 @@ import Provider from '../provider';
 import User from '../../model/user';
 
 import { AuthUserPayload, SERVICE_RESPONSE_OK } from '../action';
-import { AuthUserState } from '../../state/state';
+import { AuthUserState } from '../state';
 
 export const requestTesterForUserOnlyRequests = (logger: Logger, reqActionType: string, checkConfirmed = false, code?: string) => {
   return new ServiceRequestTester<AuthUserPayload>(logger, reqActionType,
     (counter: number, state, action): AuthUserState => {
+      expect(action.meta.relatedAction).toBeUndefined();
+      
       let payload = action.payload!;
       expect(payload.user).toBeDefined();
       if (code) { expect(payload.code).toBeDefined(); }
-      expect(action.meta.relatedAction).toBeUndefined();
 
-      switch (counter) {
-        case 1: {
-          expectTestUserToBeSet(payload.user!);
-          if (code) { expect(payload.code!).toEqual(code); }
-          break;
-        }
-        case 2: {
-          // test request with errors
-          if (code) {
-            // request with invalid code
-            expect(payload.code!).not.toEqual(code!);
-          } else {
-            // request with error in user object
-            expect(payload.user.username.length).toEqual(0);
-          }
-        }
+      if (counter == 1) {
+        expectTestUserToBeSet(payload.user!);
+        if (code) { expect(payload.code!).toEqual(code); }
       }
       return state;
     },
@@ -42,17 +30,20 @@ export const requestTesterForUserOnlyRequests = (logger: Logger, reqActionType: 
       return {...state, user: user!}
     },
     (counter, state, action): AuthUserState => {
-      expect(counter).toBeLessThanOrEqual(2);
+      let payload = <AuthUserPayload>action.meta.relatedAction!.payload;
 
       if (code) {
-        // this tester is for a user+code - error created with invalid code
+        // this test is for error when there is an invalid code
         expect(action.payload!.message).toEqual('Error: invalid code');
-        expect((<AuthUserPayload>action.meta.relatedAction!.payload).code!).not.toEqual(code);
+        expect(payload.code!).not.toEqual(code);
 
-      } else if ((<AuthUserPayload>action.meta.relatedAction!.payload).user.username.length == 0) {
-        // this tester is for a user - error created with empty username
-        expect(action.payload!.message).toEqual('Error: zero length username');
-        expect((<AuthUserPayload>action.meta.relatedAction!.payload).user!.username.length).toEqual(0);
+      } else if (payload.user.username == 'error') {
+        // this test is for error when error is returned by the service
+        expect(action.payload!.message).toEqual('Error: invalid username');
+
+      }  else if (!payload.user.isValid()) {
+        // this test is for error when user is invalid
+        expect(action.payload!.message).toEqual('Error: Insufficient user data provided for sign-up.');
 
       } else {
         expect(action.payload!.message).toEqual('Error: No user logged in. The user needs to be logged in before MFA can be configured.');
@@ -141,15 +132,6 @@ type ActionValidator<T> = (
   action: Action<T>
 ) => AuthUserState;
 
-export const mockProviderCallWithUser = (user: User): Promise<boolean | void> => {
-  if (user.username.length > 0) {
-    expectTestUserToBeSet(user);
-    return Promise.resolve(true);
-  } else {
-    return Promise.reject(new Error('zero length username'));
-  }
-}
-
 export const createMockProvider = (): Provider => {
   return <Provider> {
     signUp: (user: User): Promise<boolean> => Promise.reject('unexpected invocation'),
@@ -174,6 +156,8 @@ export const getTestUser = (): User => {
 
   let user = new User();
   user.username = 'johndoe';
+  user.firstName = 'John';
+  user.familyName = 'Doe';
   user.emailAddress = 'johndoe@gmail.com';
   user.mobilePhone = '9999999999';
   user.enableBiometric = true;
@@ -186,6 +170,8 @@ export const expectTestUserToBeSet = (user: User | undefined, userConfirmed: boo
 
   expect(user).toBeDefined();
   expect(user!.username).toEqual('johndoe');
+  expect(user!.firstName).toEqual('John');
+  expect(user!.familyName).toEqual('Doe');
   expect(user!.emailAddress).toEqual('johndoe@gmail.com');
   expect(user!.mobilePhone).toEqual('9999999999');
   expect(user!.isConfirmed()).toEqual(userConfirmed);
