@@ -4,10 +4,19 @@
 
 const TIMEOUT = 24 * 60 * 60 * 1000; // 24 hours
 
+export enum UserStatus {
+  Unknown = 0,
+  Unregistered,
+  Unconfirmed,
+  Confirmed
+}
+
 /**
  * User Identity
  */
 export default class User {
+
+  status: UserStatus;
 
   username: string;
 
@@ -36,6 +45,7 @@ export default class User {
 
   constructor(username = '', password = '') {
 
+    this.status = UserStatus.Unknown;
     this.username = username;
     this.password = password;
 
@@ -60,6 +70,7 @@ export default class User {
 
   toJSON() {
     return {
+      userStatus: this.status,
       firstName: this.firstName,
       middleName: this.middleName,
       familyName: this.familyName,
@@ -75,6 +86,7 @@ export default class User {
   }
 
   fromJSON(data: {
+    status: UserStatus,
     firstName: string
     middleName: string
     familyName: string
@@ -89,6 +101,7 @@ export default class User {
     enableTOTP: boolean
     rememberFor24h: boolean
   }) {
+    this.status = data.status;
     this.firstName = data.firstName;
     this.middleName = data.middleName;
     this.familyName = data.familyName;
@@ -112,7 +125,11 @@ export default class User {
     if (this.firstName && this.firstName.length > 0
       && this.familyName && this.familyName.length > 0) {
 
-      return this.firstName + ' ' + this.familyName;
+      if (this.middleName && this.middleName.length > 0) {
+        return this.firstName + ' ' + this.middleName + ' ' + this.familyName;
+      } else {
+        return this.firstName + ' ' + this.familyName;
+      }
     } else {
       return this.username;
     }
@@ -124,9 +141,11 @@ export default class User {
    */
   isValid() {
     return (
-      this.username.length > 0 &&
-      this.emailAddress.length > 0 &&
-      this.mobilePhone.length > 0
+      this.username && this.username.length > 0 &&
+      this.firstName && this.firstName.length > 0 &&
+      this.familyName && this.familyName.length > 0 &&
+      this.emailAddress && this.emailAddress.length > 0 &&
+      this.mobilePhone && this.mobilePhone.length > 0
     );
   }
 

@@ -5,7 +5,7 @@ import { Auth } from 'aws-amplify';
 import { Logger, Error } from '@appbricks/utils';
 
 import ProviderInterface from '../../provider'
-import User from '../../../model/user'
+import User, { UserStatus } from '../../../model/user'
 
 import {
   AUTH_NO_MFA,
@@ -501,6 +501,7 @@ export default class Provider implements ProviderInterface {
               ' from user attributes:', attributes);
 
             user.username = <string>cognitoUser?.getUsername();
+            user.status = UserStatus.Confirmed;
 
             attributes
               .filter(

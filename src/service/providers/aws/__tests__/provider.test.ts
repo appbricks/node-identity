@@ -75,7 +75,7 @@ if (process.env.DEBUG) {
   setLogLevel(LOG_LEVEL_TRACE);
 }
 
-import User from '../../../../model/user';
+import User, { UserStatus } from '../../../../model/user';
 import Provider from '../provider';
 
 import {
@@ -218,6 +218,7 @@ it('signs in using mfa and reads the user\'s attributes', async () => {
   expect(await provider.isLoggedIn()).toBeTruthy();
 
   let user = await provider.readUser();
+  expect(user.status).toEqual(UserStatus.Confirmed);
   expect(user.username).toEqual(testUser);
   expect(user.firstName).toEqual('John');
   expect(user.middleName).toEqual('Kai');
