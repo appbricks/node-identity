@@ -57,7 +57,7 @@ export default class Provider implements ProviderInterface {
   /**
    * Sets the current authenticated user
    * 
-   * @param {CognitoUser} cognitoUser  Cognitor user instance
+   * @param {CognitoUser} cognitoUser  Cognito user instance
    */
   _setCognitoUser(cognitoUser?: CognitoUser) {
     this.cognitoUser = cognitoUser;
@@ -66,7 +66,7 @@ export default class Provider implements ProviderInterface {
   /**
    * Signs up a user
    * 
-   * @param {User} user  User object with the sign-up details
+   * @param {User} user  user object with the sign-up details
    */
   async signUp(user: User): Promise<boolean> {
 
@@ -109,15 +109,16 @@ export default class Provider implements ProviderInterface {
   /**
    * Resend a code to the given user
    * 
-   * @param {User} user 
+   * @param {string} username  the name of the user for whom the
+   *                           sign-up code needs to be resent
    */
-  async resendSignUpCode(user: User): Promise<string> {
+  async resendSignUpCode(username: string): Promise<string> {
 
     const logger = this.logger;
     const auth = this.auth;
 
     return new Promise<string>(function (resolve, reject) {
-      auth.resendSignUp(user.username)
+      auth.resendSignUp(username)
         .then(
           data => {
             logger.trace('successfully resent sign-up confirmation code');
@@ -134,16 +135,16 @@ export default class Provider implements ProviderInterface {
   /**
    * Confirm the registration of a particular user
    * 
-   * @param {User} user    The user's whose registration is to be verified
-   * @param {string} code  The code that was sent for validation
+   * @param {string} username  the user's whose registration is to be verified
+   * @param {string} code      the code that was sent for validation
    */
-  async confirmSignUpCode(user: User, code: string): Promise<boolean> {
+  async confirmSignUpCode(username: string, code: string): Promise<boolean> {
 
     const logger = this.logger;
     const auth = this.auth;
 
     return new Promise<boolean>(function (resolve, reject) {
-      auth.confirmSignUp(user.username, code)
+      auth.confirmSignUp(username, code)
         .then(
           result => {
             logger.trace('successful confirmation: ', result);
@@ -166,15 +167,15 @@ export default class Provider implements ProviderInterface {
   /**
    * Initiates a password reset flow for the given user.
    * 
-   * @param {User} user 
+   * @param {string} username  the user whose password needs to be reset
    */
-  async resetPassword(user: User): Promise<void> {
+  async resetPassword(username: string): Promise<void> {
     
     const logger = this.logger;
     const auth = this.auth;
 
     return new Promise<void>(function (resolve, reject) {
-      auth.forgotPassword(user.username)
+      auth.forgotPassword(username)
         .then(
           () => {
             logger.trace('reset password flow successfully initiated.');
@@ -202,16 +203,17 @@ export default class Provider implements ProviderInterface {
   /**
    * Updates the given user's password validating the change with the given code
    * 
-   * @param {User} user 
-   * @param {string} code 
+   * @param {string} username  the user whose password is being reset
+   * @param {string} password  the new password
+   * @param {string} code      the confirmation code for password reset
    */
-  async updatePassword(user: User, code: string): Promise<void> {
+  async updatePassword(username: string, password: string, code: string): Promise<void> {
     
     const logger = this.logger;
     const auth = this.auth;
 
     return new Promise<void>(function (resolve, reject) {
-      auth.forgotPasswordSubmit(user.username, code, user.password)
+      auth.forgotPasswordSubmit(username, code, password)
         .then(
           () => {
             logger.trace('password updated.');

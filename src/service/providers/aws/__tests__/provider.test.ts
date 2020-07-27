@@ -117,7 +117,7 @@ it('registers a new user, confirms registration and signs-in', async () => {
     .catch(err => expect(err.name).toEqual(ERROR_NOT_CONFIRMED));
 
   console.info('Attempting to confirm newly registered user with invalid code and expecting error...');
-  await provider.confirmSignUpCode(user, '999999')
+  await provider.confirmSignUpCode(user.username, '999999')
     .catch(err => expect(err.name).toEqual(ERROR_INVALID_CODE));
 
   let verificationCode1 = await lookupCodeFromEmail(
@@ -125,7 +125,7 @@ it('registers a new user, confirms registration and signs-in', async () => {
     /^Your email address verification code for Identity Test Module is ([0-9]+).$/);
 
   console.info('Requesting new sign code...');
-  await provider.resendSignUpCode(user);
+  await provider.resendSignUpCode(user.username);
 
   let verificationCode2 = await lookupCodeFromEmail(
     'Your verification code for Identity Test Module',
@@ -134,7 +134,7 @@ it('registers a new user, confirms registration and signs-in', async () => {
   expect(verificationCode2).not.toEqual(verificationCode1);
 
   console.info(`Confirming newly registered user with code ${verificationCode2}...`);  
-  await provider.confirmSignUpCode(user, verificationCode2)
+  await provider.confirmSignUpCode(user.username, verificationCode2)
     .then(confirm => expect(confirm).toBeTruthy());
 
   console.info('Signing in with an invalid password and expecting an error...');
@@ -237,22 +237,18 @@ it('signs in using mfa and reads the user\'s attributes', async () => {
 
 it('does a password reset and signs-in using the new password', async () => {
 
-  let user = new User();
-  user.username = testUser;
-
   console.info('Initiating a password reset flow...');
-  await provider.resetPassword(user);
+  await provider.resetPassword(testUser);
 
   let resetCode = await lookupCodeFromEmail(
     'Your verification code for Identity Test Module',
     /^Your email address verification code for Identity Test Module is ([0-9]+).$/);
 
   console.info(`Updating user with new password using confirmation code ${resetCode}...`);
-  user.password = '@ppBricks1!2@';
-  await provider.updatePassword(user, resetCode);
+  await provider.updatePassword(testUser, '@ppBricks1!2@', resetCode);
 
   console.info(`Logging in test user ${testUser} with new password...`);
-  await provider.signIn(user.username, user.password)
+  await provider.signIn(testUser, '@ppBricks1!2@')
     .then(authType => expect(authType).toEqual(AUTH_MFA_SMS));
 
   let authCode = await lookupCodeFromEmail(

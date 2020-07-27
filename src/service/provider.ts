@@ -17,35 +17,38 @@ import User from '../model/user';
   signUp(user: User): Promise<boolean>;
 
   /**
-   * Resend the signup code to the given user
+   * Resend a code to the given user
    * 
-   * @param {User} user  User object of user to resend sign-up code to
+   * @param {string} username  the name of the user for whom the
+   *                           sign-up code needs to be resent
    */
-  resendSignUpCode(user: User): Promise<string>;
+  resendSignUpCode(username: string): Promise<string>;
 
   /**
    * Confirm the registration of a particular user
    * 
-   * @param {User} user    The user's whose registration is to be verified
-   * @param {string} code  The code that was sent for validation
+   * @param {string} username  the user's whose registration is to be verified
+   * @param {string} code      the code that was sent for validation
    */
-  confirmSignUpCode(user: User, code: string): Promise<boolean>;
+  confirmSignUpCode(username: string, code: string): Promise<boolean>;
 
   /**
    * Initiates a password reset flow for the given user.
    * 
-   * @param {User} user 
+   * @param {string} username  the user whose password needs to be reset
    */
-  resetPassword(user: User): Promise<void>;
+  resetPassword(username: string): Promise<void>;
 
   /**
    * Updates the given user's password validating the change with the given code
    * 
-   * @param {User} user 
-   * @param {string} code 
+   * @param {string} username  the user whose password is being reset
+   * @param {string} password  the new password
+   * @param {string} code      the confirmation code for password reset
    */
-  updatePassword(user: User, code: string): Promise<void>;
+  updatePassword(username: string, password: string, code: string): Promise<void>;
 
+  
   /**
    * 
    * The following methods apply to the currently logged in user
