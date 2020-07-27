@@ -6,7 +6,7 @@ import { Logger, LOG_LEVEL_TRACE, setLogLevel, reduxLogger, combineEpicsWithGlob
 import User from '../../../model/user';
 import AuthService from '../../auth-service';
 
-import { AuthUserState } from '../../../state/state';
+import { AuthUserState } from '../../state';
 import { AuthLoggedInUserAttrPayload, CONFIRM_ATTRIBUTE_REQ } from '../../action';
 import { confirmAttributeAction } from '../../actions/confirm-attribute'
 

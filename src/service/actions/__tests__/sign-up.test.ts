@@ -27,12 +27,11 @@ const requestTester = requestTesterForUserOnlyRequests(logger, SIGN_UP_REQ, true
 
 const mockProvider = createMockProvider();
 mockProvider.signUp = (user: User): Promise<boolean> => {
-  if (user.username.length > 0) {
-    expectTestUserToBeSet(user);
-    return Promise.resolve(true);
-  } else {
-    return Promise.reject(new Error('zero length username'));
+  if (user.username == 'error') {
+    return Promise.reject(new Error('invalid username'));
   }
+  expectTestUserToBeSet(user);
+  return Promise.resolve(true);
 }
 
 let rootReducer = combineReducers({
@@ -50,16 +49,22 @@ let rootEpic = combineEpicsWithGlobalErrorHandler(authService.epics())
 epicMiddleware.run(rootEpic);
 
 it('dispatches an action to sign up a user', async () => {
-  signUpAction(store.dispatch, getTestUser());
+  let user = getTestUser();
+  signUpAction(store.dispatch, user);
 
   // Should throw an error
+  let userWithError = getTestUser();
+  userWithError.username = 'error';
+  signUpAction(store.dispatch, userWithError);
+
+  // Shoud throw another error as user is invalid
   signUpAction(store.dispatch, new User());
 });
 
 it('calls reducer as expected when sign up action is dispatched', () => {
-  expect(requestTester.reqCounter).toEqual(2);
+  expect(requestTester.reqCounter).toEqual(3);
   expect(requestTester.okCounter).toEqual(1);
-  expect(requestTester.errorCounter).toEqual(1);
+  expect(requestTester.errorCounter).toEqual(2);
 });
 
 it('has saved the correct user in the state', () => {

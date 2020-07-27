@@ -5,7 +5,7 @@ import { Logger, LOG_LEVEL_TRACE, setLogLevel, reduxLogger, combineEpicsWithGlob
 import User from '../../../model/user';
 import AuthService from '../../auth-service';
 
-import { AuthUserState } from '../../../state/state';
+import { AuthUserState } from '../../state';
 import { AuthMultiFactorAuthPayload, VALIDATE_MFA_CODE_REQ } from '../../action';
 import { validateMFACodeAction } from '../../actions/validate-mfa-code'
 

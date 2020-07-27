@@ -5,7 +5,7 @@ import { Logger, LOG_LEVEL_TRACE, setLogLevel, reduxLogger, combineEpicsWithGlob
 import AuthService from '../../auth-service';
 
 import User from '../../../model/user';
-import { AuthUserState } from '../../../state/state';
+import { AuthUserState } from '../../state';
 import { AuthSignInPayload, AuthUserPayload, SIGN_IN_REQ, READ_USER_REQ } from '../../action';
 import { signInAction } from '../../actions/sign-in';
 

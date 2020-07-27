@@ -31,12 +31,11 @@ mockProvider.isLoggedIn = (): Promise<boolean> => {
   return Promise.resolve(isLoggedIn);
 }
 mockProvider.configureMFA = (user: User): Promise<void> => {
-  if (user.username.length > 0) {
-    expectTestUserToBeSet(user);
-    return Promise.resolve();
-  } else {
-    return Promise.reject(new Error('zero length username'));
+  if (user.username == 'error') {
+    return Promise.reject(new Error('invalid username'));
   }
+  expectTestUserToBeSet(user);
+  return Promise.resolve();
 }
 
 let rootReducer = combineReducers({
@@ -58,8 +57,10 @@ it('dispatches an action to configure MFA for a user', async () => {
   configureMFAAction(store.dispatch, getTestUser());
   isLoggedIn = true;
 
-  // expect error from provider call as user is empty
-  configureMFAAction(store.dispatch, new User());
+  // Should throw an error
+  let userWithError = getTestUser();
+  userWithError.username = 'error';
+  configureMFAAction(store.dispatch, userWithError);
 
   // expect no errors
   configureMFAAction(store.dispatch, getTestUser());
