@@ -24,8 +24,6 @@ export default class User {
   middleName?: string;
   familyName?: string;
 
-  userConfirmed: boolean;
-
   emailAddress: string;
   emailAddressVerified: boolean;
 
@@ -48,8 +46,6 @@ export default class User {
     this.status = UserStatus.Unknown;
     this.username = username;
     this.password = password;
-
-    this.userConfirmed = false;
 
     this.emailAddress = '';
     this.emailAddressVerified = false;
@@ -154,10 +150,21 @@ export default class User {
    * been confirmed by either email or SMS.
    */
   isConfirmed() {
-    if (!this.userConfirmed) {
-      this.userConfirmed = this.emailAddressVerified || this.mobilePhoneVerified;
+    if (this.status == UserStatus.Unknown && 
+      this.emailAddressVerified || this.mobilePhoneVerified) {
+      
+      this.status = UserStatus.Confirmed;
     }
-    return this.userConfirmed;
+    return (this.status == UserStatus.Confirmed);
+  }
+
+  /**
+   * Sets the confirmation status for the user.
+   * 
+   * @param {boolean}  isConfirmed whether the user status should be set to confirmed 
+   */
+  setConfirmed(isConfirmed: boolean) {
+    this.status = isConfirmed ? UserStatus.Confirmed : UserStatus.Unconfirmed;
   }
 
   /**

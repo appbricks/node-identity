@@ -21,7 +21,7 @@ export const signUpEpic = (csProvider: Provider): Epic => {
         throw Error('Insufficient user data provided for sign-up.');
       }
 
-      user.userConfirmed = await csProvider.signUp(user);
+      user.setConfirmed(await csProvider.signUp(user));
       return createFollowUpAction(action, SERVICE_RESPONSE_OK);
     }
   );
