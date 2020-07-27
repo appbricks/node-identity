@@ -4,13 +4,13 @@ import { Action } from '@appbricks/utils';
 
 import User from '../model/user';
 
+export interface AuthStatePayload {
+  isLoggedIn?: boolean
+};
+
 export interface AuthUserPayload {
   user: User,
   code?: string
-};
-
-export interface AuthStatePayload {
-  isLoggedIn?: boolean
 };
 
 export interface AuthSignInPayload {
@@ -32,6 +32,9 @@ export interface AuthLoggedInUserAttrPayload {
 
 // Authentication dispatch function props
 export interface AuthActionProps {
+  // authentication initialization
+  loadAuthState: () => redux.Action
+
   // registration and configuration
   signUp: (user: User) => redux.Action
   resendSignUpCode: (user: User) => redux.Action
@@ -41,9 +44,6 @@ export interface AuthActionProps {
   // actions on current user in state
   resetPassword: () => redux.Action
   updatePassword: (code: string) => redux.Action
-
-  // authentication initialization
-  loadAuthState: () => redux.Action
 
   // user authentication
   signIn: (username: string, password: string) => redux.Action
