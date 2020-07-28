@@ -71,10 +71,14 @@ const rootEpic = combineEpicsWithGlobalErrorHandler(authService.epics())
 epicMiddleware.run(rootEpic);
 
 it('dispatches an action to sign up a user', async () => {
-  loadAuthStateAction(store.dispatch);
-  // set logged in state
+  let dispatch = AuthService.dispatchProps(store.dispatch)
+
+  // not logged in state
+  dispatch.loadAuthState();
+
+  // logged in state
   isLoggedIn = true;
-  loadAuthStateAction(store.dispatch);
+  dispatch.loadAuthState();
 });
 
 it('calls reducer as expected when sign up action is dispatched', () => {

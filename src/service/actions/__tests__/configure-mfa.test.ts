@@ -53,17 +53,19 @@ let rootEpic = combineEpicsWithGlobalErrorHandler(authService.epics())
 epicMiddleware.run(rootEpic);
 
 it('dispatches an action to configure MFA for a user', async () => {
+  let dispatch = AuthService.dispatchProps(store.dispatch)
+
   // expect error as user is not logged in
-  configureMFAAction(store.dispatch, getTestUser());
+  dispatch.configureMFA(getTestUser());
   isLoggedIn = true;
 
   // Should throw an error
   let userWithError = getTestUser();
   userWithError.username = 'error';
-  configureMFAAction(store.dispatch, userWithError);
+  dispatch.configureMFA(userWithError);
 
   // expect no errors
-  configureMFAAction(store.dispatch, getTestUser());
+  dispatch.configureMFA(getTestUser());
 });
 
 it('calls reducer as expected when configure MFA action is dispatched', () => {

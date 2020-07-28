@@ -50,10 +50,12 @@ const rootEpic = combineEpicsWithGlobalErrorHandler(authService.epics())
 epicMiddleware.run(rootEpic);
 
 it('dispatches an action to sign up a user', async () => {
+  let dispatch = AuthService.dispatchProps(store.dispatch)
+
   // expect no errors
-  updatePasswordAction(store.dispatch, 'johndoe', 'password', '12345');
+  dispatch.updatePassword('johndoe', 'password', '12345');
   // expect invalid code error
-  updatePasswordAction(store.dispatch, 'johndoe', 'password', '00000');
+  dispatch.updatePassword('johndoe', 'password', '00000');
 });
 
 it('calls reducer as expected when sign up action is dispatched', () => {

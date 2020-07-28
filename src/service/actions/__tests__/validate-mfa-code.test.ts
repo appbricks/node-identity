@@ -98,14 +98,17 @@ const rootEpic = combineEpicsWithGlobalErrorHandler(authService.epics())
 epicMiddleware.run(rootEpic);
 
 it('dispatches an action to sign up a user', async () => {
+  let dispatch = AuthService.dispatchProps(store.dispatch)
+
   // error as session alread logged in
   isLoggedIn = true;
-  validateMFACodeAction(store.dispatch, '12345');
+  dispatch.validateMFACode('12345');
   isLoggedIn = false;
+
   // error invalide code
-  validateMFACodeAction(store.dispatch, '00000');
+  dispatch.validateMFACode('00000');
   // succesful login
-  validateMFACodeAction(store.dispatch, '12345');
+  dispatch.validateMFACode('12345');
 });
 
 it('calls reducer as expected when sign up action is dispatched', () => {

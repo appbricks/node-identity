@@ -96,13 +96,15 @@ const rootEpic = combineEpicsWithGlobalErrorHandler(authService.epics())
 epicMiddleware.run(rootEpic);
 
 it('dispatches an action to sign up a user', async () => {
+  let dispatch = AuthService.dispatchProps(store.dispatch)
+
   // expect error as user is not logged in
-  confirmAttributeAction(store.dispatch, 'testAttr', '12345');
+  dispatch.confirmAttribute('testAttr', '12345');
   // expect no errors
   isLoggedIn = true;
-  confirmAttributeAction(store.dispatch, 'testAttr', '12345');
+  dispatch.confirmAttribute('testAttr', '12345');
   // expect error from provider call as user is empty
-  confirmAttributeAction(store.dispatch, '', '');
+  dispatch.confirmAttribute('', '');
 });
 
 it('calls reducer as expected when sign up action is dispatched', () => {
