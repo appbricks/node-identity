@@ -86,13 +86,6 @@ import User from '../model/user';
   signOut(): Promise<void>;
 
   /**
-   * Config multi-factor authentication for the user
-   * 
-   * @param {User} User object with MFA preferences
-   */
-  configureMFA(user: User): Promise<void>;
-
-  /**
    * Sends a verifaction code to validate the given attribute.
    * 
    * @param {User} User  User object with MFA preferences
@@ -108,15 +101,11 @@ import User from '../model/user';
   confirmVerificationCodeForAttribute(attribute: string, code: string): Promise<void>;
 
   /**
-   * Reads attributes of logged in user from the AWS Cognito backend.
+   * Config multi-factor authentication for the user
    * 
-   * @param {User} user             User object to populate with attributes read 
-   *                                from AWS Cognito
-   * @param {string[]} attribNames  List of attributes to read and populate user 
-   *                                object with. If this argument is not provided 
-   *                                then all attributes will be read
+   * @param {User} User object with MFA preferences
    */
-  readUser(attribNames?: string[]): Promise<User>;
+  configureMFA(user: User): Promise<void>;
 
   /**
    * Saves the user attributes to the AWS Cognito backend.
@@ -127,4 +116,15 @@ import User from '../model/user';
    *                                then all attributes will be read
    */
   saveUser(user: User, attribNames?: string[]): Promise<void>;
+
+  /**
+   * Reads attributes of logged in user from the AWS Cognito backend.
+   * 
+   * @param {User} user             User object to populate with attributes read 
+   *                                from AWS Cognito
+   * @param {string[]} attribNames  List of attributes to read and populate user 
+   *                                object with. If this argument is not provided 
+   *                                then all attributes will be read
+   */
+  readUser(attribNames?: string[]): Promise<User>;
 }

@@ -388,36 +388,6 @@ export default class Provider implements ProviderInterface {
   }
 
   /**
-   * Config multi-factor authentication for the user
-   * 
-   * @param {User} User object with MFA preferences
-   */
-  async configureMFA(user: User): Promise<void> {
-
-    const logger = this.logger;
-    const auth = this.auth;
-    const cognitoUser = this.cognitoUser;
-
-    let mfaMethod: 'TOTP' | 'SMS' | 'NOMFA' = user.enableMFA
-      ? (user.enableTOTP ? 'TOTP' : 'SMS')
-      : 'NOMFA';
-
-    return new Promise<void>(function (resolve, reject) {
-      auth.setPreferredMFA(cognitoUser, mfaMethod)
-        .then(
-          () => {
-            logger.trace('successful update of MFA method.');
-            resolve();
-          },
-          error => {
-            logger.error('unable to configure MFA method: ', mfaMethod, error);
-            reject(new Error(ERROR_CONFIGURE_MFA, error));
-          }
-        );
-    });
-  }
-
-  /**
    * Sends a verifaction code to validate the given attribute.
    * 
    * @param {User} User  User object with MFA preferences
@@ -479,82 +449,32 @@ export default class Provider implements ProviderInterface {
   }
 
   /**
-   * Reads attributes of logged in user from the AWS Cognito backend.
+   * Config multi-factor authentication for the user
    * 
-   * @param {User} user             User object to populate with attributes read 
-   *                                from AWS Cognito
-   * @param {string[]} attribNames  List of attributes to read and populate user 
-   *                                object with. If this argument is not provided 
-   *                                then all attributes will be read
+   * @param {User} User object with MFA preferences
    */
-  async readUser(attribNames?: string[]): Promise<User> {
+  async configureMFA(user: User): Promise<void> {
 
     const logger = this.logger;
     const auth = this.auth;
     const cognitoUser = this.cognitoUser;
-    const user = new User();
 
-    return new Promise<User>(function (resolve, reject) {
+    let mfaMethod: 'TOTP' | 'SMS' | 'NOMFA' = user.enableMFA
+      ? (user.enableTOTP ? 'TOTP' : 'SMS')
+      : 'NOMFA';
 
-      auth.userAttributes(cognitoUser)
+    return new Promise<void>(function (resolve, reject) {
+      auth.setPreferredMFA(cognitoUser, mfaMethod)
         .then(
-          attributes => {
-            logger.debug('reading attributes', attribNames,
-              ' from user attributes:', attributes);
-
-            user.username = <string>cognitoUser?.getUsername();
-            user.status = UserStatus.Confirmed;
-
-            attributes
-              .filter(
-                a => !attribNames || attribNames.find(
-                  name => (name == a.getName())
-                )
-              )
-              .map(a => {
-
-                switch (a.getName()) {
-                  case 'given_name':
-                    user.firstName = a.getValue();
-                    break;
-                  case 'middle_name':
-                    user.middleName = a.getValue();
-                    break;
-                  case 'family_name':
-                    user.familyName = a.getValue();
-                    break;
-                  case 'email':
-                    user.emailAddress = a.getValue();
-                    break;
-                  case 'phone_number':
-                    user.mobilePhone = a.getValue();
-                    break;
-                  case 'email_verified':
-                    user.emailAddressVerified = (a.getValue() == 'true');
-                    break;
-                  case 'phone_number_verified':
-                    user.mobilePhoneVerified = (a.getValue() == 'true');
-                    break;
-                  case 'custom:preferences':
-                    let prefs = JSON.parse(a.getValue());
-                    user.enableBiometric = prefs.enableBiometric;
-                    user.enableMFA = prefs.enableMFA;
-                    user.enableTOTP = prefs.enableTOTP;
-                    user.rememberFor24h = prefs.rememberFor24h;
-                    break;
-                }
-              })
-
-            logger.debug('user attributes read from cognito: ', user);
-            resolve(user);
+          () => {
+            logger.trace('successful update of MFA method.');
+            resolve();
           },
           error => {
-            reject(new Error(ERROR_READ_USER, error));
+            logger.error('unable to configure MFA method: ', mfaMethod, error);
+            reject(new Error(ERROR_CONFIGURE_MFA, error));
           }
-        )
-        .catch(exception => {
-          reject(new Error(ERROR_READ_USER, exception));
-        });
+        );
     });
   }
 
@@ -650,6 +570,86 @@ export default class Provider implements ProviderInterface {
         )
         .catch(exception => {
           reject(new Error(ERROR_SAVE_USER, exception));
+        });
+    });
+  }
+
+  /**
+   * Reads attributes of logged in user from the AWS Cognito backend.
+   * 
+   * @param {User} user             User object to populate with attributes read 
+   *                                from AWS Cognito
+   * @param {string[]} attribNames  List of attributes to read and populate user 
+   *                                object with. If this argument is not provided 
+   *                                then all attributes will be read
+   */
+  async readUser(attribNames?: string[]): Promise<User> {
+
+    const logger = this.logger;
+    const auth = this.auth;
+    const cognitoUser = this.cognitoUser;
+    const user = new User();
+
+    return new Promise<User>(function (resolve, reject) {
+
+      auth.userAttributes(cognitoUser)
+        .then(
+          attributes => {
+            logger.debug('reading attributes', attribNames,
+              ' from user attributes:', attributes);
+
+            user.username = <string>cognitoUser?.getUsername();
+            user.status = UserStatus.Confirmed;
+
+            attributes
+              .filter(
+                a => !attribNames || attribNames.find(
+                  name => (name == a.getName())
+                )
+              )
+              .map(a => {
+
+                switch (a.getName()) {
+                  case 'given_name':
+                    user.firstName = a.getValue();
+                    break;
+                  case 'middle_name':
+                    user.middleName = a.getValue();
+                    break;
+                  case 'family_name':
+                    user.familyName = a.getValue();
+                    break;
+                  case 'email':
+                    user.emailAddress = a.getValue();
+                    break;
+                  case 'phone_number':
+                    user.mobilePhone = a.getValue();
+                    break;
+                  case 'email_verified':
+                    user.emailAddressVerified = (a.getValue() == 'true');
+                    break;
+                  case 'phone_number_verified':
+                    user.mobilePhoneVerified = (a.getValue() == 'true');
+                    break;
+                  case 'custom:preferences':
+                    let prefs = JSON.parse(a.getValue());
+                    user.enableBiometric = prefs.enableBiometric;
+                    user.enableMFA = prefs.enableMFA;
+                    user.enableTOTP = prefs.enableTOTP;
+                    user.rememberFor24h = prefs.rememberFor24h;
+                    break;
+                }
+              })
+
+            logger.debug('user attributes read from cognito: ', user);
+            resolve(user);
+          },
+          error => {
+            reject(new Error(ERROR_READ_USER, error));
+          }
+        )
+        .catch(exception => {
+          reject(new Error(ERROR_READ_USER, exception));
         });
     });
   }
