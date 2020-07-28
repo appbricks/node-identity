@@ -62,10 +62,10 @@ const requestTester = new ServiceRequestTester<AuthMultiFactorAuthPayload>(logge
     let payload = <AuthMultiFactorAuthPayload>action.meta.relatedAction!.payload;
     expect(payload.mfaCode).toEqual('12345');
     expect(payload.isLoggedIn).toBeTruthy();
+
+    state.session.isLoggedIn = payload.isLoggedIn!;
     return {...state, 
-      session: {...state.session, 
-        isLoggedIn: payload.isLoggedIn! 
-      }
+      session: state.session
     };
   },
   (counter, state, action): AuthUserState => {
@@ -97,9 +97,9 @@ const store: any = createStore(
 const rootEpic = combineEpicsWithGlobalErrorHandler(authService.epics())
 epicMiddleware.run(rootEpic);
 
-it('dispatches an action to sign up a user', async () => {
-  let dispatch = AuthService.dispatchProps(store.dispatch)
+const dispatch = AuthService.dispatchProps(store.dispatch)
 
+it('dispatches an action to sign up a user', async () => {
   // error as session alread logged in
   isLoggedIn = true;
   dispatch.validateMFACode('12345');

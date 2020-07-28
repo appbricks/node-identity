@@ -2,7 +2,7 @@ import { Reducer } from 'redux';
 import { Logger, ERROR, Action, ErrorPayload } from '@appbricks/utils';
 
 import { SERVICE_RESPONSE_OK } from '../action';
-import { AuthUserState } from '../state';
+import { AuthUserState, initialAuthState } from '../state';
 import User from '../../model/user';
 
 export class ServiceRequestTester<T> {
@@ -13,12 +13,7 @@ export class ServiceRequestTester<T> {
   okCounter: number = 0;
   reqCounter: number = 0;
 
-  initialAuthState = <AuthUserState>{
-    session: {
-      isLoggedIn: false,
-      updatePending: false
-    }
-  };
+  initialAuthState = initialAuthState();
 
   matchRelatedAction: boolean;
 

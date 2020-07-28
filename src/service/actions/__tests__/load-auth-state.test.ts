@@ -2,12 +2,10 @@ import { combineReducers, createStore, applyMiddleware } from 'redux';
 import { createEpicMiddleware } from 'redux-observable';
 
 import { Logger, LOG_LEVEL_TRACE, setLogLevel, reduxLogger, combineEpicsWithGlobalErrorHandler } from '@appbricks/utils';
-import User from '../../../model/user';
 import AuthService from '../../auth-service';
 
 import { AuthUserState } from '../../state';
 import { AuthStatePayload, LOAD_AUTH_STATE_REQ } from '../../action';
-import { loadAuthStateAction } from '../../actions/load-auth-state'
 
 import { createMockProvider } from '../../__tests__/mock-provider';
 import { ServiceRequestTester } from '../../__tests__/request-tester';
@@ -49,10 +47,10 @@ const requestTester = new ServiceRequestTester<AuthStatePayload>(logger,
         break;
       }
     }
+        
+    state.session.isLoggedIn = payload.isLoggedIn!;
     return {...state, 
-      session: {...state.session, 
-        isLoggedIn: payload.isLoggedIn! 
-      }
+      session: state.session
     };
   }
 );
@@ -70,9 +68,9 @@ const store: any = createStore(
 const rootEpic = combineEpicsWithGlobalErrorHandler(authService.epics())
 epicMiddleware.run(rootEpic);
 
-it('dispatches an action to sign up a user', async () => {
-  let dispatch = AuthService.dispatchProps(store.dispatch)
+const dispatch = AuthService.dispatchProps(store.dispatch)
 
+it('dispatches an action to sign up a user', async () => {
   // not logged in state
   dispatch.loadAuthState();
 

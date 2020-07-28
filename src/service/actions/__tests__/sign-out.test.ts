@@ -2,12 +2,10 @@ import { combineReducers, createStore, applyMiddleware } from 'redux';
 import { createEpicMiddleware } from 'redux-observable';
 
 import { Logger, LOG_LEVEL_TRACE, setLogLevel, reduxLogger, combineEpicsWithGlobalErrorHandler } from '@appbricks/utils';
-import User from '../../../model/user';
 import AuthService from '../../auth-service';
 
 import { AuthUserState } from '../../state';
 import { AuthStatePayload, SIGN_OUT_REQ } from '../../action';
-import { signOutAction } from '../../actions/sign-out'
 
 import { createMockProvider } from '../../__tests__/mock-provider';
 import { ServiceRequestTester } from '../../__tests__/request-tester';
@@ -43,7 +41,7 @@ const requestTester = new ServiceRequestTester<AuthStatePayload>(logger,
   },
   (counter, state, action): AuthUserState => {
     expect(counter).toBe(1);
-    expect((<AuthStatePayload>action.meta.relatedAction).isLoggedIn).toBeFalsy();
+    expect((<AuthStatePayload>action.meta.relatedAction!.payload!).isLoggedIn).toBeFalsy();
     return state;
   },
   (counter, state, action): AuthUserState => {
@@ -65,8 +63,9 @@ const store: any = createStore(
 const rootEpic = combineEpicsWithGlobalErrorHandler(authService.epics())
 epicMiddleware.run(rootEpic);
 
+const dispatch = AuthService.dispatchProps(store.dispatch)
+
 it('dispatches an action to sign up a user', async () => {
-  let dispatch = AuthService.dispatchProps(store.dispatch)
   dispatch.signOut();
 });
 

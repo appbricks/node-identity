@@ -7,7 +7,6 @@ import AuthService from '../../auth-service';
 
 import { AuthUserState } from '../../state';
 import { AuthUserPayload, SAVE_USER_REQ } from '../../action';
-import { saveUserAction } from '../../actions/save-user'
 
 import { createMockProvider } from '../../__tests__/mock-provider';
 import { ServiceRequestTester } from '../../__tests__/request-tester';
@@ -70,8 +69,9 @@ const store: any = createStore(
 const rootEpic = combineEpicsWithGlobalErrorHandler(authService.epics())
 epicMiddleware.run(rootEpic);
 
+const dispatch = AuthService.dispatchProps(store.dispatch)
+
 it('dispatches an action to sign up a user', async () => {
-  let dispatch = AuthService.dispatchProps(store.dispatch)
   let user = getTestUser();
 
   // expect error as user is not logged in

@@ -3,12 +3,10 @@ import { createEpicMiddleware } from 'redux-observable';
 
 import { Logger, LOG_LEVEL_TRACE, setLogLevel, reduxLogger, combineEpicsWithGlobalErrorHandler } from '@appbricks/utils';
 
-import User from '../../../model/user';
 import AuthService from '../../auth-service';
 
 import { AuthUserState } from '../../state';
 import { AuthLoggedInUserAttrPayload, CONFIRM_ATTRIBUTE_REQ } from '../../action';
-import { confirmAttributeAction } from '../../actions/confirm-attribute'
 
 import { createMockProvider } from '../../__tests__/mock-provider';
 import { ServiceRequestTester } from '../../__tests__/request-tester';
@@ -95,9 +93,9 @@ let store: any = createStore(
 const rootEpic = combineEpicsWithGlobalErrorHandler(authService.epics())
 epicMiddleware.run(rootEpic);
 
-it('dispatches an action to sign up a user', async () => {
-  let dispatch = AuthService.dispatchProps(store.dispatch)
+const dispatch = AuthService.dispatchProps(store.dispatch)
 
+it('dispatches an action to sign up a user', async () => {
   // expect error as user is not logged in
   dispatch.confirmAttribute('testAttr', '12345');
   // expect no errors

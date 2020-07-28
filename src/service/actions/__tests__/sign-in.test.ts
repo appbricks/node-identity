@@ -7,7 +7,6 @@ import AuthService from '../../auth-service';
 import User from '../../../model/user';
 import { AuthUserState } from '../../state';
 import { AuthSignInPayload, AuthUserPayload, SIGN_IN_REQ, READ_USER_REQ } from '../../action';
-import { signInAction } from '../../actions/sign-in';
 
 import { AUTH_NO_MFA } from '../../constants';
 
@@ -73,12 +72,11 @@ const requestTester = new ServiceRequestTester<AuthSignInPayload>(logger,
         expect(payload.username).toEqual('johndoe');
         expect(payload.password).toEqual('@ppBricks2020');
         expect(payload.isLoggedIn).toBeTruthy();
+
+        state.session.isLoggedIn = true;
         return {
           ...state,
-          session: {
-            ...state.session,
-            isLoggedIn: true
-          }
+          session: state.session
         };
       }
       case READ_USER_REQ: {
@@ -122,9 +120,9 @@ const store: any = createStore(
 const rootEpic = combineEpicsWithGlobalErrorHandler(authService.epics())
 epicMiddleware.run(rootEpic);
 
-it('dispatches an action to sign up a user', async () => {  
-  let dispatch = AuthService.dispatchProps(store.dispatch)
+const dispatch = AuthService.dispatchProps(store.dispatch)
 
+it('dispatches an action to sign up a user', async () => {  
   // invalid login
   dispatch.signIn('johndoe', '00000');
   // successful login
@@ -147,7 +145,7 @@ it('has saved the correct user in the state', () => {
 
 it('it attempts to sign to an existing session', () => {
   // relogin attempt should return error as already logged in
-  signInAction(store.dispatch, 'johndoe', '@ppBricks2020');
+  dispatch.signIn('johndoe', '@ppBricks2020');
 });
 
 it('calls reducer as expected when sign up action is dispatched', () => {

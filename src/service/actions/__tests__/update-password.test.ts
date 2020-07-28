@@ -49,9 +49,9 @@ const store: any = createStore(
 const rootEpic = combineEpicsWithGlobalErrorHandler(authService.epics())
 epicMiddleware.run(rootEpic);
 
-it('dispatches an action to sign up a user', async () => {
-  let dispatch = AuthService.dispatchProps(store.dispatch)
+const dispatch = AuthService.dispatchProps(store.dispatch)
 
+it('dispatches an action to sign up a user', async () => {
   // expect no errors
   dispatch.updatePassword('johndoe', 'password', '12345');
   // expect invalid code error

@@ -7,7 +7,6 @@ import User from '../../../model/user';
 import AuthService from '../../auth-service';
 
 import { CONFIGURE_MFA_REQ } from '../../action';
-import { configureMFAAction } from '../../actions/configure-mfa'
 
 import { createMockProvider } from '../../__tests__/mock-provider';
 import createRequestTester, { getTestUser, expectTestUserToBeSet } from '../../__tests__/request-tester-user';
@@ -52,8 +51,9 @@ let authService = new AuthService(mockProvider);
 let rootEpic = combineEpicsWithGlobalErrorHandler(authService.epics())
 epicMiddleware.run(rootEpic);
 
+const dispatch = AuthService.dispatchProps(store.dispatch)
+
 it('dispatches an action to configure MFA for a user', async () => {
-  let dispatch = AuthService.dispatchProps(store.dispatch)
 
   // expect error as user is not logged in
   dispatch.configureMFA(getTestUser());

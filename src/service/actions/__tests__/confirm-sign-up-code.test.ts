@@ -3,11 +3,9 @@ import { createEpicMiddleware } from 'redux-observable';
 
 import { Logger, LOG_LEVEL_TRACE, setLogLevel, reduxLogger, combineEpicsWithGlobalErrorHandler } from '@appbricks/utils';
 
-import User from '../../../model/user';
 import AuthService from '../../auth-service';
 
 import { CONFIRM_SIGN_UP_CODE_REQ } from '../../action';
-import { confirmSignUpCodeAction } from '../../actions/confirm-sign-up-code'
 
 import { createMockProvider } from '../../__tests__/mock-provider';
 import createRequestTester from '../../__tests__/request-tester-username';
@@ -49,9 +47,9 @@ const store: any = createStore(
 const rootEpic = combineEpicsWithGlobalErrorHandler(authService.epics())
 epicMiddleware.run(rootEpic);
 
-it('dispatches an action to sign up a user', async () => {
-  let dispatch = AuthService.dispatchProps(store.dispatch)
+const dispatch = AuthService.dispatchProps(store.dispatch)
 
+it('dispatches an action to sign up a user', async () => {
   // expect no errors
   dispatch.confirmSignUpCode('johndoe', '12345');
   // expect invalid code error
