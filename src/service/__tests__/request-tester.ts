@@ -8,13 +8,13 @@ import User from '../../model/user';
 export class ServiceRequestTester<T> {
 
   logger: Logger;
-  
+
   errorCounter: number = 0;
   okCounter: number = 0;
   reqCounter: number = 0;
 
-  initialAuthState = <AuthUserState>{ 
-    session: { 
+  initialAuthState = <AuthUserState>{
+    session: {
       isLoggedIn: false,
       updatePending: false
     }
@@ -32,9 +32,9 @@ export class ServiceRequestTester<T> {
     reqActionType: string,
     reqActionValidator: ActionValidator<T>,
     okActionValidator: ActionValidator<T>,
-    errorActionValidator: ActionValidator<ErrorPayload> = (counter, state, action): AuthUserState => { 
+    errorActionValidator: ActionValidator<ErrorPayload> = (counter, state, action): AuthUserState => {
       fail('no errors conditions are being tested');
-      return state; 
+      return state;
     },
     matchRelatedAction = true
   ) {
@@ -53,7 +53,7 @@ export class ServiceRequestTester<T> {
 
   reducer(): Reducer<AuthUserState, Action<T | ErrorPayload>> {
     const tester = this;
-    
+
     return (state: AuthUserState = this.initialAuthState, action: Action<T | ErrorPayload>): AuthUserState => {
       tester.logger.trace('Reducer called with action', action.type);
       try {
@@ -64,7 +64,7 @@ export class ServiceRequestTester<T> {
             return tester.reqActionValidator(tester.reqCounter, state, <Action<T>>action);
           case SERVICE_RESPONSE_OK:
             tester.okCounter++;
-            expect(action.meta.relatedAction).toBeDefined();          
+            expect(action.meta.relatedAction).toBeDefined();
             if (this.matchRelatedAction) {
               expect(action.meta.relatedAction!.type).toEqual(tester.reqActionType);
             }
@@ -72,7 +72,7 @@ export class ServiceRequestTester<T> {
           case ERROR:
             tester.errorCounter++;
             expect(action.payload).toBeDefined();
-            expect(action.meta.relatedAction).toBeDefined();            
+            expect(action.meta.relatedAction).toBeDefined();
             if (this.matchRelatedAction) {
               expect(action.meta.relatedAction!.type).toEqual(tester.reqActionType);
             }
@@ -82,12 +82,12 @@ export class ServiceRequestTester<T> {
         tester.logger.error('Test reducer failed with', err);
         throw err;
       }
-      return state;  
+      return state;
     }
   }
 }
 type ActionValidator<T> = (
-  counter: number, 
-  state: AuthUserState, 
+  counter: number,
+  state: AuthUserState,
   action: Action<T>
 ) => AuthUserState;
