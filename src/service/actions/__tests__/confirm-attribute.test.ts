@@ -10,7 +10,8 @@ import { AuthUserState } from '../../state';
 import { AuthLoggedInUserAttrPayload, CONFIRM_ATTRIBUTE_REQ } from '../../action';
 import { confirmAttributeAction } from '../../actions/confirm-attribute'
 
-import { createMockProvider, ServiceRequestTester } from '../../__tests__/test-helpers';
+import { createMockProvider } from '../../__tests__/mock-provider';
+import { ServiceRequestTester } from '../../__tests__/request-tester';
 
 // set log levels
 if (process.env.DEBUG) {
@@ -18,12 +19,16 @@ if (process.env.DEBUG) {
 }
 const logger = new Logger('confirm-attribute.test');
 
-var isLoggedIn = false;
 const mockProvider = createMockProvider();
+var isLoggedIn = false;
+var isLoggedInCounter = 0;
 mockProvider.isLoggedIn = (): Promise<boolean> => {
+  isLoggedInCounter++;
   return Promise.resolve(isLoggedIn);
 }
+var confirmVerificationCodeForAttributeCounter = 0;
 mockProvider.confirmVerificationCodeForAttribute = (attribute: string, code: string): Promise<void> => {
+  confirmVerificationCodeForAttributeCounter++;
   expect(attribute).toEqual('testAttr');
   expect(code).toEqual('12345');
   return Promise.resolve();
@@ -101,6 +106,8 @@ it('dispatches an action to sign up a user', async () => {
 });
 
 it('calls reducer as expected when sign up action is dispatched', () => {
+  expect(isLoggedInCounter).toEqual(3);
+  expect(confirmVerificationCodeForAttributeCounter).toEqual(1);
   expect(requestTester.reqCounter).toEqual(3);
   expect(requestTester.okCounter).toEqual(1);
   expect(requestTester.errorCounter).toEqual(2);  

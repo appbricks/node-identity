@@ -9,7 +9,8 @@ import { AuthUserState } from '../../state';
 import { AuthStatePayload, SIGN_OUT_REQ } from '../../action';
 import { signOutAction } from '../../actions/sign-out'
 
-import { createMockProvider, ServiceRequestTester} from '../../__tests__/test-helpers';
+import { createMockProvider } from '../../__tests__/mock-provider';
+import { ServiceRequestTester } from '../../__tests__/request-tester';
 
 // set log levels
 if (process.env.DEBUG) {
@@ -17,12 +18,16 @@ if (process.env.DEBUG) {
 }
 const logger = new Logger('sign-out.test');
 
-var isLoggedIn = true;
 const mockProvider = createMockProvider();
+var isLoggedIn = true;
+var isLoggedInCounter = 0;
 mockProvider.isLoggedIn = (): Promise<boolean> => {
+  isLoggedInCounter++;
   return Promise.resolve(isLoggedIn);
 }
+var signOutCounter = 0;
 mockProvider.signOut = (): Promise<void> => {
+  signOutCounter++;
   isLoggedIn = false;
   return Promise.resolve();
 }
@@ -65,6 +70,8 @@ it('dispatches an action to sign up a user', async () => {
 });
 
 it('calls reducer as expected when sign up action is dispatched', () => {
+  expect(isLoggedInCounter).toEqual(1);
+  expect(signOutCounter).toEqual(1);
   expect(requestTester.reqCounter).toEqual(1);
   expect(requestTester.okCounter).toEqual(1);
 });

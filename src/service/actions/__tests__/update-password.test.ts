@@ -8,12 +8,10 @@ import AuthService from '../../auth-service';
 import { UPDATE_PASSWORD_REQ } from '../../action';
 import { updatePasswordAction } from '../../actions/update-password'
 
-import { 
-  requestTesterForUserOnlyRequests, 
-  createMockProvider, 
-  getTestUser, 
-  expectTestUserToBeSet 
-} from '../../__tests__/test-helpers';
+import { createMockProvider } from '../../__tests__/mock-provider';
+import createRequestTester from '../../__tests__/request-tester-username';
+import { getTestUser, expectTestUserToBeSet } from '../../__tests__/request-tester-user';
+
 
 // set log levels
 if (process.env.DEBUG) {
@@ -22,8 +20,11 @@ if (process.env.DEBUG) {
 const logger = new Logger('update-password.test');
 
 const mockProvider = createMockProvider();
-mockProvider.updatePassword= (user: User, code: string): Promise<void> => {
-  expectTestUserToBeSet(user);
+var updatePasswordCounter = 0;
+mockProvider.updatePassword= (username: string, password: string, code: string): Promise<void> => {
+  updatePasswordCounter++;
+  expect(username).toEqual('johndoe');
+  expect(password).toEqual('password');
   if (code == '12345') {
     return Promise.resolve();
   } else {
@@ -33,7 +34,7 @@ mockProvider.updatePassword= (user: User, code: string): Promise<void> => {
 const authService = new AuthService(mockProvider)
 
 // test reducer validates action flows
-const requestTester = requestTesterForUserOnlyRequests(logger, UPDATE_PASSWORD_REQ, false, '12345');
+const requestTester = createRequestTester(logger, UPDATE_PASSWORD_REQ, false, '12345');
 
 const rootReducer = combineReducers({
   auth: requestTester.reducer()
@@ -50,17 +51,14 @@ epicMiddleware.run(rootEpic);
 
 it('dispatches an action to sign up a user', async () => {
   // expect no errors
-  updatePasswordAction(store.dispatch, getTestUser(), '12345');
+  updatePasswordAction(store.dispatch, 'johndoe', 'password', '12345');
   // expect invalid code error
-  updatePasswordAction(store.dispatch, getTestUser(), '00000');
+  updatePasswordAction(store.dispatch, 'johndoe', 'password', '00000');
 });
 
 it('calls reducer as expected when sign up action is dispatched', () => {
+  expect(updatePasswordCounter).toEqual(2);
   expect(requestTester.reqCounter).toEqual(2);
   expect(requestTester.okCounter).toEqual(1);
   expect(requestTester.errorCounter).toEqual(1);
-});
-
-it('has saved the correct user in the state', () => {
-  expectTestUserToBeSet(store.getState().auth.user);
 });

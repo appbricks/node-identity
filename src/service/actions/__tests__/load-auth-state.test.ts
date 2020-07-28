@@ -9,7 +9,8 @@ import { AuthUserState } from '../../state';
 import { AuthStatePayload, LOAD_AUTH_STATE_REQ } from '../../action';
 import { loadAuthStateAction } from '../../actions/load-auth-state'
 
-import { createMockProvider, ServiceRequestTester} from '../../__tests__/test-helpers';
+import { createMockProvider } from '../../__tests__/mock-provider';
+import { ServiceRequestTester } from '../../__tests__/request-tester';
 
 // set log levels
 if (process.env.DEBUG) {
@@ -17,9 +18,11 @@ if (process.env.DEBUG) {
 }
 const logger = new Logger('load-auth-state.test');
 
-var isLoggedIn = false;
 const mockProvider = createMockProvider();
+var isLoggedIn = false;
+var isLoggedInCounter = 0;
 mockProvider.isLoggedIn = (): Promise<boolean> => {
+  isLoggedInCounter++;
   return Promise.resolve(isLoggedIn);
 }
 const authService = new AuthService(mockProvider)
@@ -75,6 +78,7 @@ it('dispatches an action to sign up a user', async () => {
 });
 
 it('calls reducer as expected when sign up action is dispatched', () => {
+  expect(isLoggedInCounter).toEqual(2);
   expect(requestTester.reqCounter).toEqual(2);
   expect(requestTester.okCounter).toEqual(2);
   expect(requestTester.errorCounter).toEqual(0);

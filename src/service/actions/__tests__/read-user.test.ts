@@ -9,12 +9,9 @@ import { AuthUserState } from '../../state';
 import { AuthUserPayload, READ_USER_REQ } from '../../action';
 import { readUserAction } from '../../actions/read-user'
 
-import { 
-  ServiceRequestTester,
-  createMockProvider,
-  getTestUser, 
-  expectTestUserToBeSet 
-} from '../../__tests__/test-helpers';
+import { createMockProvider } from '../../__tests__/mock-provider';
+import { ServiceRequestTester } from '../../__tests__/request-tester';
+import { getTestUser, expectTestUserToBeSet } from '../../__tests__/request-tester-user';
 
 // set log levels
 if (process.env.DEBUG) {
@@ -22,14 +19,17 @@ if (process.env.DEBUG) {
 }
 const logger = new Logger('read-user.test');
 
-var isLoggedIn = false;
-var user = getTestUser();
 const mockProvider = createMockProvider();
+var isLoggedIn = false;
+var isLoggedInCounter = 0;
 mockProvider.isLoggedIn = (): Promise<boolean> => {
+  isLoggedInCounter++;
   return Promise.resolve(isLoggedIn);
 }
+var readUserCounter = 0;
 mockProvider.readUser = (attribNames?: string[]): Promise<User> => {
-  return Promise.resolve(user);
+  readUserCounter++;
+  return Promise.resolve(getTestUser());
 }
 const authService = new AuthService(mockProvider)
 
@@ -76,6 +76,8 @@ it('dispatches an action to sign up a user', async () => {
 });
 
 it('calls reducer as expected when sign up action is dispatched', () => {
+  expect(isLoggedInCounter).toEqual(2);
+  expect(readUserCounter).toEqual(1);
   expect(requestTester.reqCounter).toEqual(2);
   expect(requestTester.okCounter).toEqual(1);
   expect(requestTester.errorCounter).toEqual(1);

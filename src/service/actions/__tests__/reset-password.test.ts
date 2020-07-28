@@ -8,12 +8,9 @@ import AuthService from '../../auth-service';
 import { RESET_PASSWORD_REQ } from '../../action';
 import { resetPasswordAction } from '../../actions/reset-password'
 
-import { 
-  requestTesterForUserOnlyRequests, 
-  createMockProvider, 
-  getTestUser, 
-  expectTestUserToBeSet 
-} from '../../__tests__/test-helpers';
+import { createMockProvider } from '../../__tests__/mock-provider';
+import createRequestTester from '../../__tests__/request-tester-username';
+import { getTestUser, expectTestUserToBeSet } from '../../__tests__/request-tester-user';
 
 // set log levels
 if (process.env.DEBUG) {
@@ -22,14 +19,16 @@ if (process.env.DEBUG) {
 const logger = new Logger('reset-password.test');
 
 const mockProvider = createMockProvider();
-mockProvider.resetPassword = (user: User): Promise<void> => {
-  expectTestUserToBeSet(user);
+var resetPasswordCounter = 0;
+mockProvider.resetPassword = (username: string): Promise<void> => {
+  expect(username).toEqual('johndoe');
+  resetPasswordCounter++;
   return Promise.resolve();
 }
 const authService = new AuthService(mockProvider)
 
 // test reducer validates action flows
-const requestTester = requestTesterForUserOnlyRequests(logger, RESET_PASSWORD_REQ);
+const requestTester = createRequestTester(logger, RESET_PASSWORD_REQ);
 
 const rootReducer = combineReducers({
   auth: requestTester.reducer()
@@ -46,15 +45,12 @@ epicMiddleware.run(rootEpic);
 
 it('dispatches an action to sign up a user', async () => {
   // expect no errors
-  resetPasswordAction(store.dispatch, getTestUser());
+  resetPasswordAction(store.dispatch, 'johndoe');
 });
 
 it('calls reducer as expected when sign up action is dispatched', () => {
+  expect(resetPasswordCounter).toEqual(1);
   expect(requestTester.reqCounter).toEqual(1);
   expect(requestTester.okCounter).toEqual(1);
   expect(requestTester.errorCounter).toEqual(0);
-});
-
-it('has saved the correct user in the state', () => {
-  expectTestUserToBeSet(store.getState().auth.user);
 });

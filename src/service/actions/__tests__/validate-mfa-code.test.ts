@@ -9,7 +9,8 @@ import { AuthUserState } from '../../state';
 import { AuthMultiFactorAuthPayload, VALIDATE_MFA_CODE_REQ } from '../../action';
 import { validateMFACodeAction } from '../../actions/validate-mfa-code'
 
-import { createMockProvider, ServiceRequestTester} from '../../__tests__/test-helpers';
+import { createMockProvider } from '../../__tests__/mock-provider';
+import { ServiceRequestTester } from '../../__tests__/request-tester';
 
 // set log levels
 if (process.env.DEBUG) {
@@ -17,12 +18,16 @@ if (process.env.DEBUG) {
 }
 const logger = new Logger('validate-mfa-code.test');
 
-var isLoggedIn = false;
 const mockProvider = createMockProvider();
+var isLoggedIn = false;
+var isLoggedInCounter = 0;
 mockProvider.isLoggedIn = (): Promise<boolean> => {
+  isLoggedInCounter++;
   return Promise.resolve(isLoggedIn);
 }
+var validateMFACodeCounter = 0;
 mockProvider.validateMFACode = (code: string): Promise<boolean> => {
+  validateMFACodeCounter++;
   if (code == '12345') {
     return Promise.resolve(true);
   }
@@ -104,6 +109,8 @@ it('dispatches an action to sign up a user', async () => {
 });
 
 it('calls reducer as expected when sign up action is dispatched', () => {
+  expect(isLoggedInCounter).toEqual(3);
+  expect(validateMFACodeCounter).toEqual(2);
   expect(requestTester.reqCounter).toEqual(3);
   expect(requestTester.okCounter).toEqual(1);
   expect(requestTester.errorCounter).toEqual(2);  

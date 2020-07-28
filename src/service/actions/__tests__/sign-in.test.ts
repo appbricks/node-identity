@@ -11,12 +11,9 @@ import { signInAction } from '../../actions/sign-in';
 
 import { AUTH_NO_MFA } from '../../constants';
 
-import { 
-  ServiceRequestTester,
-  createMockProvider,
-  getTestUser, 
-  expectTestUserToBeSet 
-} from '../../__tests__/test-helpers';
+import { createMockProvider } from '../../__tests__/mock-provider';
+import { ServiceRequestTester } from '../../__tests__/request-tester';
+import { getTestUser, expectTestUserToBeSet } from '../../__tests__/request-tester-user';
 
 // set log levels
 if (process.env.DEBUG) {
@@ -24,12 +21,16 @@ if (process.env.DEBUG) {
 }
 const logger = new Logger('sign-in.test');
 
-var isLoggedIn = false;
 const mockProvider = createMockProvider();
+var isLoggedIn = false;
+var isLoggedInCounter = 0;
 mockProvider.isLoggedIn = (): Promise<boolean> => {
+  isLoggedInCounter++;
   return Promise.resolve(isLoggedIn);
 }
+var signInCounter = 0;
 mockProvider.signIn = (username: string, password: string): Promise<number> => {
+  signInCounter++;
   expect(username).toEqual('johndoe');
   if (password == '@ppBricks2020') {
     isLoggedIn = true;
@@ -72,7 +73,13 @@ const requestTester = new ServiceRequestTester<AuthSignInPayload>(logger,
         expect(payload.username).toEqual('johndoe');
         expect(payload.password).toEqual('@ppBricks2020');
         expect(payload.isLoggedIn).toBeTruthy();
-        break;
+        return {
+          ...state,
+          session: {
+            ...state.session,
+            isLoggedIn: true
+          }
+        };
       }
       case READ_USER_REQ: {
         expect(counter).toBe(2);
@@ -89,6 +96,12 @@ const requestTester = new ServiceRequestTester<AuthSignInPayload>(logger,
       case 1: {
         // login error
         expect(action.payload!.message).toEqual('Error: invalid password');
+        break;
+      }
+      case 2: {
+        // login error
+        expect(action.payload!.message).toEqual('Error: The current session is already logged in.');
+        break;
       }
     }
     return state;
@@ -117,13 +130,17 @@ it('dispatches an action to sign up a user', async () => {
 });
 
 it('calls reducer as expected when sign up action is dispatched', () => {
+  expect(isLoggedInCounter).toEqual(4);
+  expect(signInCounter).toEqual(2);
   expect(requestTester.reqCounter).toEqual(2);
   expect(requestTester.okCounter).toEqual(2);
   expect(requestTester.errorCounter).toEqual(1);
 });
 
 it('has saved the correct user in the state', () => {
-  expectTestUserToBeSet(store.getState().auth.user);
+  let state = store.getState();
+  expectTestUserToBeSet(state.auth.user);
+  expect(state.auth.session.isLoggedIn).toBeTruthy();
 });
 
 it('it attempts to sign to an existing session', () => {

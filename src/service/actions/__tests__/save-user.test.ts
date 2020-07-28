@@ -9,12 +9,9 @@ import { AuthUserState } from '../../state';
 import { AuthUserPayload, SAVE_USER_REQ } from '../../action';
 import { saveUserAction } from '../../actions/save-user'
 
-import { 
-  ServiceRequestTester,
-  createMockProvider,
-  getTestUser, 
-  expectTestUserToBeSet 
-} from '../../__tests__/test-helpers';
+import { createMockProvider } from '../../__tests__/mock-provider';
+import { ServiceRequestTester } from '../../__tests__/request-tester';
+import { getTestUser, expectTestUserToBeSet } from '../../__tests__/request-tester-user';
 
 // set log levels
 if (process.env.DEBUG) {
@@ -22,12 +19,16 @@ if (process.env.DEBUG) {
 }
 const logger = new Logger('save-user.test');
 
-var isLoggedIn = false;
 const mockProvider = createMockProvider();
+var isLoggedIn = false;
+var isLoggedInCounter = 0;
 mockProvider.isLoggedIn = (): Promise<boolean> => {
+  isLoggedInCounter++;
   return Promise.resolve(isLoggedIn);
 }
+var saveUserCounter = 0;
 mockProvider.saveUser = (user: User, attribNames?: string[]): Promise<void> => {
+  saveUserCounter++;
   expectTestUserToBeSet(user);
   return Promise.resolve();
 }
@@ -80,6 +81,8 @@ it('dispatches an action to sign up a user', async () => {
 });
 
 it('calls reducer as expected when sign up action is dispatched', () => {
+  expect(isLoggedInCounter).toEqual(2);
+  expect(saveUserCounter).toEqual(1);
   expect(requestTester.reqCounter).toEqual(2);
   expect(requestTester.okCounter).toEqual(1);
   expect(requestTester.errorCounter).toEqual(1);
