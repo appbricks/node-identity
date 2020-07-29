@@ -1,16 +1,19 @@
 import User from '../model/user';
 
+import Session from '../model/session';
+
 // Authentication state type
 export interface AuthUserState {
-  user: User
-  session: {
-    isLoggedIn: boolean
-    updatePending: boolean
-    awaitingMFA: string  
-  }
+  session: Session
+  user?: User
 };
 
 // Authentication state properties
 export interface AuthUserStateProp {
   auth: AuthUserState
 };
+
+export const initialAuthState = (): AuthUserState => 
+  <AuthUserState>{
+    session: new Session()
+  };

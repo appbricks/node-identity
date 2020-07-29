@@ -4,44 +4,18 @@ import { createEpicMiddleware } from 'redux-observable';
 import { Logger, LOG_LEVEL_TRACE, setLogLevel, reduxLogger, combineEpicsWithGlobalErrorHandler } from '@appbricks/utils';
 import AuthService from '../../auth-service';
 
-import User from '../../../model/user';
 import { AuthUserState } from '../../state';
 import { AuthSignInPayload, AuthUserPayload, SIGN_IN_REQ, READ_USER_REQ } from '../../action';
 
-import { AUTH_NO_MFA } from '../../constants';
-
-import { createMockProvider } from '../../__tests__/mock-provider';
+import { MockProvider } from '../../__tests__/mock-provider';
 import { ServiceRequestTester } from '../../__tests__/request-tester';
-import { getTestUser, expectTestUserToBeSet } from '../../__tests__/request-tester-user';
+import { expectTestUserToBeSet } from '../../__tests__/request-tester-user';
 
 // set log levels
 if (process.env.DEBUG) {
   setLogLevel(LOG_LEVEL_TRACE);
 }
 const logger = new Logger('sign-in.test');
-
-const mockProvider = createMockProvider();
-var isLoggedIn = false;
-var isLoggedInCounter = 0;
-mockProvider.isLoggedIn = (): Promise<boolean> => {
-  isLoggedInCounter++;
-  return Promise.resolve(isLoggedIn);
-}
-var signInCounter = 0;
-mockProvider.signIn = (username: string, password: string): Promise<number> => {
-  signInCounter++;
-  expect(username).toEqual('johndoe');
-  if (password == '@ppBricks2020') {
-    isLoggedIn = true;
-    return Promise.resolve(AUTH_NO_MFA);
-  }
-  isLoggedIn = false;
-  return Promise.reject(new Error('invalid password'));
-}
-mockProvider.readUser = (attribNames?: string[]): Promise<User> => {
-  return Promise.resolve(getTestUser());
-}
-const authService = new AuthService(mockProvider)
 
 // test reducer validates action flows
 const requestTester = new ServiceRequestTester<AuthSignInPayload>(logger,
@@ -117,6 +91,8 @@ const store: any = createStore(
   applyMiddleware(reduxLogger, epicMiddleware)
 );
 
+const mockProvider = new MockProvider();
+const authService = new AuthService(mockProvider)
 const rootEpic = combineEpicsWithGlobalErrorHandler(authService.epics())
 epicMiddleware.run(rootEpic);
 
@@ -130,8 +106,8 @@ it('dispatches an action to sign up a user', async () => {
 });
 
 it('calls reducer as expected when sign up action is dispatched', () => {
-  expect(isLoggedInCounter).toEqual(4);
-  expect(signInCounter).toEqual(2);
+  expect(mockProvider.isLoggedInCounter).toEqual(4);
+  expect(mockProvider.signInCounter).toEqual(2);
   expect(requestTester.reqCounter).toEqual(2);
   expect(requestTester.okCounter).toEqual(2);
   expect(requestTester.errorCounter).toEqual(1);

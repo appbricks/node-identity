@@ -7,7 +7,7 @@ import AuthService from '../../auth-service';
 import { AuthUserState } from '../../state';
 import { AuthStatePayload, SIGN_OUT_REQ } from '../../action';
 
-import { createMockProvider } from '../../__tests__/mock-provider';
+import { MockProvider } from '../../__tests__/mock-provider';
 import { ServiceRequestTester } from '../../__tests__/request-tester';
 
 // set log levels
@@ -15,21 +15,6 @@ if (process.env.DEBUG) {
   setLogLevel(LOG_LEVEL_TRACE);
 }
 const logger = new Logger('sign-out.test');
-
-const mockProvider = createMockProvider();
-var isLoggedIn = true;
-var isLoggedInCounter = 0;
-mockProvider.isLoggedIn = (): Promise<boolean> => {
-  isLoggedInCounter++;
-  return Promise.resolve(isLoggedIn);
-}
-var signOutCounter = 0;
-mockProvider.signOut = (): Promise<void> => {
-  signOutCounter++;
-  isLoggedIn = false;
-  return Promise.resolve();
-}
-const authService = new AuthService(mockProvider)
 
 // test reducer validates action flows
 const requestTester = new ServiceRequestTester<AuthStatePayload>(logger,
@@ -60,22 +45,25 @@ const store: any = createStore(
   applyMiddleware(reduxLogger, epicMiddleware)
 );
 
+const mockProvider = new MockProvider();
+const authService = new AuthService(mockProvider)
 const rootEpic = combineEpicsWithGlobalErrorHandler(authService.epics())
 epicMiddleware.run(rootEpic);
 
 const dispatch = AuthService.dispatchProps(store.dispatch)
 
 it('dispatches an action to sign up a user', async () => {
+  mockProvider.loggedIn = true;
   dispatch.signOut();
 });
 
 it('calls reducer as expected when sign up action is dispatched', () => {
-  expect(isLoggedInCounter).toEqual(1);
-  expect(signOutCounter).toEqual(1);
+  expect(mockProvider.isLoggedInCounter).toEqual(1);
+  expect(mockProvider.signOutCounter).toEqual(1);
   expect(requestTester.reqCounter).toEqual(1);
   expect(requestTester.okCounter).toEqual(1);
 });
 
 it('has saved the correct user in the state', () => {
-  expect(isLoggedIn).toBeFalsy();
+  expect(mockProvider.loggedIn).toBeFalsy();
 });

@@ -8,7 +8,7 @@ import AuthService from '../../auth-service';
 import { AuthUserState } from '../../state';
 import { AuthUserPayload, READ_USER_REQ } from '../../action';
 
-import { createMockProvider } from '../../__tests__/mock-provider';
+import { MockProvider } from '../../__tests__/mock-provider';
 import { ServiceRequestTester } from '../../__tests__/request-tester';
 import { getTestUser, expectTestUserToBeSet } from '../../__tests__/request-tester-user';
 
@@ -17,20 +17,6 @@ if (process.env.DEBUG) {
   setLogLevel(LOG_LEVEL_TRACE);
 }
 const logger = new Logger('read-user.test');
-
-const mockProvider = createMockProvider();
-var isLoggedIn = false;
-var isLoggedInCounter = 0;
-mockProvider.isLoggedIn = (): Promise<boolean> => {
-  isLoggedInCounter++;
-  return Promise.resolve(isLoggedIn);
-}
-var readUserCounter = 0;
-mockProvider.readUser = (attribNames?: string[]): Promise<User> => {
-  readUserCounter++;
-  return Promise.resolve(getTestUser());
-}
-const authService = new AuthService(mockProvider)
 
 // test reducer validates action flows
 const requestTester = new ServiceRequestTester<AuthUserPayload>(logger,
@@ -63,6 +49,8 @@ const store: any = createStore(
   applyMiddleware(reduxLogger, epicMiddleware)
 );
 
+const mockProvider = new MockProvider();
+const authService = new AuthService(mockProvider)
 const rootEpic = combineEpicsWithGlobalErrorHandler(authService.epics())
 epicMiddleware.run(rootEpic);
 
@@ -72,13 +60,13 @@ it('dispatches an action to sign up a user', async () => {
   // expect error as user is not logged in
   dispatch.readUser();
   // expect no errors
-  isLoggedIn = true;
+  mockProvider.loggedIn = true;
   dispatch.readUser();
 });
 
 it('calls reducer as expected when sign up action is dispatched', () => {
-  expect(isLoggedInCounter).toEqual(2);
-  expect(readUserCounter).toEqual(1);
+  expect(mockProvider.isLoggedInCounter).toEqual(2);
+  expect(mockProvider.readUserCounter).toEqual(1);
   expect(requestTester.reqCounter).toEqual(2);
   expect(requestTester.okCounter).toEqual(1);
   expect(requestTester.errorCounter).toEqual(1);

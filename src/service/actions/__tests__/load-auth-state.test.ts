@@ -7,7 +7,7 @@ import AuthService from '../../auth-service';
 import { AuthUserState } from '../../state';
 import { AuthStatePayload, LOAD_AUTH_STATE_REQ } from '../../action';
 
-import { createMockProvider } from '../../__tests__/mock-provider';
+import { MockProvider } from '../../__tests__/mock-provider';
 import { ServiceRequestTester } from '../../__tests__/request-tester';
 
 // set log levels
@@ -15,15 +15,6 @@ if (process.env.DEBUG) {
   setLogLevel(LOG_LEVEL_TRACE);
 }
 const logger = new Logger('load-auth-state.test');
-
-const mockProvider = createMockProvider();
-var isLoggedIn = false;
-var isLoggedInCounter = 0;
-mockProvider.isLoggedIn = (): Promise<boolean> => {
-  isLoggedInCounter++;
-  return Promise.resolve(isLoggedIn);
-}
-const authService = new AuthService(mockProvider)
 
 // test reducer validates action flows
 const requestTester = new ServiceRequestTester<AuthStatePayload>(logger,
@@ -65,6 +56,8 @@ const store: any = createStore(
   applyMiddleware(reduxLogger, epicMiddleware)
 );
 
+const mockProvider = new MockProvider();
+const authService = new AuthService(mockProvider)
 const rootEpic = combineEpicsWithGlobalErrorHandler(authService.epics())
 epicMiddleware.run(rootEpic);
 
@@ -75,12 +68,12 @@ it('dispatches an action to sign up a user', async () => {
   dispatch.loadAuthState();
 
   // logged in state
-  isLoggedIn = true;
+  mockProvider.loggedIn = true;
   dispatch.loadAuthState();
 });
 
 it('calls reducer as expected when sign up action is dispatched', () => {
-  expect(isLoggedInCounter).toEqual(2);
+  expect(mockProvider.isLoggedInCounter).toEqual(2);
   expect(requestTester.reqCounter).toEqual(2);
   expect(requestTester.okCounter).toEqual(2);
   expect(requestTester.errorCounter).toEqual(0);

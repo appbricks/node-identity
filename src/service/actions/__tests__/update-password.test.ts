@@ -8,7 +8,7 @@ import AuthService from '../../auth-service';
 import { UPDATE_PASSWORD_REQ } from '../../action';
 import { updatePasswordAction } from '../../actions/update-password'
 
-import { createMockProvider } from '../../__tests__/mock-provider';
+import { MockProvider } from '../../__tests__/mock-provider';
 import createRequestTester from '../../__tests__/request-tester-username';
 import { getTestUser, expectTestUserToBeSet } from '../../__tests__/request-tester-user';
 
@@ -18,20 +18,6 @@ if (process.env.DEBUG) {
   setLogLevel(LOG_LEVEL_TRACE);
 }
 const logger = new Logger('update-password.test');
-
-const mockProvider = createMockProvider();
-var updatePasswordCounter = 0;
-mockProvider.updatePassword= (username: string, password: string, code: string): Promise<void> => {
-  updatePasswordCounter++;
-  expect(username).toEqual('johndoe');
-  expect(password).toEqual('password');
-  if (code == '12345') {
-    return Promise.resolve();
-  } else {
-    return Promise.reject(new Error('invalid code'));
-  }
-}
-const authService = new AuthService(mockProvider)
 
 // test reducer validates action flows
 const requestTester = createRequestTester(logger, UPDATE_PASSWORD_REQ, false, '12345');
@@ -46,6 +32,8 @@ const store: any = createStore(
   applyMiddleware(reduxLogger, epicMiddleware)
 );
 
+const mockProvider = new MockProvider();
+const authService = new AuthService(mockProvider)
 const rootEpic = combineEpicsWithGlobalErrorHandler(authService.epics())
 epicMiddleware.run(rootEpic);
 
@@ -59,7 +47,7 @@ it('dispatches an action to sign up a user', async () => {
 });
 
 it('calls reducer as expected when sign up action is dispatched', () => {
-  expect(updatePasswordCounter).toEqual(2);
+  expect(mockProvider.updatePasswordCounter).toEqual(2);
   expect(requestTester.reqCounter).toEqual(2);
   expect(requestTester.okCounter).toEqual(1);
   expect(requestTester.errorCounter).toEqual(1);

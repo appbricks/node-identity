@@ -5,11 +5,16 @@ import { Action } from '@appbricks/utils';
 import User from '../model/user';
 
 export interface AuthStatePayload {
-  isLoggedIn?: boolean
+  isLoggedIn: boolean
 };
 
 export interface AuthUserPayload {
-  user: User,
+  user: User
+};
+
+export interface AuthUsernamePayload {
+  username: string,
+  password?: string,
   code?: string
 };
 
@@ -37,13 +42,12 @@ export interface AuthActionProps {
 
   // registration and configuration
   signUp: (user: User) => redux.Action
-  resendSignUpCode: (user: User) => redux.Action
-  confirmSignUpCode: (user: User, code: string) => redux.Action
-  configureMFA: (user: User) => redux.Action
+  resendSignUpCode: (username: string) => redux.Action
+  confirmSignUpCode: (username: string, code: string) => redux.Action
 
   // actions on current user in state
-  resetPassword: () => redux.Action
-  updatePassword: (code: string) => redux.Action
+  resetPassword: (username: string) => redux.Action
+  updatePassword: (username: string, password: string, code: string) => redux.Action
 
   // user authentication
   signIn: (username: string, password: string) => redux.Action
@@ -54,8 +58,10 @@ export interface AuthActionProps {
   verifyAttribute: (attrName: string) => redux.Action
   confirmAttribute: (attrName: string, code: string) => redux.Action
 
-  readUser: () => redux.Action
+  configureMFA: (user: User) => redux.Action
   saveUser: (user: User) => redux.Action
+
+  readUser: () => redux.Action
 }
 
 // User action types

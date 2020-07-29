@@ -9,7 +9,7 @@ import { AuthUserState } from '../../state';
 import { AuthLoggedInUserAttrPayload, VERIFY_ATTRIBUTE_REQ } from '../../action';
 import { verifyAttributeAction } from '../verify-attribute'
 
-import { createMockProvider } from '../../__tests__/mock-provider';
+import { MockProvider } from '../../__tests__/mock-provider';
 import { ServiceRequestTester } from '../../__tests__/request-tester';
 
 // set log levels
@@ -17,21 +17,6 @@ if (process.env.DEBUG) {
   setLogLevel(LOG_LEVEL_TRACE);
 }
 const logger = new Logger('verify-attribute.test');
-
-const mockProvider = createMockProvider();
-var isLoggedIn = false;
-var isLoggedInCounter = 0;
-mockProvider.isLoggedIn = (): Promise<boolean> => {
-  isLoggedInCounter++;
-  return Promise.resolve(isLoggedIn);
-}
-var sendVerificationCodeForAttributeCounter = 0;
-mockProvider.sendVerificationCodeForAttribute = (attribute: string): Promise<void> => {
-  sendVerificationCodeForAttributeCounter++;
-  expect(attribute).toEqual('testAttr');
-  return Promise.resolve();
-}
-const authService = new AuthService(mockProvider)
 
 // test reducer validates action flows
 const requestTester = new ServiceRequestTester<AuthLoggedInUserAttrPayload>(logger,
@@ -85,6 +70,8 @@ const store: any = createStore(
   applyMiddleware(reduxLogger, epicMiddleware)
 );
 
+const mockProvider = new MockProvider();
+const authService = new AuthService(mockProvider)
 const rootEpic = combineEpicsWithGlobalErrorHandler(authService.epics())
 epicMiddleware.run(rootEpic);
 
@@ -94,15 +81,15 @@ it('dispatches an action to sign up a user', async () => {
   // expect error as user is not logged in
   dispatch.verifyAttribute('testAttr');
   // expect no errors
-  isLoggedIn = true;
+  mockProvider.loggedIn = true;
   dispatch.verifyAttribute('testAttr');
   // expect error from provider call as user is empty
   dispatch.verifyAttribute('');
 });
 
 it('calls reducer as expected when sign up action is dispatched', () => {
-  expect(isLoggedInCounter).toEqual(3);
-  expect(sendVerificationCodeForAttributeCounter).toEqual(1);
+  expect(mockProvider.isLoggedInCounter).toEqual(3);
+  expect(mockProvider.sendVerificationCodeForAttributeCounter).toEqual(1);
   expect(requestTester.reqCounter).toEqual(3);
   expect(requestTester.okCounter).toEqual(1);
   expect(requestTester.errorCounter).toEqual(2);  

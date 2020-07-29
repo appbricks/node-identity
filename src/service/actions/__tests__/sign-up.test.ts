@@ -9,7 +9,7 @@ import AuthService from '../../auth-service';
 import { SIGN_UP_REQ } from '../../action';
 import { signUpAction } from '../../actions/sign-up'
 
-import { createMockProvider } from '../../__tests__/mock-provider';
+import { MockProvider } from '../../__tests__/mock-provider';
 import createRequestTester, { getTestUser, expectTestUserToBeSet } from '../../__tests__/request-tester-user';
 
 // set log levels
@@ -21,17 +21,6 @@ const logger = new Logger('sign-up.test');
 // test reducer validates action flows
 const requestTester = createRequestTester(logger, SIGN_UP_REQ, true);
 
-const mockProvider = createMockProvider();
-var signUpCounter = 0;
-mockProvider.signUp = (user: User): Promise<boolean> => {
-  signUpCounter++;
-  if (user.username == 'error') {
-    return Promise.reject(new Error('invalid username'));
-  }
-  expectTestUserToBeSet(user);
-  return Promise.resolve(true);
-}
-
 let rootReducer = combineReducers({
   auth: requestTester.reducer()
 })
@@ -42,7 +31,8 @@ let store: any = createStore(
   applyMiddleware(reduxLogger, epicMiddleware)
 );
 
-let authService = new AuthService(mockProvider);
+const mockProvider = new MockProvider();
+const authService = new AuthService(mockProvider)
 let rootEpic = combineEpicsWithGlobalErrorHandler(authService.epics())
 epicMiddleware.run(rootEpic);
 
@@ -62,7 +52,7 @@ it('dispatches an action to sign up a user', async () => {
 });
 
 it('calls reducer as expected when sign up action is dispatched', () => {
-  expect(signUpCounter).toEqual(2);
+  expect(mockProvider.signUpCounter).toEqual(2);
   expect(requestTester.reqCounter).toEqual(3);
   expect(requestTester.okCounter).toEqual(1);
   expect(requestTester.errorCounter).toEqual(2);

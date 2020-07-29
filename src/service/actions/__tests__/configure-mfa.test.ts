@@ -8,7 +8,7 @@ import AuthService from '../../auth-service';
 
 import { CONFIGURE_MFA_REQ } from '../../action';
 
-import { createMockProvider } from '../../__tests__/mock-provider';
+import { MockProvider } from '../../__tests__/mock-provider';
 import createRequestTester, { getTestUser, expectTestUserToBeSet } from '../../__tests__/request-tester-user';
 
 // set log levels
@@ -19,24 +19,6 @@ const logger = new Logger('configure-mfa.test');
 
 // test reducer validates action flows
 const requestTester = createRequestTester(logger, CONFIGURE_MFA_REQ);
-
-const mockProvider = createMockProvider();
-var isLoggedIn = false;
-var isLoggedInCounter = 0;
-mockProvider.isLoggedIn = (): Promise<boolean> => {
-  isLoggedInCounter++;
-  return Promise.resolve(isLoggedIn);
-}
-var configureMFACounter = 0;
-mockProvider.configureMFA = (user: User): Promise<void> => {
-  configureMFACounter++;
-  if (user.username == 'error') {
-    return Promise.reject(new Error('invalid username'));
-  }
-  expectTestUserToBeSet(user);
-  return Promise.resolve();
-}
-
 let rootReducer = combineReducers({
   auth: requestTester.reducer()
 })
@@ -47,6 +29,7 @@ let store: any = createStore(
   applyMiddleware(reduxLogger, epicMiddleware)
 );
 
+const mockProvider = new MockProvider();
 let authService = new AuthService(mockProvider);
 let rootEpic = combineEpicsWithGlobalErrorHandler(authService.epics())
 epicMiddleware.run(rootEpic);
@@ -57,7 +40,7 @@ it('dispatches an action to configure MFA for a user', async () => {
 
   // expect error as user is not logged in
   dispatch.configureMFA(getTestUser());
-  isLoggedIn = true;
+  mockProvider.loggedIn = true;
 
   // Should throw an error
   let userWithError = getTestUser();
@@ -69,8 +52,8 @@ it('dispatches an action to configure MFA for a user', async () => {
 });
 
 it('calls reducer as expected when configure MFA action is dispatched', () => {
-  expect(isLoggedInCounter).toEqual(3);
-  expect(configureMFACounter).toEqual(2);
+  expect(mockProvider.isLoggedInCounter).toEqual(3);
+  expect(mockProvider.configureMFACounter).toEqual(2);
   expect(requestTester.reqCounter).toEqual(3);
   expect(requestTester.okCounter).toEqual(1);
   expect(requestTester.errorCounter).toEqual(2);

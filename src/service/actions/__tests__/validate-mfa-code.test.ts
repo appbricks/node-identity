@@ -9,7 +9,7 @@ import { AuthUserState } from '../../state';
 import { AuthMultiFactorAuthPayload, VALIDATE_MFA_CODE_REQ } from '../../action';
 import { validateMFACodeAction } from '../../actions/validate-mfa-code'
 
-import { createMockProvider } from '../../__tests__/mock-provider';
+import { MockProvider } from '../../__tests__/mock-provider';
 import { ServiceRequestTester } from '../../__tests__/request-tester';
 
 // set log levels
@@ -17,24 +17,6 @@ if (process.env.DEBUG) {
   setLogLevel(LOG_LEVEL_TRACE);
 }
 const logger = new Logger('validate-mfa-code.test');
-
-const mockProvider = createMockProvider();
-var isLoggedIn = false;
-var isLoggedInCounter = 0;
-mockProvider.isLoggedIn = (): Promise<boolean> => {
-  isLoggedInCounter++;
-  return Promise.resolve(isLoggedIn);
-}
-var validateMFACodeCounter = 0;
-mockProvider.validateMFACode = (code: string): Promise<boolean> => {
-  validateMFACodeCounter++;
-  if (code == '12345') {
-    return Promise.resolve(true);
-  }
-  return Promise.reject(new Error('invalid code'));
-}
-
-const authService = new AuthService(mockProvider)
 
 // test reducer validates action flows
 const requestTester = new ServiceRequestTester<AuthMultiFactorAuthPayload>(logger,
@@ -94,6 +76,8 @@ const store: any = createStore(
   applyMiddleware(reduxLogger, epicMiddleware)
 );
 
+const mockProvider = new MockProvider();
+const authService = new AuthService(mockProvider)
 const rootEpic = combineEpicsWithGlobalErrorHandler(authService.epics())
 epicMiddleware.run(rootEpic);
 
@@ -101,9 +85,9 @@ const dispatch = AuthService.dispatchProps(store.dispatch)
 
 it('dispatches an action to sign up a user', async () => {
   // error as session alread logged in
-  isLoggedIn = true;
+  mockProvider.loggedIn = true;
   dispatch.validateMFACode('12345');
-  isLoggedIn = false;
+  mockProvider.loggedIn = false;
 
   // error invalide code
   dispatch.validateMFACode('00000');
@@ -112,8 +96,8 @@ it('dispatches an action to sign up a user', async () => {
 });
 
 it('calls reducer as expected when sign up action is dispatched', () => {
-  expect(isLoggedInCounter).toEqual(3);
-  expect(validateMFACodeCounter).toEqual(2);
+  expect(mockProvider.isLoggedInCounter).toEqual(3);
+  expect(mockProvider.validateMFACodeCounter).toEqual(2);
   expect(requestTester.reqCounter).toEqual(3);
   expect(requestTester.okCounter).toEqual(1);
   expect(requestTester.errorCounter).toEqual(2);  
