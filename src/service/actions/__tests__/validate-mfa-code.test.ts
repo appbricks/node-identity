@@ -2,12 +2,10 @@ import { combineReducers, createStore, applyMiddleware } from 'redux';
 import { createEpicMiddleware } from 'redux-observable';
 
 import { Logger, LOG_LEVEL_TRACE, setLogLevel, reduxLogger, combineEpicsWithGlobalErrorHandler } from '@appbricks/utils';
-import User from '../../../model/user';
 import AuthService from '../../auth-service';
 
 import { AuthUserState } from '../../state';
 import { AuthMultiFactorAuthPayload, VALIDATE_MFA_CODE_REQ } from '../../action';
-import { validateMFACodeAction } from '../../actions/validate-mfa-code'
 
 import { MockProvider } from '../../__tests__/mock-provider';
 import { ServiceRequestTester } from '../../__tests__/request-tester';

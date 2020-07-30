@@ -3,7 +3,6 @@ import { createEpicMiddleware } from 'redux-observable';
 
 import { Logger, LOG_LEVEL_TRACE, setLogLevel, reduxLogger, combineEpicsWithGlobalErrorHandler } from '@appbricks/utils';
 
-import User from '../../../model/user';
 import AuthService from '../../auth-service';
 
 import { CONFIGURE_MFA_REQ } from '../../action';

@@ -2,15 +2,12 @@ import { combineReducers, createStore, applyMiddleware } from 'redux';
 import { createEpicMiddleware } from 'redux-observable';
 
 import { Logger, LOG_LEVEL_TRACE, setLogLevel, reduxLogger, combineEpicsWithGlobalErrorHandler } from '@appbricks/utils';
-import User from '../../../model/user';
 import AuthService from '../../auth-service';
 
 import { UPDATE_PASSWORD_REQ } from '../../action';
-import { updatePasswordAction } from '../../actions/update-password'
 
 import { MockProvider } from '../../__tests__/mock-provider';
 import createRequestTester from '../../__tests__/request-tester-username';
-import { getTestUser, expectTestUserToBeSet } from '../../__tests__/request-tester-user';
 
 
 // set log levels
