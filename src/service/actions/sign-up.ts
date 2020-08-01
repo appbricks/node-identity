@@ -1,10 +1,10 @@
 import * as redux from 'redux';
 import { Epic, StateObservable } from 'redux-observable';
 
-import { State, Action, createAction, createFollowUpAction, serviceEpic, createErrorAction } from '@appbricks/utils';
+import { State, Action, createAction, createFollowUpAction, serviceEpic } from '@appbricks/utils';
 
 import User from '../../model/user';
-import { AuthUserPayload, SIGN_UP_REQ, SERVICE_RESPONSE_OK } from '../action';
+import { AuthUserPayload, AuthVerificationPayload, SIGN_UP_REQ, SERVICE_RESPONSE_OK } from '../action';
 import Provider from '../provider';
 
 export const signUpAction = 
@@ -23,7 +23,7 @@ export const signUpEpic = (csProvider: Provider): Epic => {
 
       let info = await csProvider.signUp(user);
       user.setConfirmed(info.isConfirmed);
-      return createFollowUpAction(action, SERVICE_RESPONSE_OK);
+      return createFollowUpAction<AuthVerificationPayload>(action, SERVICE_RESPONSE_OK, { info });
     }
   );
 }
