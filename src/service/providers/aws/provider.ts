@@ -4,7 +4,7 @@ import { Auth } from 'aws-amplify';
 
 import { Logger, Error } from '@appbricks/utils';
 
-import ProviderInterface from '../../provider'
+import ProviderInterface, { VerificationInfo, VerificationType } from '../../provider'
 import User, { UserStatus } from '../../../model/user'
 
 import {
@@ -68,12 +68,12 @@ export default class Provider implements ProviderInterface {
    * 
    * @param {User} user  user object with the sign-up details
    */
-  async signUp(user: User): Promise<boolean> {
+  async signUp(user: User): Promise<VerificationInfo> {
 
     const logger = this.logger;
     const auth = this.auth;
 
-    return new Promise<boolean>(function (resolve, reject) {
+    return new Promise<VerificationInfo>(function (resolve, reject) {
       auth.signUp({
         username: user.username,
         password: user.password,
@@ -91,7 +91,14 @@ export default class Provider implements ProviderInterface {
         .then(
           result => {
             logger.trace('successful sign up: ', result);
-            resolve(result.userConfirmed);
+            let info: VerificationInfo = { isConfirmed: result.userConfirmed };
+            if (!result.userConfirmed) {
+              info.type = result.codeDeliveryDetails.DeliveryMedium == 'EMAIL' 
+                ? VerificationType.Email : VerificationType.SMS;
+              info.attrName = result.codeDeliveryDetails.AttributeName;
+              info.destination = result.codeDeliveryDetails.Destination;
+            }
+            resolve(info);
           },
           error => {
             logger.error('unable sign up: ', error);
@@ -112,17 +119,36 @@ export default class Provider implements ProviderInterface {
    * @param {string} username  the name of the user for whom the
    *                           sign-up code needs to be resent
    */
-  async resendSignUpCode(username: string): Promise<string> {
+  async resendSignUpCode(username: string): Promise<VerificationInfo> {
 
     const logger = this.logger;
     const auth = this.auth;
 
-    return new Promise<string>(function (resolve, reject) {
+    return new Promise<VerificationInfo>(function (resolve, reject) {
       auth.resendSignUp(username)
         .then(
-          data => {
-            logger.trace('successfully resent sign-up confirmation code');
-            resolve(data);
+          result => {
+            logger.trace('successfully resent sign-up confirmation code', result);
+            let info: VerificationInfo = { isConfirmed: false };
+
+            // AWS Cognito BUG: type is declared is as string
+            // but what is actually returned is an instance of 
+            // CodeDeliveryDetails object
+            let details: any = (<any>result)['CodeDeliveryDetails'];
+            if (details) {
+              info.type = details['DeliveryMedium'] == 'EMAIL' 
+                ? VerificationType.Email 
+                : details['DeliveryMedium'] == 'SMS' 
+                  ? VerificationType.SMS
+                  : VerificationType.None;
+              
+              if (info.type != VerificationType.None) {
+                info.attrName = details['AttributeName'];
+                info.destination = details['Destination'];  
+              }
+            }
+
+            resolve(info);
           },
           error => {
             logger.error('unable send sign-up confirmation code: ', error);

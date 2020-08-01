@@ -77,6 +77,7 @@ if (process.env.DEBUG) {
 
 import User, { UserStatus } from '../../../../model/user';
 import Provider from '../provider';
+import { VerificationType } from '../../../provider';
 
 import {
   AUTH_NO_MFA,
@@ -110,7 +111,12 @@ it('registers a new user, confirms registration and signs-in', async () => {
   user.mobilePhone = '+17165755305';
 
   await provider.signUp(user)
-    .then(userConfirmed => expect(userConfirmed).toBeFalsy());
+    .then(info => {
+      expect(info.type).toBe(VerificationType.Email);
+      expect(info.destination).toEqual('t***@g***.com');
+      expect(info.attrName).toEqual('email');      
+      expect(info.isConfirmed).toBeFalsy();
+    });
 
   console.info('Attempting to sign-in and expecting failure as user has not been confirmed...');
   await provider.signIn(signUpUserName, '@ppBr!cks2020')
@@ -125,7 +131,13 @@ it('registers a new user, confirms registration and signs-in', async () => {
     /^Your email address verification code for Identity Test Module is ([0-9]+).$/);
 
   console.info('Requesting new sign code...');
-  await provider.resendSignUpCode(user.username);
+  await provider.resendSignUpCode(user.username)
+    .then(info => {
+      expect(info.type).toBe(VerificationType.Email);
+      expect(info.destination).toEqual('t***@g***.com');
+      expect(info.attrName).toEqual('email');      
+      expect(info.isConfirmed).toBeFalsy();
+    });
 
   let verificationCode2 = await lookupCodeFromEmail(
     'Your verification code for Identity Test Module',
