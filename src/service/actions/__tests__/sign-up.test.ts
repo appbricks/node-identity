@@ -32,6 +32,8 @@ let store: any = createStore(
 );
 
 const mockProvider = new MockProvider();
+mockProvider.setConfirmed = true;
+
 const authService = new AuthService(mockProvider)
 let rootEpic = combineEpicsWithGlobalErrorHandler(authService.epics())
 epicMiddleware.run(rootEpic);
