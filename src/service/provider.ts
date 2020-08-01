@@ -1,4 +1,4 @@
-import User from '../model/user';
+import User, { VerificationInfo } from '../model/user';
 
 /**
  * MBaaS Authentication Provider interface
@@ -127,20 +127,4 @@ import User from '../model/user';
    *                                then all attributes will be read
    */
   readUser(attribNames?: string[]): Promise<User>;
-}
-
-/**
- * Verification Info
- */
-
-export enum VerificationType {
-  Email = 1,
-  SMS
-}
-
-export interface VerificationInfo {
-  type?: VerificationType
-  destination?: string
-  attrName?: string
-  isConfirmed: boolean
 }

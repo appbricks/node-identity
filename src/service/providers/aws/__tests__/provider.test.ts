@@ -75,9 +75,8 @@ if (process.env.DEBUG) {
   setLogLevel(LOG_LEVEL_TRACE);
 }
 
-import User, { UserStatus } from '../../../../model/user';
+import User, { UserStatus, VerificationType } from '../../../../model/user';
 import Provider from '../provider';
-import { VerificationType } from '../../../provider';
 
 import {
   AUTH_NO_MFA,

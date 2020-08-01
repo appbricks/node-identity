@@ -4,8 +4,8 @@ import { Auth } from 'aws-amplify';
 
 import { Logger, Error } from '@appbricks/utils';
 
-import ProviderInterface, { VerificationInfo, VerificationType } from '../../provider'
-import User, { UserStatus } from '../../../model/user'
+import ProviderInterface from '../../provider'
+import User, { UserStatus, VerificationInfo, VerificationType } from '../../../model/user'
 
 import {
   AUTH_NO_MFA,

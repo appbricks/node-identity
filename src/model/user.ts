@@ -1,19 +1,7 @@
-/*
- * Copyright 2018-2020 AppBricks, Inc. or its affiliates. All Rights Reserved.
- */
-
-const TIMEOUT = 24 * 60 * 60 * 1000; // 24 hours
-
-export enum UserStatus {
-  Unknown = 0,
-  Unregistered,
-  Unconfirmed,
-  Confirmed
-}
-
 /**
  * User Identity
  */
+
 export default class User {
 
   status: UserStatus;
@@ -165,15 +153,6 @@ export default class User {
    */
   setConfirmed(isConfirmed: boolean) {
     this.status = isConfirmed ? UserStatus.Confirmed : UserStatus.Unconfirmed;
-  }
-
-  /**
-   * Check if the user has timed out
-   * 
-   * @param {number} timestamp 
-   */
-  isTimedout(timestamp: number) {
-    return !this.rememberFor24h || (timestamp + TIMEOUT) < Date.now();
   }
 
   /**
@@ -370,4 +349,28 @@ export default class User {
     }
     return null;
   }
+}
+
+export enum UserStatus {
+  Unknown = 0,
+  Unregistered,
+  Unconfirmed,
+  Confirmed
+}
+
+/**
+ * User Verification Info
+ */
+
+export enum VerificationType {
+  None = 0,
+  Email,
+  SMS
+}
+
+export interface VerificationInfo {
+  type?: VerificationType
+  destination?: string
+  attrName?: string
+  isConfirmed: boolean
 }
