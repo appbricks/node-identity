@@ -42,7 +42,7 @@ const dispatch = AuthService.dispatchProps(store.dispatch)
 
 it('dispatches an action to sign up a user', async () => {
   let user = getTestUser();
-  dispatch.signUp( user);
+  dispatch.signUp(user);
 
   // Should throw an error
   let userWithError = getTestUser();
