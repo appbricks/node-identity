@@ -1,5 +1,5 @@
-import Provider, { VerificationInfo, VerificationType } from '../provider';
-import User from '../../model/user';
+import Provider from '../provider';
+import User, { VerificationInfo, VerificationType } from '../../model/user';
 import { AUTH_NO_MFA } from '../constants';
 
 import { getTestUser, expectTestUserToBeSet } from './request-tester-user';
@@ -24,6 +24,8 @@ export class MockProvider implements Provider {
   saveUserCounter = 0;
   readUserCounter = 0;
 
+  setConfirmed = false;
+
   signUp(user: User): Promise<VerificationInfo> {
     this.signUpCounter++;
     if (user.username == 'error') {
@@ -31,10 +33,17 @@ export class MockProvider implements Provider {
     }
     expectTestUserToBeSet(user);
     
-    return Promise.resolve(<VerificationInfo>{
-      type: VerificationType.Email,
-      isConfirmed: true
-    });
+    if (this.setConfirmed) {
+      return Promise.resolve(<VerificationInfo>{
+        type: VerificationType.None,
+        isConfirmed: true
+      });
+    } else {
+      return Promise.resolve(<VerificationInfo>{
+        type: VerificationType.Email,
+        isConfirmed: false
+      });
+    }
   }
 
   resendSignUpCode(username: string): Promise<VerificationInfo> {

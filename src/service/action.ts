@@ -1,15 +1,13 @@
 import * as redux from 'redux';
 
-import { Action } from '@appbricks/utils';
-
-import User from '../model/user';
+import User, { VerificationInfo } from '../model/user';
 
 export interface AuthStatePayload {
   isLoggedIn: boolean
 };
 
 export interface AuthUserPayload {
-  user: User
+  user: User,
 };
 
 export interface AuthUsernamePayload {
@@ -17,6 +15,10 @@ export interface AuthUsernamePayload {
   password?: string,
   code?: string
 };
+
+export interface AuthVerificationPayload {
+  info: VerificationInfo
+}
 
 export interface AuthSignInPayload {
   username: string,
