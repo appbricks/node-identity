@@ -369,6 +369,7 @@ export enum VerificationType {
 }
 
 export interface VerificationInfo {
+  timestamp?: number,
   type?: VerificationType
   destination?: string
   attrName?: string

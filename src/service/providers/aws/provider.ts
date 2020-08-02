@@ -94,9 +94,16 @@ export default class Provider implements ProviderInterface {
             let info: VerificationInfo = { isConfirmed: result.userConfirmed };
             if (!result.userConfirmed) {
               info.type = result.codeDeliveryDetails.DeliveryMedium == 'EMAIL' 
-                ? VerificationType.Email : VerificationType.SMS;
-              info.attrName = result.codeDeliveryDetails.AttributeName;
-              info.destination = result.codeDeliveryDetails.Destination;
+                ? VerificationType.Email 
+                : result.codeDeliveryDetails.DeliveryMedium == 'SMS' 
+                  ? VerificationType.SMS
+                  : VerificationType.None;
+              
+              if (info.type != VerificationType.None) {
+                info.timestamp = Date.now();
+                info.attrName = result.codeDeliveryDetails.AttributeName;
+                info.destination = result.codeDeliveryDetails.Destination;
+              }
             }
             resolve(info);
           },
@@ -143,6 +150,7 @@ export default class Provider implements ProviderInterface {
                   : VerificationType.None;
               
               if (info.type != VerificationType.None) {
+                info.timestamp = Date.now();
                 info.attrName = details['AttributeName'];
                 info.destination = details['Destination'];  
               }
