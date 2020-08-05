@@ -52,9 +52,25 @@ export default class User {
     this.rememberFor24h = false;
   }
 
-  toJSON() {
+  toJSON(): {
+    status: UserStatus
+    username: string
+    firstName?: string
+    middleName?: string
+    familyName?: string
+    emailAddress: string
+    emailAddressVerified: boolean
+    mobilePhone: string
+    mobilePhoneVerified: boolean 
+    profilePictureUrl?: string
+    enableBiometric: boolean
+    enableMFA: boolean
+    enableTOTP: boolean
+    rememberFor24h: boolean
+  } {
     return {
-      userStatus: this.status,
+      status: this.status,
+      username: this.username,
       firstName: this.firstName,
       middleName: this.middleName,
       familyName: this.familyName,
@@ -70,11 +86,11 @@ export default class User {
   }
 
   fromJSON(data: {
-    status: UserStatus,
-    firstName: string
-    middleName: string
-    familyName: string
-    address: string
+    status: UserStatus
+    username: string
+    firstName?: string
+    middleName?: string
+    familyName?: string
     emailAddress: string
     emailAddressVerified: boolean
     mobilePhone: string
@@ -86,6 +102,7 @@ export default class User {
     rememberFor24h: boolean
   }) {
     this.status = data.status;
+    this.username = data.username;
     this.firstName = data.firstName;
     this.middleName = data.middleName;
     this.familyName = data.familyName;
@@ -105,7 +122,7 @@ export default class User {
    * if available otherwise it will be the username 
    * used to log in with
    */
-  name() {
+  name(): string {
     if (this.firstName && this.firstName.length > 0
       && this.familyName && this.familyName.length > 0) {
 
@@ -123,13 +140,13 @@ export default class User {
    * Returns if this object contains sufficient 
    * data to be considered valid
    */
-  isValid() {
+  isValid(): boolean {
     return (
-      this.username && this.username.length > 0 &&
-      this.firstName && this.firstName.length > 0 &&
-      this.familyName && this.familyName.length > 0 &&
-      this.emailAddress && this.emailAddress.length > 0 &&
-      this.mobilePhone && this.mobilePhone.length > 0
+      this.username !== undefined && this.username.length > 0 &&
+      this.firstName !== undefined  && this.firstName.length > 0 &&
+      this.familyName !== undefined  && this.familyName.length > 0 &&
+      this.emailAddress !== undefined  && this.emailAddress.length > 0 &&
+      this.mobilePhone !== undefined  && this.mobilePhone.length > 0
     );
   }
 
@@ -137,7 +154,7 @@ export default class User {
    * Returns whether this User registration has
    * been confirmed by either email or SMS.
    */
-  isConfirmed() {
+  isConfirmed(): boolean {
     if (this.status == UserStatus.Unknown && 
       this.emailAddressVerified || this.mobilePhoneVerified) {
       
@@ -159,7 +176,7 @@ export default class User {
    * Returns whether this user's sign-in should
    * be remembered.
    */
-  rememberSignIn() {
+  rememberSignIn(): boolean {
     return this.enableBiometric || this.rememberFor24h;
   }
 
@@ -168,13 +185,13 @@ export default class User {
    * 
    * @param {string} password  password to check for policy compliance
    */
-  validatePassword(password: string) {
+  validatePassword(password: string): ValidationResult {
 
     this.password = '';
 
     if (password.length == 0) {
       return {
-        shortMessage: null,
+        isValid: false,
         longMessage: 'The password is required.'
       };
     }
@@ -186,6 +203,7 @@ export default class User {
     let lengthCheck = /[-_()!@#$%^&+*a-zA-Z0-9]{8,}$/;
     if (!lengthCheck.test(password)) {
       return {
+        isValid: false,
         shortMessage: 'too short',
         longMessage: 'The password must have a minimum length of 8 characters.'
       };
@@ -194,6 +212,7 @@ export default class User {
     let specialCharCheck = /^(?=.*[-_()!@#$%^&+*])[-_()!@#$%^&+*a-zA-Z0-9]{8,}$/;
     if (!specialCharCheck.test(password)) {
       return {
+        isValid: false,
         shortMessage: 'invalid',
         longMessage: 'The password must have at least one special character.'
       };
@@ -202,6 +221,7 @@ export default class User {
     let lowercaseCharCheck = /^(?=.*[a-z])[-_()!@#$%^&+*a-zA-Z0-9]{8,}$/;
     if (!lowercaseCharCheck.test(password)) {
       return {
+        isValid: false,
         shortMessage: 'invalid',
         longMessage: 'The password must have at least one lowercase character.'
       };
@@ -210,6 +230,7 @@ export default class User {
     let uppercaseCharCheck = /^(?=.*[A-Z])[-_()!@#$%^&+*a-zA-Z0-9]{8,}$/;
     if (!uppercaseCharCheck.test(password)) {
       return {
+        isValid: false,
         shortMessage: 'invalid',
         longMessage: 'The password must have at least one uppercase character.'
       };
@@ -218,13 +239,14 @@ export default class User {
     let numberCheck = /^(?=.*[0-9])[-_()!@#$%^&+*a-zA-Z0-9]{8,}$/;
     if (!numberCheck.test(password)) {
       return {
+        isValid: false,
         shortMessage: 'invalid',
         longMessage: 'The password must have at least one number character.'
       };
     }
 
     this.password = password;
-    return null;
+    return { isValid: true };
   }
 
   /**
@@ -232,24 +254,25 @@ export default class User {
    * 
    * @param {*} password  password to verify if it matches the instance value
    */
-  verifyPassword(password: string) {
+  verifyPassword(password: string): ValidationResult {
 
     if (password.length == 0) {
 
       return {
-        shortMessage: null,
+        isValid: false,
         longMessage: 'The password is required.'
       }
 
     } else if (password.length > 0 && password != this.password) {
 
       return {
+        isValid: false,
         shortMessage: 'not matching',
         longMessage: 'The verification password does not match the first password you entered.'
       };
     }
 
-    return null;
+    return { isValid: true };
   }
 
   /**
@@ -258,7 +281,7 @@ export default class User {
    * @param {string} username  the user's login name
    * @param {boolean} set       updates the property if valid else resets it
    */
-  validateUsername(username: string, set = true) {
+  validateUsername(username: string, set = true): ValidationResult{
 
     if (set) {
       this.username = '';
@@ -266,13 +289,14 @@ export default class User {
 
     if (username.length == 0) {
       return {
-        shortMessage: null,
+        isValid: false,
         longMessage: 'The username is required.'
       };
     }
 
     if (username.length < 3) {
       return {
+        isValid: false,
         shortMessage: 'too short',
         longMessage: 'The username must be at least 3 characters long.'
       };
@@ -281,7 +305,7 @@ export default class User {
     if (set) {
       this.username = username;
     }
-    return null;
+    return { isValid: true };
   }
 
   /**
@@ -290,7 +314,7 @@ export default class User {
    * @param {string} emailAddress  email address
    * @param {boolean} set          updates the property if valid else resets it
    */
-  validateEmailAddress(emailAddress: string, set = true) {
+  validateEmailAddress(emailAddress: string, set = true): ValidationResult {
 
     if (set) {
       this.emailAddress = '';
@@ -298,7 +322,7 @@ export default class User {
 
     if (emailAddress.length == 0) {
       return {
-        shortMessage: null,
+        isValid: false,
         longMessage: 'The email address is required.'
       };
     }
@@ -306,6 +330,7 @@ export default class User {
     let emailFormatCheck = /^(([^<>()\[\]\\.,;:\s@']+(\.[^<>()\[\]\\.,;:\s@']+)*)|('.+'))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
     if (!emailFormatCheck.test(emailAddress)) {
       return {
+        isValid: false,
         shortMessage: 'invalid',
         longMessage: '"' + emailAddress + '" is not a valid email address.'
       };
@@ -314,7 +339,7 @@ export default class User {
     if (set) {
       this.emailAddress = emailAddress;
     }
-    return null;
+    return { isValid: true };
   }
 
   /**
@@ -323,7 +348,7 @@ export default class User {
    * @param {string} mobilePhone  mobile phone number
    * @param {boolean} set         updates the property if valid else resets it
    */
-  validateMobilePhone(mobilePhone: string, set = true) {
+  validateMobilePhone(mobilePhone: string, set = true): ValidationResult {
 
     if (set) {
       this.mobilePhone = '';
@@ -331,7 +356,7 @@ export default class User {
 
     if (mobilePhone.length == 0) {
       return {
-        shortMessage: null,
+        isValid: false,
         longMessage: 'The mobile phone number is required.'
       };
     }
@@ -339,6 +364,7 @@ export default class User {
     let mobilePhoneFormatCheck = /((?:\+|00)[17](?: |\-)?|(?:\+|00)[1-9]\d{0,2}(?: |\-)?|(?:\+|00)1\-\d{3}(?: |\-)?)?(0\d|\([0-9]{3}\)|[1-9]{0,3})(?:((?: |\-)[0-9]{2}){4}|((?:[0-9]{2}){4})|((?: |\-)[0-9]{3}(?: |\-)[0-9]{4})|([0-9]{7}))/;
     if (!mobilePhoneFormatCheck.test(mobilePhone)) {
       return {
+        isValid: false,
         shortMessage: 'invalid',
         longMessage: '"' + mobilePhone + '" is not a valid phone number.'
       };
@@ -347,7 +373,7 @@ export default class User {
     if (set) {
       this.mobilePhone = mobilePhone;
     }
-    return null;
+    return { isValid: true };
   }
 }
 
@@ -356,6 +382,12 @@ export enum UserStatus {
   Unregistered,
   Unconfirmed,
   Confirmed
+}
+
+export type ValidationResult = {
+  isValid: boolean
+  shortMessage?: string
+  longMessage?: string
 }
 
 /**

@@ -44,12 +44,12 @@ export interface AuthActionProps {
 
   // registration and configuration
   signUp: (user: User) => redux.Action
-  resendSignUpCode: (username: string) => redux.Action
-  confirmSignUpCode: (username: string, code: string) => redux.Action
+  resendSignUpCode: (username?: string) => redux.Action
+  confirmSignUpCode: (code: string, username?: string) => redux.Action
 
   // actions on current user in state
-  resetPassword: (username: string) => redux.Action
-  updatePassword: (username: string, password: string, code: string) => redux.Action
+  resetPassword: (username?: string) => redux.Action
+  updatePassword: (password: string, code: string, username?: string) => redux.Action
 
   // user authentication
   signIn: (username: string, password: string) => redux.Action

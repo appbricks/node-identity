@@ -17,8 +17,10 @@ import {
   initialAuthState
 } from './state';
 import {
-  AuthUserPayload,
   AuthStatePayload,
+  AuthUserPayload,
+  AuthUsernamePayload,
+  AuthVerificationPayload,
   AuthSignInPayload,
   AuthMultiFactorAuthPayload,
   AuthLoggedInUserAttrPayload,
@@ -60,6 +62,8 @@ import { saveUserAction, saveUserEpic } from './actions/save-user';
 type AuthPayloadType = 
   AuthStatePayload |
   AuthUserPayload |
+  AuthUsernamePayload |
+  AuthVerificationPayload |
   AuthSignInPayload |
   AuthMultiFactorAuthPayload |
   AuthLoggedInUserAttrPayload;
@@ -108,15 +112,15 @@ export default class AuthService {
       signUp: (user: User) =>
         signUpAction(dispatch, user),
 
-      resendSignUpCode: (username: string) =>
-        resendSignUpCodeAction(dispatch, username),
-      confirmSignUpCode: (username: string, code: string) =>
-        confirmSignUpCodeAction(dispatch, username, code),
+      resendSignUpCode: (username?: string) => 
+        resendSignUpCodeAction(dispatch, username ? username : ownProps!.auth.user!.username),
+      confirmSignUpCode: (code: string, username?: string) =>
+        confirmSignUpCodeAction(dispatch, username ? username : ownProps!.auth.user!.username, code),
 
-      resetPassword: (username: string) =>
-        resetPasswordAction(dispatch, username),
-      updatePassword: (username: string, password: string, code: string) =>
-        updatePasswordAction(dispatch, username, password, code),
+      resetPassword: (username?: string) =>
+        resetPasswordAction(dispatch, username ? username : ownProps!.auth.user!.username),
+      updatePassword: (password: string, code: string, username?: string) =>
+        updatePasswordAction(dispatch, username ? username : ownProps!.auth.user!.username, password, code),
 
       // user authentication
       signIn: (username: string, password: string) =>
@@ -205,9 +209,8 @@ export default class AuthService {
             state.user.fromJSON(userData);
           }
         }
-        if ( (state.session.timestamp == -1 && state.user) ||
-          (state.session.timestamp > 0 && !state.user) ||
-          (state.session.timestamp > 0 && state.user && (!state.user.isValid() || state.session.isTimedout(state.user))) ) {
+        if ( !state.user ||  !state.user.isValid() ||
+          (state.session.timestamp > 0 && state.session.isTimedout(state.user)) ) {
           
           this.logger.trace('Invalid saved user session. User session will be reset: ', state.session, state.user);
           state = initialAuthState();
@@ -243,19 +246,13 @@ export default class AuthService {
 
   private reduceServiceResponse(
     state: AuthUserState = <AuthUserState>{},
-    action: Action<
-      AuthStatePayload |
-      AuthUserPayload |
-      AuthSignInPayload |
-      AuthMultiFactorAuthPayload |
-      AuthLoggedInUserAttrPayload |
-      ErrorPayload
-    >
+    action: Action<AuthPayloadType | ErrorPayload>
   ): AuthUserState {
 
     let relatedAction = action.meta.relatedAction!;
     if (this.serviceRequests.has(relatedAction.type)) {
       this.logger.trace('Handling successfull service response: ', relatedAction.type);
+      state.session.updatePending = false;
 
       switch (relatedAction.type) {
         case LOAD_AUTH_STATE_REQ: {
@@ -267,15 +264,36 @@ export default class AuthService {
             ...state,
             session: state.session
           };
+          break;
         }
 
         case SIGN_UP_REQ: {
           let payload = <AuthUserPayload>relatedAction.payload!;
+          state.session.awaitingConfirmation = (<AuthVerificationPayload>action.payload).info;
 
           state = {
             ...state,
+            session: state.session,
             user: payload.user
           };
+
+          // save user and session to local store
+          this.store().setItem('session', state.session.toJSON());
+          this.store().setItem('user', state.user!.toJSON());
+          break;
+        }
+
+        case RESEND_SIGN_UP_CODE_REQ: {
+          state.session.awaitingConfirmation = (<AuthVerificationPayload>action.payload).info;
+
+          state = {
+            ...state,
+            session: state.session,
+          };
+
+          // save user and session to local store
+          this.store().setItem('session', state.session.toJSON());
+          break;
         }
 
         case CONFIRM_SIGN_UP_CODE_REQ: {
@@ -284,7 +302,6 @@ export default class AuthService {
       }
     }
 
-    state.session.updatePending = false;
     return {
       ...state,
       session: state.session

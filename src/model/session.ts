@@ -5,10 +5,13 @@ const TIMEOUT_24H = 24 * 60 * 60 * 1000; // 24 hours
 
 export default class Session {
 
+  // persisted properties
   timestamp: number = -1;
+  awaitingConfirmation?: VerificationInfo;
+
+  // transient properties
   isLoggedIn: boolean = false;
   updatePending: boolean = false;
-  awaitingConfirmation?: VerificationInfo;
   awaitingMFA?: string;
 
   resetTimestamp() {
@@ -31,22 +34,16 @@ export default class Session {
 
   fromJSON(data: {
     timestamp: number
-    isLoggedIn: boolean
-    updatePending: boolean
-    awaitingMFA?: string
+    awaitingConfirmation?: VerificationInfo
   }) {
     this.timestamp = data.timestamp;
-    this.isLoggedIn = data.isLoggedIn;
-    this.updatePending = data.updatePending;
-    this.awaitingMFA = data.awaitingMFA;
+    this.awaitingConfirmation = data.awaitingConfirmation;
   }
 
   toJSON() {
     return {
       timestamp: this.timestamp,
-      isLoggedIn: this.isLoggedIn,
-      updatePending: this.updatePending,
-      awaitingMFA: this.awaitingMFA
-    }
+      awaitingConfirmation: this.awaitingConfirmation
+    };
   }
 }

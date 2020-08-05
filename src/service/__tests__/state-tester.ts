@@ -1,4 +1,5 @@
 import { Store } from 'redux';
+import { execAfter } from '@appbricks/utils';
 
 export class StateTester<T> {
 
@@ -21,7 +22,7 @@ export class StateTester<T> {
       try {
         this.testFn(this.counter, state);
       } catch (err) {
-        console.error('Test Error', err, state);
+        console.error('Test Error', this.counter, err, state);
         this.testErr = err;
       }
     }
@@ -31,5 +32,15 @@ export class StateTester<T> {
     if (this.testErr) {
       fail(this.testErr);
     }
+  }
+
+  async until(counterAt: number): Promise<void> {
+    const checkCounter = this.checkCounter.bind(this);
+    let timer = execAfter(() => this.counter < counterAt, 100, true);
+    await timer.promise;
+  }
+
+  private checkCounter(counterAt: number): boolean {
+    return (this.counter >= counterAt);
   }
 }

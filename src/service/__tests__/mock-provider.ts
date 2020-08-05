@@ -40,7 +40,10 @@ export class MockProvider implements Provider {
       });
     } else {
       return Promise.resolve(<VerificationInfo>{
+        timestamp: Date.now(),
         type: VerificationType.Email,
+        destination: 'johndoe@gmail.com',
+        attrName: 'email',
         isConfirmed: false
       });
     }
@@ -50,7 +53,10 @@ export class MockProvider implements Provider {
     this.resendSignUpCodeCounter++;
     expect(username).toEqual('johndoe');
     return Promise.resolve(<VerificationInfo>{
+      timestamp: Date.now(),
       type: VerificationType.Email,
+      destination: 'johndoe@gmail.com',
+      attrName: 'email',
       isConfirmed: false
     });
   }
