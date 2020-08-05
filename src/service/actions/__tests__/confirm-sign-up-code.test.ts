@@ -40,9 +40,9 @@ const dispatch = AuthService.dispatchProps(store.dispatch)
 
 it('dispatches an action to sign up a user', async () => {
   // expect no errors
-  dispatch.confirmSignUpCode('johndoe', '12345');
+  dispatch.confirmSignUpCode('12345', 'johndoe');
   // expect invalid code error
-  dispatch.confirmSignUpCode('johndoe', '00000');
+  dispatch.confirmSignUpCode('00000', 'johndoe');
 });
 
 it('calls reducer as expected when sign up action is dispatched', () => {
