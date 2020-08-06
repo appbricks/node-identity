@@ -1,10 +1,11 @@
 import * as redux from 'redux';
-import { Epic, StateObservable } from 'redux-observable';
+import { Epic } from 'redux-observable';
 
-import { State, Action, createAction, createFollowUpAction, serviceEpic } from '@appbricks/utils';
+import { Action, createAction, createFollowUpAction, serviceEpic } from '@appbricks/utils';
 
-import { AuthMultiFactorAuthPayload, VALIDATE_MFA_CODE_REQ, SERVICE_RESPONSE_OK } from '../action';
 import Provider from '../provider';
+import { AuthMultiFactorAuthPayload, VALIDATE_MFA_CODE_REQ, SERVICE_RESPONSE_OK } from '../action';
+import { AuthUserStateProp } from '../state';
 
 export const validateMFACodeAction = 
   (dispatch: redux.Dispatch<redux.Action>, mfaCode: string) => 
@@ -12,8 +13,8 @@ export const validateMFACodeAction =
 
 export const validateMFACodeEpic = (csProvider: Provider): Epic => {
 
-  return serviceEpic(VALIDATE_MFA_CODE_REQ, 
-    async (action: Action<AuthMultiFactorAuthPayload>, state$: StateObservable<State>) => {
+  return serviceEpic<AuthMultiFactorAuthPayload, AuthUserStateProp>(VALIDATE_MFA_CODE_REQ, 
+    async (action, state$) => {
       if (await csProvider.isLoggedIn()) {
         throw Error('The current session is already logged in.')
       }

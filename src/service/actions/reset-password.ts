@@ -1,10 +1,11 @@
 import * as redux from 'redux';
-import { Epic, StateObservable } from 'redux-observable';
+import { Epic } from 'redux-observable';
 
-import { State, Action, createAction, createFollowUpAction, serviceEpic } from '@appbricks/utils';
+import { Action, createAction, createFollowUpAction, serviceEpic } from '@appbricks/utils';
 
-import { AuthUsernamePayload, RESET_PASSWORD_REQ, SERVICE_RESPONSE_OK } from '../action';
 import Provider from '../provider';
+import { AuthUsernamePayload, RESET_PASSWORD_REQ, SERVICE_RESPONSE_OK } from '../action';
+import { AuthUserStateProp } from '../state';
 
 export const resetPasswordAction = 
   (dispatch: redux.Dispatch<redux.Action>, username: string) => 
@@ -12,9 +13,9 @@ export const resetPasswordAction =
 
 export const resetPasswordEpic = (csProvider: Provider): Epic => {
 
-  return serviceEpic(
+  return serviceEpic<AuthUsernamePayload, AuthUserStateProp>(
     RESET_PASSWORD_REQ, 
-    async (action: Action<AuthUsernamePayload>, state$: StateObservable<State>) => {
+    async (action, state$) => {
       await csProvider.resetPassword(action.payload!.username);
       return createFollowUpAction(action, SERVICE_RESPONSE_OK);
     }

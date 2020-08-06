@@ -1,11 +1,12 @@
 import * as redux from 'redux';
-import { Epic, StateObservable } from 'redux-observable';
+import { Epic } from 'redux-observable';
 
-import { State, Action, createAction, createFollowUpAction, serviceEpic } from '@appbricks/utils';
+import { Action, createAction, createFollowUpAction, serviceEpic } from '@appbricks/utils';
 
 import User from '../../model/user';
-import { AuthUserPayload, CONFIGURE_MFA_REQ, SERVICE_RESPONSE_OK } from '../action';
 import Provider from '../provider';
+import { AuthUserPayload, CONFIGURE_MFA_REQ, SERVICE_RESPONSE_OK } from '../action';
+import { AuthUserStateProp } from '../state';
 
 export const configureMFAAction = 
   (dispatch: redux.Dispatch<redux.Action>, user: User) => 
@@ -13,9 +14,9 @@ export const configureMFAAction =
 
 export const configureMFAEpic = (csProvider: Provider): Epic => {
 
-  return serviceEpic(
+  return serviceEpic<AuthUserPayload, AuthUserStateProp>(
     CONFIGURE_MFA_REQ, 
-    async (action: Action<AuthUserPayload>, state$: StateObservable<State>) => {
+    async (action, state$) => {
       if (!await csProvider.isLoggedIn()) {
         throw Error('No user logged in. The user needs to be logged in before MFA can be configured.')
       }

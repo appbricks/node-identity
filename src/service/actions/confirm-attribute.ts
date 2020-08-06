@@ -1,10 +1,12 @@
 import * as redux from 'redux';
-import { Epic, StateObservable } from 'redux-observable';
+import { Epic } from 'redux-observable';
 
-import { State, Action, createAction, createFollowUpAction, serviceEpic } from '@appbricks/utils';
+import { Action, createAction, createFollowUpAction, serviceEpic } from '@appbricks/utils';
 
-import { AuthLoggedInUserAttrPayload, CONFIRM_ATTRIBUTE_REQ, SERVICE_RESPONSE_OK } from '../action';
 import Provider from '../provider';
+import { AuthLoggedInUserAttrPayload, CONFIRM_ATTRIBUTE_REQ, SERVICE_RESPONSE_OK } from '../action';
+import { AuthUserStateProp } from '../state';
+
 
 export const confirmAttributeAction = 
   (dispatch: redux.Dispatch<redux.Action>, attrName: string, code: string) => 
@@ -12,9 +14,9 @@ export const confirmAttributeAction =
 
 export const confirmAttributeEpic = (csProvider: Provider): Epic => {
 
-  return serviceEpic(
+  return serviceEpic<AuthLoggedInUserAttrPayload, AuthUserStateProp>(
     CONFIRM_ATTRIBUTE_REQ, 
-    async (action: Action<AuthLoggedInUserAttrPayload>, state$: StateObservable<State>) => {
+    async (action, state$) => {
       if (!await csProvider.isLoggedIn()) {
         throw Error('No user logged in. You can confirm an attribute only for logged in user.')
       }

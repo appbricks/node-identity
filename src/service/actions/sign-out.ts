@@ -1,10 +1,11 @@
 import * as redux from 'redux';
-import { Epic, StateObservable } from 'redux-observable';
+import { Epic } from 'redux-observable';
 
-import { State, Action, createAction, createFollowUpAction, serviceEpic } from '@appbricks/utils';
+import { Action, createAction, createFollowUpAction, serviceEpic } from '@appbricks/utils';
 
-import { AuthStatePayload, SIGN_OUT_REQ, SERVICE_RESPONSE_OK } from '../action';
 import Provider from '../provider';
+import { AuthStatePayload, SIGN_OUT_REQ, SERVICE_RESPONSE_OK } from '../action';
+import { AuthUserStateProp } from '../state';
 
 export const signOutAction = 
   (dispatch: redux.Dispatch<redux.Action>) => 
@@ -12,8 +13,8 @@ export const signOutAction =
 
 export const signOutEpic = (csProvider: Provider): Epic => {
 
-  return serviceEpic(SIGN_OUT_REQ, 
-    async (action: Action<AuthStatePayload>, state$: StateObservable<State>) => {
+  return serviceEpic<AuthStatePayload, AuthUserStateProp>(SIGN_OUT_REQ, 
+    async (action, state$) => {
       if (await csProvider.isLoggedIn()) {
         await csProvider.signOut();
       }

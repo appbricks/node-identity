@@ -1,10 +1,11 @@
 import * as redux from 'redux';
-import { Epic, StateObservable } from 'redux-observable';
+import { Epic } from 'redux-observable';
 
-import { State, Action, createAction, createFollowUpAction, serviceEpic } from '@appbricks/utils';
+import { Action, createAction, createFollowUpAction, serviceEpic } from '@appbricks/utils';
 
-import { AuthLoggedInUserAttrPayload, VERIFY_ATTRIBUTE_REQ, SERVICE_RESPONSE_OK } from '../action';
 import Provider from '../provider';
+import { AuthLoggedInUserAttrPayload, VERIFY_ATTRIBUTE_REQ, SERVICE_RESPONSE_OK } from '../action';
+import { AuthUserStateProp } from '../state';
 
 export const verifyAttributeAction = 
   (dispatch: redux.Dispatch<redux.Action>, attrName: string) => 
@@ -12,9 +13,9 @@ export const verifyAttributeAction =
 
 export const verifyAttributeEpic = (csProvider: Provider): Epic => {
 
-  return serviceEpic(
+  return serviceEpic<AuthLoggedInUserAttrPayload, AuthUserStateProp>(
     VERIFY_ATTRIBUTE_REQ, 
-    async (action: Action<AuthLoggedInUserAttrPayload>, state$: StateObservable<State>) => {
+    async (action, state$) => {
       if (!await csProvider.isLoggedIn()) {
         throw Error('No user logged in. You can validate an attribute only for logged in user.')
       }

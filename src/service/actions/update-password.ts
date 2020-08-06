@@ -1,11 +1,11 @@
 import * as redux from 'redux';
-import { Epic, StateObservable } from 'redux-observable';
+import { Epic } from 'redux-observable';
 
-import { State, Action, createAction, createFollowUpAction, serviceEpic } from '@appbricks/utils';
+import { Action, createAction, createFollowUpAction, serviceEpic } from '@appbricks/utils';
 
-import User from '../../model/user';
-import { AuthUsernamePayload, UPDATE_PASSWORD_REQ, SERVICE_RESPONSE_OK } from '../action';
 import Provider from '../provider';
+import { AuthUsernamePayload, UPDATE_PASSWORD_REQ, SERVICE_RESPONSE_OK } from '../action';
+import { AuthUserStateProp } from '../state';
 
 export const updatePasswordAction = 
   (dispatch: redux.Dispatch<redux.Action>, username: string, password: string, code: string) => 
@@ -13,9 +13,9 @@ export const updatePasswordAction =
 
 export const updatePasswordEpic = (csProvider: Provider): Epic => {
 
-  return serviceEpic(
+  return serviceEpic<AuthUsernamePayload, AuthUserStateProp>(
     UPDATE_PASSWORD_REQ, 
-    async (action: Action<AuthUsernamePayload>, state$: StateObservable<State>) => {
+    async (action, state$) => {
       let payload = action.payload!;
       await csProvider.updatePassword(payload.username, payload.password!, payload.code!);
       return createFollowUpAction(action, SERVICE_RESPONSE_OK);

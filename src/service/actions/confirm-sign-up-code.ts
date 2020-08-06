@@ -1,10 +1,10 @@
 import * as redux from 'redux';
-import { Epic, StateObservable } from 'redux-observable';
+import { Epic } from 'redux-observable';
 
-import { State, Action, createAction, createFollowUpAction, serviceEpic } from '@appbricks/utils';
+import { Action, createAction, createFollowUpAction, serviceEpic } from '@appbricks/utils';
 
-import { AuthUsernamePayload, CONFIRM_SIGN_UP_CODE_REQ, SERVICE_RESPONSE_OK } from '../action';
 import Provider from '../provider';
+import { AuthUsernamePayload, CONFIRM_SIGN_UP_CODE_REQ, SERVICE_RESPONSE_OK } from '../action';
 import { AuthUserStateProp } from '../state';
 
 export const confirmSignUpCodeAction = 
@@ -13,10 +13,10 @@ export const confirmSignUpCodeAction =
 
 export const confirmSignUpCodeEpic = (csProvider: Provider): Epic => {
 
-  return serviceEpic(
+  return serviceEpic<AuthUsernamePayload, AuthUserStateProp>(
     CONFIRM_SIGN_UP_CODE_REQ, 
-    async (action: Action<AuthUsernamePayload>, state$: StateObservable<State>) => {
-      let state = <AuthUserStateProp>state$.value;
+    async (action, state$) => {
+      let state = state$.value;
       let isConfirmed = await csProvider.confirmSignUpCode(action.payload!.username, action.payload!.code!);
       if (state.auth.user) {
         state.auth.user.setConfirmed(isConfirmed);

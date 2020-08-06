@@ -1,10 +1,11 @@
 import * as redux from 'redux';
-import { Epic, StateObservable } from 'redux-observable';
+import { Epic } from 'redux-observable';
 
-import { State, Action, createAction, createFollowUpAction, serviceEpic } from '@appbricks/utils';
+import { Action, createAction, createFollowUpAction, serviceEpic } from '@appbricks/utils';
 
-import { AuthStatePayload, LOAD_AUTH_STATE_REQ, SERVICE_RESPONSE_OK } from '../action';
 import Provider from '../provider';
+import { AuthStatePayload, LOAD_AUTH_STATE_REQ, SERVICE_RESPONSE_OK } from '../action';
+import { AuthUserStateProp } from '../state';
 
 export const loadAuthStateAction = 
   (dispatch: redux.Dispatch<redux.Action>) => 
@@ -12,9 +13,9 @@ export const loadAuthStateAction =
 
 export const loadAuthStateEpic = (csProvider: Provider): Epic => {
 
-  return serviceEpic(
+  return serviceEpic<AuthStatePayload, AuthUserStateProp>(
     LOAD_AUTH_STATE_REQ, 
-    async (action: Action<AuthStatePayload>, state$: StateObservable<State>) => {
+    async (action, state$) => {
       action.payload = <AuthStatePayload>{
         isLoggedIn: await csProvider.isLoggedIn()
       };

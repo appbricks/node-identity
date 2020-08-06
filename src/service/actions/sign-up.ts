@@ -1,11 +1,12 @@
 import * as redux from 'redux';
-import { Epic, StateObservable } from 'redux-observable';
+import { Epic } from 'redux-observable';
 
-import { State, Action, createAction, createFollowUpAction, serviceEpic } from '@appbricks/utils';
+import { Action, createAction, createFollowUpAction, serviceEpic } from '@appbricks/utils';
 
 import User from '../../model/user';
-import { AuthUserPayload, AuthVerificationPayload, SIGN_UP_REQ, SERVICE_RESPONSE_OK } from '../action';
 import Provider from '../provider';
+import { AuthUserPayload, AuthVerificationPayload, SIGN_UP_REQ, SERVICE_RESPONSE_OK } from '../action';
+import { AuthUserStateProp } from '../state';
 
 export const signUpAction = 
   (dispatch: redux.Dispatch<redux.Action>, user: User) => 
@@ -13,9 +14,9 @@ export const signUpAction =
 
 export const signUpEpic = (csProvider: Provider): Epic => {
 
-  return serviceEpic(
+  return serviceEpic<AuthUserPayload, AuthUserStateProp>(
     SIGN_UP_REQ, 
-    async (action: Action<AuthUserPayload>, state$: StateObservable<State>) => {
+    async (action, state$) => {
       let user = action.payload!.user;
       if (!user.isValid()) {
         throw Error('Insufficient user data provided for sign-up.');
