@@ -1,4 +1,5 @@
-import User, { VerificationInfo } from "./user";
+import User, { VerificationInfo } from './user';
+import { ActionResult } from '@appbricks/utils';
 
 const TIMEOUT_15M = 15 * 60 * 1000;      // 15 minutes
 const TIMEOUT_24H = 24 * 60 * 60 * 1000; // 24 hours
@@ -7,12 +8,6 @@ export default class Session {
 
   // persisted properties
   timestamp: number = -1;
-  awaitingConfirmation?: VerificationInfo;
-
-  // transient properties
-  isLoggedIn: boolean = false;
-  updatePending: boolean = false;
-  awaitingMFA?: string;
 
   resetTimestamp() {
     this.timestamp = Date.now();
@@ -34,16 +29,13 @@ export default class Session {
 
   fromJSON(data: {
     timestamp: number
-    awaitingConfirmation?: VerificationInfo
   }) {
     this.timestamp = data.timestamp;
-    this.awaitingConfirmation = data.awaitingConfirmation;
   }
 
   toJSON() {
     return {
       timestamp: this.timestamp,
-      awaitingConfirmation: this.awaitingConfirmation
     };
   }
 }

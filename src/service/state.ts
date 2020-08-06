@@ -1,11 +1,16 @@
-import User from '../model/user';
+import { State, ActionResult } from '@appbricks/utils';
 
+import User, { VerificationInfo } from '../model/user';
 import Session from '../model/session';
 
 // Authentication state type
-export interface AuthUserState {
+export interface AuthUserState extends State {
   session: Session
+  isLoggedIn: boolean
+
   user?: User
+  awaitingUserConfirmation?: VerificationInfo;
+  awaitingMFAConfirmation?: string
 };
 
 // Authentication state properties
@@ -15,5 +20,10 @@ export interface AuthUserStateProp {
 
 export const initialAuthState = (): AuthUserState => 
   <AuthUserState>{
-    session: new Session()
+    actionStatus: {
+      result: ActionResult.none
+    },
+    
+    session: new Session(),
+    isLoggedIn: false
   };

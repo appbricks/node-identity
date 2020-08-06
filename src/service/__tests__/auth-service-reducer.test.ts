@@ -1,7 +1,7 @@
 import * as redux from 'redux';
 import { createEpicMiddleware } from 'redux-observable';
 
-import { LOG_LEVEL_TRACE, setLogLevel, reduxLogger, combineEpicsWithGlobalErrorHandler, setLocalStorageImpl } from '@appbricks/utils';
+import { LOG_LEVEL_TRACE, setLogLevel, reduxLogger, combineEpicsWithGlobalErrorHandler, setLocalStorageImpl, ActionResult } from '@appbricks/utils';
 
 import Session from '../../model/session';
 import User, { UserStatus, VerificationInfo, VerificationType } from '../../model/user';
@@ -44,21 +44,25 @@ const stateTester = new StateTester<AuthUserState>(
     switch (counter) {
       case 1: { // Initial loadAuthState request
         expect(state).toEqual(<AuthUserState>{
+          actionStatus: {
+            result: ActionResult.pending
+          },
           session: {
-            timestamp: -1,
-            isLoggedIn: false,
-            updatePending: true
-          }
-        });
+            timestamp: -1
+          },
+          isLoggedIn: false
+      });
         break;
       }
       case 2: { // Initial loadAuthState request response
         expect(state).toEqual(<AuthUserState>{
+          actionStatus: {
+            result: ActionResult.success
+          },
           session: {
-            timestamp: -1,
-            isLoggedIn: false,
-            updatePending: false
-          }
+            timestamp: -1            
+          },
+          isLoggedIn: false
         });
         break;
       }
@@ -66,72 +70,55 @@ const stateTester = new StateTester<AuthUserState>(
         let user = state.user;
         expectTestUserToBeSet(user, false);
         expect(state.user!.status).toEqual(UserStatus.Unregistered);
-        expect(state.session).toEqual(<Session>{
-          timestamp: -1,
-          isLoggedIn: false,
-          updatePending: true
-        });
+        expect(state.actionStatus.result).toEqual(ActionResult.pending);
         break;
       }
       case 4: { // New user sign-up response
-        let user = state.user;
-        expectTestUserToBeSet(user, false);
-        expect(state.user!.status).toEqual(UserStatus.Unconfirmed);
-
-        let sendTimestamp = state.session.awaitingConfirmation!.timestamp!;
-        expectedStateAfterNewUserSignUp(false, sendTimestamp);
+        let sendTimestamp = state.awaitingUserConfirmation!.timestamp!;
+        validateStateAfterNewUserSignUp(state, false, sendTimestamp);
         timestamp = sendTimestamp;
         break;
       }
       case 5: { // Starting new session so expecting loadAuthState 
                 // request to retrieve saved user and session
-        let user = state.user;
-        expectTestUserToBeSet(user, false);
-        expect(state.user!.status).toEqual(UserStatus.Unconfirmed);
-        expectedStateAfterNewUserSignUp(true, timestamp);
+        validateStateAfterNewUserSignUp(state, true, timestamp);
         break;
       }
       case 6: { // Starting new session so expecting loadAuthState 
                 // resonse to contain saved user and session
-        let user = state.user;
-        expectTestUserToBeSet(user, false);
-        expect(state.user!.status).toEqual(UserStatus.Unconfirmed);
-        expectedStateAfterNewUserSignUp(false, timestamp);
+        validateStateAfterNewUserSignUp(state, false, timestamp);
         break;
       }
       case 7: { // Request sign-up code to be resent
-        let user = state.user;
-        expectTestUserToBeSet(user, false);
-        expect(state.user!.status).toEqual(UserStatus.Unconfirmed);
-        expectedStateAfterNewUserSignUp(true, timestamp);
+        validateStateAfterNewUserSignUp(state, true, timestamp);
         break;
       }
       case 8: { // Response of new sign-up code
-        let user = state.user;
-        expectTestUserToBeSet(user, false);
-        expect(state.user!.status).toEqual(UserStatus.Unconfirmed);
-        let sendTimestamp = state.session.awaitingConfirmation!.timestamp!;
+        let sendTimestamp = state.awaitingUserConfirmation!.timestamp!;
         expect(sendTimestamp).toBeGreaterThan(timestamp);
-        expectedStateAfterNewUserSignUp(false, sendTimestamp);
+        validateStateAfterNewUserSignUp(state, false, sendTimestamp);
         timestamp = -1;
       }
     }
   }
 );
 
-function expectedStateAfterNewUserSignUp(updatePending: boolean, timestamp?: number): Session {
-  return <Session>{
-    timestamp: -1,
-    isLoggedIn: false,
-    updatePending: updatePending,
-    awaitingConfirmation: <VerificationInfo>{
-      timestamp: timestamp,
-      type: VerificationType.Email,
-      destination: 'johndoe@gmail.com',
-      attrName: 'email',
-      isConfirmed: false
-    }
-  };
+function validateStateAfterNewUserSignUp(state: AuthUserState, updatePending: boolean, timestamp: number) {
+  
+  let user = state.user;
+  expectTestUserToBeSet(user, false);
+  expect(state.user!.status).toEqual(UserStatus.Unconfirmed);
+
+  expect(state.actionStatus.result).toBe(updatePending ? ActionResult.pending : ActionResult.success);
+  expect(state.session.timestamp).toBe(timestamp);
+  expect(state.isLoggedIn).toBe(false);
+  expect(state.awaitingUserConfirmation!).toEqual(<VerificationInfo>{
+    timestamp: timestamp,
+    type: VerificationType.Email,
+    destination: 'johndoe@gmail.com',
+    attrName: 'email',
+    isConfirmed: false
+  });
 }
 
 beforeEach(async () => {

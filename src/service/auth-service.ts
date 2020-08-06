@@ -6,7 +6,8 @@ import {
   ErrorPayload,
   Action,
   LocalStorage,
-  Logger
+  Logger,
+  ActionResult
 } from '@appbricks/utils';
 
 import Session from '../model/session';
@@ -235,7 +236,7 @@ export default class AuthService {
 
     if (this.serviceRequests.has(action.type)) {
 
-      state.session.updatePending = true;
+      state.actionStatus.result = ActionResult.pending;
       return {
         ...state,
         session: state.session
@@ -252,12 +253,12 @@ export default class AuthService {
     let relatedAction = action.meta.relatedAction!;
     if (this.serviceRequests.has(relatedAction.type)) {
       this.logger.trace('Handling successfull service response: ', relatedAction.type);
-      state.session.updatePending = false;
+      state.actionStatus.result = ActionResult.success;
 
       switch (relatedAction.type) {
         case LOAD_AUTH_STATE_REQ: {
           let payload = <AuthStatePayload>relatedAction.payload!;
-          state.session.isLoggedIn =  payload.isLoggedIn!;
+          state.isLoggedIn =  payload.isLoggedIn!;
           state.session.timestamp = payload.isLoggedIn! ? Date.now() : -1;
 
           state = {
@@ -269,7 +270,7 @@ export default class AuthService {
 
         case SIGN_UP_REQ: {
           let payload = <AuthUserPayload>relatedAction.payload!;
-          state.session.awaitingConfirmation = (<AuthVerificationPayload>action.payload).info;
+          state.awaitingUserConfirmation = (<AuthVerificationPayload>action.payload).info;
 
           state = {
             ...state,
@@ -284,7 +285,7 @@ export default class AuthService {
         }
 
         case RESEND_SIGN_UP_CODE_REQ: {
-          state.session.awaitingConfirmation = (<AuthVerificationPayload>action.payload).info;
+          state.awaitingUserConfirmation = (<AuthVerificationPayload>action.payload).info;
 
           state = {
             ...state,
