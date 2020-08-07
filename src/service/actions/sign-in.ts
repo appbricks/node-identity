@@ -4,7 +4,7 @@ import { Epic } from 'redux-observable';
 import { NOOP, Action, createAction, createFollowUpAction, createErrorAction, serviceEpicFanOut } from '@appbricks/utils';
 
 import Provider from '../provider';
-import { AuthSignInPayload, SIGN_IN_REQ, READ_USER_REQ, SERVICE_RESPONSE_OK } from '../action';
+import { AuthSignInPayload, AuthLoggedInPayload, SIGN_IN_REQ, READ_USER_REQ, SERVICE_RESPONSE_OK } from '../action';
 import { AuthUserStateProp } from '../state';
 
 export const signInAction = 
@@ -22,10 +22,10 @@ export const signInEpic = (csProvider: Provider): Epic => {
         }
 
         try {
-          let payload = action.payload!;
-          payload.mfaType = await csProvider.signIn(payload.username, payload.password);
-          payload.isLoggedIn = await csProvider.isLoggedIn();
-          return createFollowUpAction(action, SERVICE_RESPONSE_OK);
+          const payload = action.payload!;
+          const mfaType = await csProvider.signIn(payload.username, payload.password);
+          const isLoggedIn = await csProvider.isLoggedIn();
+          return createFollowUpAction<AuthLoggedInPayload>(action, SERVICE_RESPONSE_OK, { mfaType, isLoggedIn });
         } catch (err) {
           return createErrorAction(err, action);
         }
@@ -37,8 +37,7 @@ export const signInEpic = (csProvider: Provider): Epic => {
         // is sign-in was successful then dispatch 
         // an action to read the user details
         if (dependsAction.type == SERVICE_RESPONSE_OK
-          && dependsAction.meta.relatedAction
-          && dependsAction.meta.relatedAction!.payload!.isLoggedIn) {
+          && dependsAction.payload!.isLoggedIn) {
           
           return createFollowUpAction(dependsAction, READ_USER_REQ);;
         } else {

@@ -23,9 +23,12 @@ export interface AuthVerificationPayload {
 export interface AuthSignInPayload {
   username: string,
   password: string,
-  mfaType?: number,
-  isLoggedIn?: boolean
 };
+
+export interface AuthLoggedInPayload {
+  mfaType: number,
+  isLoggedIn: boolean
+}
 
 export interface AuthMultiFactorAuthPayload {
   mfaCode: string,
@@ -74,7 +77,6 @@ export const SERVICE_RESPONSE_OK = 'ids_SERVICE_RESPONSE_OK';
 export const SIGN_UP_REQ = 'ids_SIGN_UP_REQ';
 export const RESEND_SIGN_UP_CODE_REQ = 'ids_RESEND_SIGN_UP_CODE_REQ';
 export const CONFIRM_SIGN_UP_CODE_REQ= 'ids_CONFIRM_SIGN_UP_CODE_REQ';
-export const CONFIGURE_MFA_REQ = 'ids_CONFIGURE_MFA_REQ';
 
 export const RESET_PASSWORD_REQ = 'ids_RESET_PASSWORD_REQ';
 export const UPDATE_PASSWORD_REQ = 'ids_UPDATE_PASSWORD_REQ';
@@ -91,5 +93,7 @@ export const SIGN_OUT_REQ = 'ids_SIGN_OUT_REQ';
 export const VERIFY_ATTRIBUTE_REQ = 'ids_VERIFY_ATTRIBUTE_REQ';
 export const CONFIRM_ATTRIBUTE_REQ = 'ids_CONFIRM_ATTRIBUTE_REQ';
 
-export const READ_USER_REQ = 'ids_READ_USER_REQ';
+export const CONFIGURE_MFA_REQ = 'ids_CONFIGURE_MFA_REQ';
 export const SAVE_USER_REQ = 'ids_SAVE_USER_REQ';
+
+export const READ_USER_REQ = 'ids_READ_USER_REQ';

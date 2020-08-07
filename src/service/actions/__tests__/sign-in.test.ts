@@ -5,7 +5,7 @@ import { Logger, LOG_LEVEL_TRACE, setLogLevel, reduxLogger, combineEpicsWithGlob
 import AuthService from '../../auth-service';
 
 import { AuthUserState } from '../../state';
-import { AuthSignInPayload, AuthUserPayload, SIGN_IN_REQ, READ_USER_REQ } from '../../action';
+import { AuthSignInPayload, AuthUserPayload, SIGN_IN_REQ, READ_USER_REQ, AuthLoggedInPayload } from '../../action';
 
 import { MockProvider } from '../../__tests__/mock-provider';
 import { ServiceRequestTester } from '../../__tests__/request-tester';
@@ -18,7 +18,7 @@ if (process.env.DEBUG) {
 const logger = new Logger('sign-in.test');
 
 // test reducer validates action flows
-const requestTester = new ServiceRequestTester<AuthSignInPayload>(logger,
+const requestTester = new ServiceRequestTester<AuthSignInPayload, AuthLoggedInPayload>(logger,
   SIGN_IN_REQ,
   (counter, state, action): AuthUserState => {
     expect(action.payload!.username).toEqual('johndoe');
@@ -42,10 +42,11 @@ const requestTester = new ServiceRequestTester<AuthSignInPayload>(logger,
     switch (action.meta.relatedAction!.type) {
       case SIGN_IN_REQ: {
         expect(counter).toBe(1);
+        expect((<AuthLoggedInPayload>action.payload).isLoggedIn).toBeTruthy();
+
         let payload = (<AuthSignInPayload>action.meta.relatedAction!.payload);
         expect(payload.username).toEqual('johndoe');
         expect(payload.password).toEqual('@ppBricks2020');
-        expect(payload.isLoggedIn).toBeTruthy();
 
         state.isLoggedIn = true;
         return {
