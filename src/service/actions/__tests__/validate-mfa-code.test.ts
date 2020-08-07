@@ -43,7 +43,7 @@ const requestTester = new ServiceRequestTester<AuthMultiFactorAuthPayload>(logge
     expect(payload.mfaCode).toEqual('12345');
     expect(payload.isLoggedIn).toBeTruthy();
 
-    state.session.isLoggedIn = payload.isLoggedIn!;
+    state.isLoggedIn = payload.isLoggedIn!;
     return {...state, 
       session: state.session
     };
@@ -102,5 +102,5 @@ it('calls reducer as expected when sign up action is dispatched', () => {
 });
 
 it('has saved the correct user in the state', () => {
-  expect((<AuthUserState>store.getState().auth).session.isLoggedIn).toBeTruthy();
+  expect((<AuthUserState>store.getState().auth).isLoggedIn).toBeTruthy();
 });
