@@ -25,7 +25,7 @@ export const signInEpic = (csProvider: Provider): Epic => {
           const payload = action.payload!;
           const mfaType = await csProvider.signIn(payload.username, payload.password);
           const isLoggedIn = await csProvider.isLoggedIn();
-          return createFollowUpAction<AuthLoggedInPayload>(action, SERVICE_RESPONSE_OK, { mfaType, isLoggedIn });
+          return createFollowUpAction<AuthLoggedInPayload>(action, SERVICE_RESPONSE_OK, { isLoggedIn, mfaType });
         } catch (err) {
           return createErrorAction(err, action);
         }

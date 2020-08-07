@@ -5,7 +5,7 @@ import { Logger, LOG_LEVEL_TRACE, setLogLevel, reduxLogger, combineEpicsWithGlob
 import AuthService from '../../auth-service';
 
 import { AuthUserState } from '../../state';
-import { AuthMultiFactorAuthPayload, VALIDATE_MFA_CODE_REQ } from '../../action';
+import { AuthMultiFactorAuthPayload, VALIDATE_MFA_CODE_REQ, AuthLoggedInPayload } from '../../action';
 
 import { MockProvider } from '../../__tests__/mock-provider';
 import { ServiceRequestTester } from '../../__tests__/request-tester';
@@ -17,7 +17,7 @@ if (process.env.DEBUG) {
 const logger = new Logger('validate-mfa-code.test');
 
 // test reducer validates action flows
-const requestTester = new ServiceRequestTester<AuthMultiFactorAuthPayload>(logger,
+const requestTester = new ServiceRequestTester<AuthMultiFactorAuthPayload, AuthLoggedInPayload>(logger,
   VALIDATE_MFA_CODE_REQ,
   (counter, state, action): AuthUserState => {
 
@@ -39,11 +39,12 @@ const requestTester = new ServiceRequestTester<AuthMultiFactorAuthPayload>(logge
   },
   (counter, state, action): AuthUserState => {
     expect(counter).toBe(1);
+    expect(action.payload!.isLoggedIn).toBeTruthy();
+
     let payload = <AuthMultiFactorAuthPayload>action.meta.relatedAction!.payload;
     expect(payload.mfaCode).toEqual('12345');
-    expect(payload.isLoggedIn).toBeTruthy();
 
-    state.isLoggedIn = payload.isLoggedIn!;
+    state.isLoggedIn = action.payload!.isLoggedIn;
     return {...state, 
       session: state.session
     };
