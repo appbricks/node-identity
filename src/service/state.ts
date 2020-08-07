@@ -10,7 +10,7 @@ export interface AuthUserState extends State {
 
   user?: User
   awaitingUserConfirmation?: VerificationInfo;
-  awaitingMFAConfirmation?: string
+  awaitingMFAConfirmation?: number
 };
 
 // Authentication state properties
@@ -23,7 +23,7 @@ export const initialAuthState = (): AuthUserState =>
     actionStatus: {
       result: ActionResult.none
     },
-    
+
     session: new Session(),
     isLoggedIn: false
   };

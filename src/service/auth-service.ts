@@ -5,13 +5,18 @@ import {
   ERROR,
   ErrorPayload,
   Action,
+  ActionResult,
+  setActionStatus,
   LocalStorage,
   Logger,
-  ActionResult
 } from '@appbricks/utils';
 
 import Session from '../model/session';
-import User, { UserStatus } from '../model/user';
+import User, { UserStatus, VerificationType } from '../model/user';
+
+import { AUTH_NO_MFA } from './constants';
+import Provider from './provider';
+
 import {
   AuthUserState,
   AuthUserStateProp,
@@ -30,7 +35,6 @@ import {
   SIGN_UP_REQ,
   RESEND_SIGN_UP_CODE_REQ,
   CONFIRM_SIGN_UP_CODE_REQ,
-  CONFIGURE_MFA_REQ,
   RESET_PASSWORD_REQ,
   UPDATE_PASSWORD_REQ,
   LOAD_AUTH_STATE_REQ,
@@ -39,11 +43,11 @@ import {
   SIGN_OUT_REQ,
   VERIFY_ATTRIBUTE_REQ,
   CONFIRM_ATTRIBUTE_REQ,
+  CONFIGURE_MFA_REQ,
+  SAVE_USER_REQ,
   READ_USER_REQ,
-  SAVE_USER_REQ
+  AuthLoggedInPayload
 } from './action';
-
-import Provider from './provider';
 
 import { signUpAction, signUpEpic } from './actions/sign-up';
 import { resendSignUpCodeAction, resendSignUpCodeEpic } from './actions/resend-sign-up-code';
@@ -88,7 +92,6 @@ export default class AuthService {
       .add(SIGN_UP_REQ)
       .add(RESEND_SIGN_UP_CODE_REQ)
       .add(CONFIRM_SIGN_UP_CODE_REQ)
-      .add(CONFIGURE_MFA_REQ)
       .add(RESET_PASSWORD_REQ)
       .add(UPDATE_PASSWORD_REQ)
       .add(LOAD_AUTH_STATE_REQ)
@@ -97,8 +100,9 @@ export default class AuthService {
       .add(SIGN_OUT_REQ)
       .add(VERIFY_ATTRIBUTE_REQ)
       .add(CONFIRM_ATTRIBUTE_REQ)
-      .add(READ_USER_REQ)
-      .add(SAVE_USER_REQ);
+      .add(CONFIGURE_MFA_REQ)      
+      .add(SAVE_USER_REQ)
+      .add(READ_USER_REQ);
   }
 
   static dispatchProps<C extends AuthUserStateProp>(
@@ -156,6 +160,10 @@ export default class AuthService {
     await this.localStore.init();
   }
 
+  async finalize() {
+    await this.localStore!.flush();
+  }
+
   private store(): LocalStorage {
     if (!this.localStore) {
       throw Error('The AuthService store is undefined. It is possible AuthService.init() was not called.');
@@ -199,21 +207,36 @@ export default class AuthService {
           // retrieve saved session if available
           let sessionData = this.store().getItem('session');
           if (sessionData) {
-            this.logger.trace('Loading saved session from local store: ', sessionData);
+            this.logger.trace('Loading saved session from local store:', sessionData);
             state.session.fromJSON(sessionData);
           }
           // retrieve saved user if available
           let userData = this.store().getItem('user');
           if (userData) {
-            this.logger.trace('Loading saved user from local store: ', userData);
+            this.logger.trace('Loading saved user from local store:', userData);
             state.user = new User();
             state.user.fromJSON(userData);
+
+            let userConfirmationData = this.store().getItem('userConfirmation');
+            if (userConfirmationData) {
+              if (state.user.status != UserStatus.Unconfirmed) {
+                this.logger.trace(
+                  'Found user confirmation data, but saved user did not have an unconfirmed status:', 
+                  userConfirmationData, state.user);
+
+                state.user = undefined;
+
+              } else {
+                this.logger.trace('Loading saved user confirmation data from local store:', userConfirmationData);
+                state.awaitingUserConfirmation = userConfirmationData;
+              }
+            }
           }
         }
-        if ( !state.user ||  !state.user.isValid() ||
+        if ( !state.user || !state.user.isValid() ||
           (state.session.timestamp > 0 && state.session.isTimedout(state.user)) ) {
           
-          this.logger.trace('Invalid saved user session. User session will be reset: ', state.session, state.user);
+          this.logger.trace('Invalid saved user session. User session will be reset:', state.session, state.user);
           state = initialAuthState();
         }
         break;
@@ -223,7 +246,11 @@ export default class AuthService {
         // save unregistered user data to store
         let user = (<AuthUserPayload>action.payload!).user;
         user.status = UserStatus.Unregistered;
-        state.user = user;
+
+        state = {
+          ...state,
+          user
+        };
         break;
       }
 
@@ -236,11 +263,11 @@ export default class AuthService {
 
     if (this.serviceRequests.has(action.type)) {
 
-      state.actionStatus.result = ActionResult.pending;
-      return {
-        ...state,
-        session: state.session
-      };
+      return setActionStatus<AuthUserState>(
+        state,
+        action,
+        ActionResult.pending
+      );
     }
     return state;
   }
@@ -253,59 +280,150 @@ export default class AuthService {
     let relatedAction = action.meta.relatedAction!;
     if (this.serviceRequests.has(relatedAction.type)) {
       this.logger.trace('Handling successfull service response: ', relatedAction.type);
-      state.actionStatus.result = ActionResult.success;
 
       switch (relatedAction.type) {
         case LOAD_AUTH_STATE_REQ: {
           let payload = <AuthStatePayload>relatedAction.payload!;
-          state.isLoggedIn =  payload.isLoggedIn!;
-          state.session.timestamp = payload.isLoggedIn! ? Date.now() : -1;
 
           state = {
             ...state,
-            session: state.session
+            session: <Session>{
+              ...state.session,
+              timestamp: payload.isLoggedIn! ? Date.now() : -1
+            },
+            isLoggedIn: payload.isLoggedIn!
           };
           break;
         }
 
         case SIGN_UP_REQ: {
-          let payload = <AuthUserPayload>relatedAction.payload!;
-          state.awaitingUserConfirmation = (<AuthVerificationPayload>action.payload).info;
+          let awaitingUserConfirmation = (<AuthVerificationPayload>action.payload).info;
+          if (!awaitingUserConfirmation.isConfirmed) {
+            // save sign-up confirmation code request response to local store
+            this.store().setItem('userConfirmation', awaitingUserConfirmation);
+          }
 
           state = {
             ...state,
-            session: state.session,
-            user: payload.user
+            user: (<AuthUserPayload>relatedAction.payload!).user,
+            awaitingUserConfirmation
           };
-
-          // save user and session to local store
-          this.store().setItem('session', state.session.toJSON());
-          this.store().setItem('user', state.user!.toJSON());
           break;
         }
 
         case RESEND_SIGN_UP_CODE_REQ: {
-          state.awaitingUserConfirmation = (<AuthVerificationPayload>action.payload).info;
+          let awaitingUserConfirmation = (<AuthVerificationPayload>action.payload).info;
+          // save confirmation code request response to local store
+          this.store().setItem('userConfirmation', awaitingUserConfirmation);
 
           state = {
             ...state,
-            session: state.session,
+            awaitingUserConfirmation
           };
-
-          // save user and session to local store
-          this.store().setItem('session', state.session.toJSON());
           break;
         }
 
         case CONFIRM_SIGN_UP_CODE_REQ: {
+          if (state.user!.isConfirmed()) {
+            this.store().removeItem('userConfirmation');
+            let awaitingUserConfirmation = state.awaitingUserConfirmation!;
 
+            state = {
+              ...state,
+              user: <User>{
+                ...state.user,
+                emailAddressVerified: (awaitingUserConfirmation.type == VerificationType.Email),
+                mobilePhoneVerified: (awaitingUserConfirmation.type == VerificationType.SMS)
+              },
+              awaitingUserConfirmation: undefined
+            };
+          }
+          break;
+        }
+
+        case RESET_PASSWORD_REQ: {
+          break;  
+        }
+
+        case UPDATE_PASSWORD_REQ: {
+          break;  
+        }
+        
+        case SIGN_IN_REQ: {
+          let payload = <AuthLoggedInPayload>action.payload!;
+          if (payload.isLoggedIn) {
+            state.awaitingMFAConfirmation = payload.mfaType;
+          } else {
+            state.awaitingMFAConfirmation = AUTH_NO_MFA;
+          }
+
+          state = {
+            ...state,
+            session: <Session>{
+              ...state.session,
+              timestamp: payload.isLoggedIn! ? Date.now() : -1
+            },
+            isLoggedIn: payload.isLoggedIn,
+            awaitingMFAConfirmation: payload.isLoggedIn ? payload.mfaType : AUTH_NO_MFA
+          };
+          break;  
+        }
+
+        case VALIDATE_MFA_CODE_REQ: {
+          state.isLoggedIn = (<AuthLoggedInPayload>action.payload!).isLoggedIn;
+          break;  
+        }
+
+        case SIGN_OUT_REQ: {
+
+          state = {
+            ...state,
+            session: <Session>{
+              ...state.session,
+              timestamp: -1
+            },
+            isLoggedIn: false,
+            user: undefined
+          };
+          break;  
+        }
+
+        case VERIFY_ATTRIBUTE_REQ: {
+          break;  
+        }
+
+        case CONFIRM_ATTRIBUTE_REQ: {
+          break;  
+        }
+
+        case CONFIGURE_MFA_REQ: {
+          break;  
+        }
+
+        case SAVE_USER_REQ: {
+          break;  
+        }
+
+        case READ_USER_REQ: {
+          break;  
         }
       }
     }
 
-    return {
+    // save auth session and user
+    this.store().setItem('session', state.session.toJSON());
+    if (state.user) {
+      this.store().setItem('user', state.user!.toJSON());
+    }
+
+    state = {
       ...state,
       session: state.session
     };
+    return setActionStatus<AuthUserState>(
+      state,
+      action,
+      ActionResult.success
+    );
   }
 }

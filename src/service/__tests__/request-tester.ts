@@ -5,7 +5,7 @@ import { SERVICE_RESPONSE_OK } from '../action';
 import { AuthUserState, initialAuthState } from '../state';
 import User from '../../model/user';
 
-export class ServiceRequestTester<T> {
+export class ServiceRequestTester<T1, T2 = T1> {
 
   logger: Logger;
 
@@ -18,15 +18,15 @@ export class ServiceRequestTester<T> {
   matchRelatedAction: boolean;
 
   reqActionType: string;
-  reqActionValidator: ActionValidator<T>;
-  okActionValidator: ActionValidator<T>;
+  reqActionValidator: ActionValidator<T1>;
+  okActionValidator: ActionValidator<T2>;
   errorActionValidator: ActionValidator<ErrorPayload>;
 
   constructor(
     logger: Logger,
     reqActionType: string,
-    reqActionValidator: ActionValidator<T>,
-    okActionValidator: ActionValidator<T>,
+    reqActionValidator: ActionValidator<T1>,
+    okActionValidator: ActionValidator<T2>,
     errorActionValidator: ActionValidator<ErrorPayload> = (counter, state, action): AuthUserState => {
       fail('no errors conditions are being tested');
       return state;
@@ -46,24 +46,24 @@ export class ServiceRequestTester<T> {
     this.initialAuthState.user = user;
   }
 
-  reducer(): Reducer<AuthUserState, Action<T | ErrorPayload>> {
+  reducer(): Reducer<AuthUserState, Action<T1 | ErrorPayload>> {
     const tester = this;
 
-    return (state: AuthUserState = this.initialAuthState, action: Action<T | ErrorPayload>): AuthUserState => {
+    return (state: AuthUserState = this.initialAuthState, action: Action): AuthUserState => {
       tester.logger.trace('Reducer called with action', action.type);
       try {
         switch (action.type) {
           case tester.reqActionType:
             tester.reqCounter++;
             expect(action.meta.relatedAction).toBeUndefined();
-            return tester.reqActionValidator(tester.reqCounter, state, <Action<T>>action);
+            return tester.reqActionValidator(tester.reqCounter, state, <Action<T1>>action);
           case SERVICE_RESPONSE_OK:
             tester.okCounter++;
             expect(action.meta.relatedAction).toBeDefined();
             if (this.matchRelatedAction) {
               expect(action.meta.relatedAction!.type).toEqual(tester.reqActionType);
             }
-            return tester.okActionValidator(tester.okCounter, state, <Action<T>>action);
+            return tester.okActionValidator(tester.okCounter, state, <Action<T2>>action);
           case ERROR:
             tester.errorCounter++;
             expect(action.payload).toBeDefined();
@@ -81,8 +81,8 @@ export class ServiceRequestTester<T> {
     }
   }
 }
-type ActionValidator<T> = (
+type ActionValidator<T1> = (
   counter: number,
   state: AuthUserState,
-  action: Action<T>
+  action: Action<T1>
 ) => AuthUserState;

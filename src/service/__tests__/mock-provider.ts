@@ -25,6 +25,7 @@ export class MockProvider implements Provider {
   readUserCounter = 0;
 
   setConfirmed = false;
+  loginMethod = AUTH_NO_MFA;
 
   signUp(user: User): Promise<VerificationInfo> {
     this.signUpCounter++;
@@ -101,8 +102,8 @@ export class MockProvider implements Provider {
     this.signInCounter++;
     expect(username).toEqual('johndoe');
     if (password == '@ppBricks2020') {
-      this.loggedIn = true;
-      return Promise.resolve(AUTH_NO_MFA);
+      this.loggedIn = (this.loginMethod == AUTH_NO_MFA);
+      return Promise.resolve(this.loginMethod);
     }
     this.loggedIn = false;
     return Promise.reject(new Error('invalid password'));
@@ -154,6 +155,8 @@ export class MockProvider implements Provider {
 
   readUser(attribNames?: string[]): Promise<User> {
     this.readUserCounter++;
-    return Promise.resolve(getTestUser());
+    const user = getTestUser();
+    user.emailAddressVerified = true;
+    return Promise.resolve(user);
   }
 }

@@ -25,15 +25,14 @@ export interface AuthSignInPayload {
   password: string,
 };
 
-export interface AuthLoggedInPayload {
-  mfaType: number,
-  isLoggedIn: boolean
-}
-
 export interface AuthMultiFactorAuthPayload {
   mfaCode: string,
-  isLoggedIn?: boolean
 };
+
+export interface AuthLoggedInPayload {
+  isLoggedIn: boolean
+  mfaType?: number,
+}
 
 export interface AuthLoggedInUserAttrPayload {
   attrName?: string,
