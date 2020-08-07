@@ -28,7 +28,7 @@ const requestTester = new ServiceRequestTester<AuthUserPayload>(logger,
   (counter, state, action): AuthUserState => {
     expect(counter).toBe(1);
     let user = (<AuthUserPayload>action.meta.relatedAction!.payload).user!;
-    expectTestUserToBeSet(user);
+    expectTestUserToBeSet(user, true);
     return {...state, user};
   },
   (counter, state, action): AuthUserState => {
@@ -72,5 +72,5 @@ it('calls reducer as expected when sign up action is dispatched', () => {
 });
 
 it('has saved the correct user in the state', () => {
-  expectTestUserToBeSet(store.getState().auth.user);
+  expectTestUserToBeSet(store.getState().auth.user, true);
 });

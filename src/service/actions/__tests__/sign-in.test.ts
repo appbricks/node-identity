@@ -47,7 +47,7 @@ const requestTester = new ServiceRequestTester<AuthSignInPayload>(logger,
         expect(payload.password).toEqual('@ppBricks2020');
         expect(payload.isLoggedIn).toBeTruthy();
 
-        state.session.isLoggedIn = true;
+        state.isLoggedIn = true;
         return {
           ...state,
           session: state.session
@@ -57,7 +57,7 @@ const requestTester = new ServiceRequestTester<AuthSignInPayload>(logger,
         expect(counter).toBe(2);
         let payload = (<AuthUserPayload>action.meta.relatedAction!.payload);
         let user = payload.user;
-        expectTestUserToBeSet(user);
+        expectTestUserToBeSet(user, true);
         return {...state, user};
       }
     }
@@ -115,8 +115,8 @@ it('calls reducer as expected when sign up action is dispatched', () => {
 
 it('has saved the correct user in the state', () => {
   let state = store.getState();
-  expectTestUserToBeSet(state.auth.user);
-  expect(state.auth.session.isLoggedIn).toBeTruthy();
+  expectTestUserToBeSet(state.auth.user, true);
+  expect(state.auth.isLoggedIn).toBeTruthy();
 });
 
 it('it attempts to sign to an existing session', () => {
