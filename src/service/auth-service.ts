@@ -284,13 +284,10 @@ export default class AuthService {
       switch (relatedAction.type) {
         case LOAD_AUTH_STATE_REQ: {
           let payload = <AuthStatePayload>relatedAction.payload!;
+          state.session.timestamp = payload.isLoggedIn! ? Date.now() : -1;
 
           state = {
-            ...state,
-            session: <Session>{
-              ...state.session,
-              timestamp: payload.isLoggedIn! ? Date.now() : -1
-            },
+            ...state,            
             isLoggedIn: payload.isLoggedIn!
           };
           break;
@@ -325,16 +322,17 @@ export default class AuthService {
 
         case CONFIRM_SIGN_UP_CODE_REQ: {
           if (state.user!.isConfirmed()) {
-            this.store().removeItem('userConfirmation');
             let awaitingUserConfirmation = state.awaitingUserConfirmation!;
+            if (awaitingUserConfirmation.type == VerificationType.Email) {
+              state.user!.emailAddressVerified = true;
+            } else if (awaitingUserConfirmation.type == VerificationType.SMS) {
+              state.user!.mobilePhoneVerified = true;
+            }
+            // remove saved confirmation response data from store
+            this.store().removeItem('userConfirmation');
 
             state = {
               ...state,
-              user: <User>{
-                ...state.user,
-                emailAddressVerified: (awaitingUserConfirmation.type == VerificationType.Email),
-                mobilePhoneVerified: (awaitingUserConfirmation.type == VerificationType.SMS)
-              },
               awaitingUserConfirmation: undefined
             };
           }
@@ -352,38 +350,40 @@ export default class AuthService {
         case SIGN_IN_REQ: {
           let payload = <AuthLoggedInPayload>action.payload!;
           if (payload.isLoggedIn) {
-            state.awaitingMFAConfirmation = payload.mfaType;
+            state.session.timestamp = Date.now();
           } else {
-            state.awaitingMFAConfirmation = AUTH_NO_MFA;
+            state.session.timestamp = -1;
           }
 
           state = {
             ...state,
-            session: <Session>{
-              ...state.session,
-              timestamp: payload.isLoggedIn! ? Date.now() : -1
-            },
             isLoggedIn: payload.isLoggedIn,
-            awaitingMFAConfirmation: payload.isLoggedIn ? payload.mfaType : AUTH_NO_MFA
+            awaitingMFAConfirmation: payload.isLoggedIn ? AUTH_NO_MFA : payload.mfaType
           };
           break;  
         }
 
         case VALIDATE_MFA_CODE_REQ: {
-          state.isLoggedIn = (<AuthLoggedInPayload>action.payload!).isLoggedIn;
-          break;  
+          let payload = <AuthLoggedInPayload>action.payload!;
+          state.session.timestamp = Date.now();
+
+          state = {
+            ...state,
+            isLoggedIn: payload.isLoggedIn,
+            awaitingMFAConfirmation: undefined
+          };
+          break;
         }
 
         case SIGN_OUT_REQ: {
 
+          state.session.timestamp = -1;
           state = {
             ...state,
-            session: <Session>{
-              ...state.session,
-              timestamp: -1
-            },
             isLoggedIn: false,
-            user: undefined
+            user: undefined,
+            awaitingUserConfirmation: undefined,
+            awaitingMFAConfirmation: undefined
           };
           break;  
         }
@@ -405,7 +405,13 @@ export default class AuthService {
         }
 
         case READ_USER_REQ: {
-          break;  
+          let payload = <AuthUserPayload>action.payload!;
+
+          state = {
+            ...state,
+            user: payload.user!
+          };          
+          break;
         }
       }
     }

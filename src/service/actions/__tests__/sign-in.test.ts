@@ -56,8 +56,8 @@ const requestTester = new ServiceRequestTester<AuthSignInPayload, AuthLoggedInPa
       }
       case READ_USER_REQ: {
         expect(counter).toBe(2);
-        let payload = (<AuthUserPayload>action.meta.relatedAction!.payload);
-        let user = payload.user;
+        let payload = <unknown>action.payload!;
+        let user = (<AuthUserPayload>payload).user;
         expectTestUserToBeSet(user, true);
         return {...state, user};
       }

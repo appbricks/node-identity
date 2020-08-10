@@ -20,10 +20,8 @@ export const readUserEpic = (csProvider: Provider): Epic => {
         throw Error('No user logged in. The user needs to be logged in before it can be read.')
       }
 
-      action.payload = <AuthUserPayload>{
-        user: await csProvider.readUser()
-      };
-      return createFollowUpAction(action, SERVICE_RESPONSE_OK);
+      const user = await csProvider.readUser()
+      return createFollowUpAction<AuthUserPayload>(action, SERVICE_RESPONSE_OK, { user });
     }
   );
 }

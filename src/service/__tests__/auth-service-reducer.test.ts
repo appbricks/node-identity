@@ -6,7 +6,17 @@ import { LOG_LEVEL_TRACE, setLogLevel, reduxLogger, combineEpicsWithGlobalErrorH
 import Session from '../../model/session';
 import User, { UserStatus, VerificationInfo, VerificationType } from '../../model/user';
 
-import { AuthActionProps, SERVICE_RESPONSE_OK, LOAD_AUTH_STATE_REQ, SIGN_UP_REQ, RESEND_SIGN_UP_CODE_REQ, CONFIRM_SIGN_UP_CODE_REQ, SIGN_IN_REQ, READ_USER_REQ } from '../action';
+import { 
+  AuthActionProps, 
+  SERVICE_RESPONSE_OK, 
+  LOAD_AUTH_STATE_REQ, 
+  SIGN_UP_REQ, 
+  RESEND_SIGN_UP_CODE_REQ,
+  CONFIRM_SIGN_UP_CODE_REQ, 
+  SIGN_IN_REQ, 
+  CONFIGURE_MFA_REQ,
+  READ_USER_REQ 
+} from '../action';
 import { AuthUserState } from '../state';
 import AuthService from '../auth-service';
 
@@ -21,6 +31,8 @@ if (process.env.DEBUG) {
 // Local store implementation
 const localStore: { [key: string]: Object } = {};
 
+let mockProvider = new MockProvider();
+let authService = new AuthService(mockProvider);
 let store: any;
 let dispatch: AuthActionProps;
 let timestamp = -1;
@@ -155,6 +167,9 @@ const stateTester = new StateTester<AuthUserState>(
         expect(state.actionStatus.action.type).toEqual(SIGN_IN_REQ);
         expect(state.actionStatus.result).toEqual(ActionResult.pending);
 
+        expect(state.session.timestamp).toEqual(-1);
+        expect(state.isLoggedIn).toBeFalsy();
+        expect(state.user).toBeUndefined();
         break;
       }
       case 14: { // Sign in response
@@ -162,12 +177,19 @@ const stateTester = new StateTester<AuthUserState>(
         expect(state.actionStatus.action.meta.relatedAction!.type).toEqual(SIGN_IN_REQ);
         expect(state.actionStatus.result).toEqual(ActionResult.success);
 
+        timestamp = state.session.timestamp;
+        expect(state.session.timestamp).toBeGreaterThan(0);
+        expect(state.isLoggedIn).toBeTruthy();
+        expect(state.user).toBeUndefined();
         break;
       }
       case 15: { // Read user request after successful sign in
         expect(state.actionStatus.action.type).toEqual(READ_USER_REQ);
         expect(state.actionStatus.result).toEqual(ActionResult.pending);
 
+        expect(state.session.timestamp).toEqual(timestamp);
+        expect(state.isLoggedIn).toBeTruthy();
+        expect(state.user).toBeUndefined();
         break;
       }
       case 16: { // Read user response
@@ -175,8 +197,22 @@ const stateTester = new StateTester<AuthUserState>(
         expect(state.actionStatus.action.meta.relatedAction!.type).toEqual(READ_USER_REQ);
         expect(state.actionStatus.result).toEqual(ActionResult.success);
 
+        expect(state.session.timestamp).toEqual(timestamp);
+        expect(state.isLoggedIn).toBeTruthy();
+        expectTestUserToBeSet(state.user!, true);
         break;
       }
+      case 17: { // Read user request after successful sign in
+        expect(state.actionStatus.action.type).toEqual(CONFIGURE_MFA_REQ);
+        expect(state.actionStatus.result).toEqual(ActionResult.pending);
+        break;
+      }
+      case 18: { // Read user response
+        expect(state.actionStatus.action.type).toEqual(SERVICE_RESPONSE_OK);
+        expect(state.actionStatus.action.meta.relatedAction!.type).toEqual(CONFIGURE_MFA_REQ);
+        expect(state.actionStatus.result).toEqual(ActionResult.success);
+        break;
+      }     
       default: {
         console.error('Unexpected state at count %d:', counter, state);
         fail('Unexpected state change.');
@@ -204,8 +240,8 @@ function validateStateAfterNewUserSignUp(state: AuthUserState, timestamp: number
 beforeEach(async () => {
 
   // create auth service
-  const mockProvider = new MockProvider();
-  const authService = new AuthService(mockProvider);
+  mockProvider = new MockProvider();
+  authService = new AuthService(mockProvider);
 
   // initialize redux store
   let rootReducer = redux.combineReducers({
@@ -318,7 +354,7 @@ it('starts new session and initial auth state loads previous state and confirms 
   delete localStore['auth'];
 });
 
-it('loads initial auth state and signs in as new user', async () => {
+it('loads initial auth state and signs in as new user and performs some updates', async () => {
 
   dispatch.loadAuthState();
   // wait until state has been loaded
@@ -327,4 +363,10 @@ it('loads initial auth state and signs in as new user', async () => {
   dispatch.signIn('johndoe', '@ppBricks2020');
   // wait until logged in state
   await stateTester.until(16);
+
+  let user = <User>store.getState().auth.user;
+  user.enableMFA = true;
+  dispatch.configureMFA(user);
+  // wait until MFA has been configured
+  await stateTester.until(18);
 });

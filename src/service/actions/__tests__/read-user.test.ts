@@ -27,7 +27,7 @@ const requestTester = new ServiceRequestTester<AuthUserPayload>(logger,
   },
   (counter, state, action): AuthUserState => {
     expect(counter).toBe(1);
-    let user = (<AuthUserPayload>action.meta.relatedAction!.payload).user!;
+    let user = (<AuthUserPayload>action.payload!).user!;
     expectTestUserToBeSet(user, true);
     return {...state, user};
   },
