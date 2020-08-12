@@ -143,7 +143,7 @@ export class MockProvider implements Provider {
     if (user.username == 'error') {
       return Promise.reject(new Error('invalid username'));
     }
-    expectTestUserToBeSet(user, true);
+    expectTestUserToBeSet(user, true, true);
     if (user.enableMFA) {
       this.loginMethod = AUTH_MFA_SMS;
     }

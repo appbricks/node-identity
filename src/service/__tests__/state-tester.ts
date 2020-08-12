@@ -21,6 +21,7 @@ export class StateTester<T> {
       const state = <T>store.getState().auth;
 
       try {
+        console.log('State change:', this.counter)
         this.testFn(this.counter, state);
       } catch (err) {
         console.error('Test Error', this.counter, err, state);

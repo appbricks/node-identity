@@ -9,7 +9,7 @@ export interface AuthUserState extends State {
   isLoggedIn: boolean
 
   user?: User
-  awaitingUserConfirmation?: VerificationInfo;
+  awaitingUserConfirmation?: VerificationInfo
   awaitingMFAConfirmation?: number
 };
 

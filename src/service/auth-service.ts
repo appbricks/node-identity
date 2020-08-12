@@ -396,12 +396,15 @@ export default class AuthService {
           break;  
         }
 
-        case CONFIGURE_MFA_REQ: {
-          break;  
-        }
-
+        case CONFIGURE_MFA_REQ:
         case SAVE_USER_REQ: {
-          break;  
+          let payload = <AuthUserPayload>relatedAction.payload!;
+
+          state = {
+            ...state,
+            user: payload.user!
+          };          
+          break; 
         }
 
         case READ_USER_REQ: {

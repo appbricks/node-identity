@@ -17,7 +17,7 @@ if (process.env.DEBUG) {
 const logger = new Logger('configure-mfa.test');
 
 // test reducer validates action flows
-const requestTester = createRequestTester(logger, CONFIGURE_MFA_REQ);
+const requestTester = createRequestTester(logger, CONFIGURE_MFA_REQ, true, true);
 let rootReducer = combineReducers({
   auth: requestTester.reducer()
 })
@@ -47,7 +47,10 @@ it('dispatches an action to configure MFA for a user', async () => {
   dispatch.configureMFA(userWithError);
 
   // expect no errors
-  dispatch.configureMFA(getTestUser());
+  let user = getTestUser();
+  user.setConfirmed(true);
+  user.enableMFA = true;
+  dispatch.configureMFA(user);
 });
 
 it('calls reducer as expected when configure MFA action is dispatched', () => {
@@ -59,5 +62,5 @@ it('calls reducer as expected when configure MFA action is dispatched', () => {
 });
 
 it('has saved the correct user changes to the state', () => {
-  expectTestUserToBeSet(store.getState().auth.user);
+  expectTestUserToBeSet(store.getState().auth.user, true, true);
 });

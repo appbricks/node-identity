@@ -6,7 +6,7 @@ import User, { VerificationType } from '../../model/user';
 
 import { ServiceRequestTester } from './request-tester';
 
-const createRequestTester = (logger: Logger, reqActionType: string, checkConfirmed = false) => {
+const createRequestTester = (logger: Logger, reqActionType: string, checkConfirmed = false, checkMFAEnabled = false) => {
   return new ServiceRequestTester<AuthUserPayload>(logger, reqActionType,
     (counter: number, state, action): AuthUserState => {
       
@@ -28,7 +28,7 @@ const createRequestTester = (logger: Logger, reqActionType: string, checkConfirm
       }
       
       let user = (<AuthUserPayload>action.meta.relatedAction!.payload).user;
-      expectTestUserToBeSet(user!, checkConfirmed);
+      expectTestUserToBeSet(user!, checkConfirmed, checkMFAEnabled);
       return {...state, user: user!}
     },
     (counter, state, action): AuthUserState => {
@@ -59,13 +59,14 @@ export const getTestUser = (): User => {
   user.familyName = 'Doe';
   user.emailAddress = 'johndoe@gmail.com';
   user.mobilePhone = '9999999999';
-  user.enableBiometric = true;
-  user.enableTOTP = true;
-  user.enableMFA = true;  
   return user;
 }
 
-export const expectTestUserToBeSet = (user: User | undefined, userConfirmed: boolean = false) => {
+export const expectTestUserToBeSet = (
+  user: User | undefined, 
+  userConfirmed: boolean = false, 
+  mfaEnabled: boolean = false
+) => {
 
   expect(user).toBeDefined();
   expect(user!.username).toEqual('johndoe');
@@ -74,7 +75,7 @@ export const expectTestUserToBeSet = (user: User | undefined, userConfirmed: boo
   expect(user!.emailAddress).toEqual('johndoe@gmail.com');
   expect(user!.mobilePhone).toEqual('9999999999');
   expect(user!.isConfirmed()).toEqual(userConfirmed);
-  expect(user!.enableBiometric).toEqual(true);
-  expect(user!.enableTOTP).toEqual(true);
-  expect(user!.enableMFA).toEqual(true);
+  expect(user!.enableBiometric).toEqual(false);
+  expect(user!.enableTOTP).toEqual(false);
+  expect(user!.enableMFA).toEqual(mfaEnabled);
 }

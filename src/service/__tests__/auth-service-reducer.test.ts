@@ -202,15 +202,17 @@ const stateTester = new StateTester<AuthUserState>(
         expectTestUserToBeSet(state.user!, true);
         break;
       }
-      case 17: { // Read user request after successful sign in
+      case 17: { // Configure MFA request after successful sign in
         expect(state.actionStatus.action.type).toEqual(CONFIGURE_MFA_REQ);
         expect(state.actionStatus.result).toEqual(ActionResult.pending);
         break;
       }
-      case 18: { // Read user response
+      case 18: { // Configure MFA response
         expect(state.actionStatus.action.type).toEqual(SERVICE_RESPONSE_OK);
         expect(state.actionStatus.action.meta.relatedAction!.type).toEqual(CONFIGURE_MFA_REQ);
         expect(state.actionStatus.result).toEqual(ActionResult.success);
+
+        expectTestUserToBeSet(state.user!, true, true);
         break;
       }     
       default: {
@@ -298,9 +300,9 @@ it('loads initial auth state and signs up a new user', async () => {
         emailAddressVerified: false,
         mobilePhone: '9999999999',
         mobilePhoneVerified: false,
-        enableBiometric: true,
-        enableMFA: true,
-        enableTOTP: true,
+        enableBiometric: false,
+        enableMFA: false,
+        enableTOTP: false,
         rememberFor24h: false
       },
       userConfirmation: {
@@ -342,9 +344,9 @@ it('starts new session and initial auth state loads previous state and confirms 
         emailAddressVerified: true,
         mobilePhone: '9999999999',
         mobilePhoneVerified: false,
-        enableBiometric: true,
-        enableMFA: true,
-        enableTOTP: true,
+        enableBiometric: false,
+        enableMFA: false,
+        enableTOTP: false,
         rememberFor24h: false
       }
     }
@@ -358,7 +360,7 @@ it('loads initial auth state and signs in as new user and performs some updates'
 
   dispatch.loadAuthState();
   // wait until state has been loaded
-  await stateTester.until(12);
+  await stateTester.until(11);
 
   dispatch.signIn('johndoe', '@ppBricks2020');
   // wait until logged in state
