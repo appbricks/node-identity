@@ -92,7 +92,7 @@ const store: any = createStore(
   applyMiddleware(reduxLogger, epicMiddleware)
 );
 
-const mockProvider = new MockProvider();
+const mockProvider = new MockProvider(true);
 const authService = new AuthService(mockProvider)
 const rootEpic = combineEpicsWithGlobalErrorHandler(authService.epics())
 epicMiddleware.run(rootEpic);

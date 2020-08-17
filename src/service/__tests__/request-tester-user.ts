@@ -65,7 +65,8 @@ export const getTestUser = (): User => {
 export const expectTestUserToBeSet = (
   user: User | undefined, 
   userConfirmed: boolean = false, 
-  mfaEnabled: boolean = false
+  mfaEnabled: boolean = false,
+  mobilePhoneVerified = false
 ) => {
 
   expect(user).toBeDefined();
@@ -74,6 +75,7 @@ export const expectTestUserToBeSet = (
   expect(user!.familyName).toEqual('Doe');
   expect(user!.emailAddress).toEqual('johndoe@gmail.com');
   expect(user!.mobilePhone).toEqual('9999999999');
+  expect(user!.mobilePhoneVerified).toBe(mobilePhoneVerified);
   expect(user!.isConfirmed()).toEqual(userConfirmed);
   expect(user!.enableBiometric).toEqual(false);
   expect(user!.enableTOTP).toEqual(false);

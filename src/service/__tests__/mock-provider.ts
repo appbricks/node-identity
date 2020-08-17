@@ -1,6 +1,7 @@
 import Provider from '../provider';
 import User, { VerificationInfo, VerificationType } from '../../model/user';
-import { AUTH_NO_MFA, AUTH_MFA_SMS } from '../constants';
+
+import { AUTH_NO_MFA, AUTH_MFA_SMS, ATTRIB_MOBILE_PHONE } from '../constants';
 
 import { getTestUser, expectTestUserToBeSet } from './request-tester-user';
 
@@ -24,8 +25,17 @@ export class MockProvider implements Provider {
   saveUserCounter = 0;
   readUserCounter = 0;
 
+  password = '@ppBricks2020';
+
   setConfirmed = false;
   loginMethod = AUTH_NO_MFA;
+
+  user: User;
+
+  constructor(userConfirmed = false) {
+    this.user = getTestUser();
+    this.user.setConfirmed(userConfirmed);
+  }
 
   signUp(user: User): Promise<VerificationInfo> {
     this.signUpCounter++;
@@ -66,6 +76,8 @@ export class MockProvider implements Provider {
     this.confirmSignUpCodeCounter++;
     expect(username).toEqual('johndoe');
     if (code == '12345') {
+      this.user.setConfirmed(true);
+      this.user.emailAddressVerified = true;
       return Promise.resolve(true);
     } else {
       return Promise.reject(new Error('invalid code'));
@@ -83,6 +95,7 @@ export class MockProvider implements Provider {
     expect(username).toEqual('johndoe');
     expect(password).toEqual('password');
     if (code == '12345') {
+      this.password = password;
       return Promise.resolve();
     } else {
       return Promise.reject(new Error('invalid code'));
@@ -101,7 +114,7 @@ export class MockProvider implements Provider {
   signIn(username: string, password: string): Promise<number> {
     this.signInCounter++;
     expect(username).toEqual('johndoe');
-    if (password == '@ppBricks2020') {
+    if (password == this.password) {
       this.loggedIn = (this.loginMethod == AUTH_NO_MFA);
       return Promise.resolve(this.loginMethod);
     }
@@ -125,14 +138,15 @@ export class MockProvider implements Provider {
 
   sendVerificationCodeForAttribute(attribute: string): Promise<void> {
     this.sendVerificationCodeForAttributeCounter++;
-    expect(attribute).toEqual('testAttr');
+    expect(attribute).toEqual(ATTRIB_MOBILE_PHONE);
     return Promise.resolve();
   }
 
   confirmVerificationCodeForAttribute(attribute: string, code: string): Promise<void> {
     this.confirmVerificationCodeForAttributeCounter++;
-    expect(attribute).toEqual('testAttr');
+    expect(attribute).toEqual(ATTRIB_MOBILE_PHONE);
     if (code == '12345') {
+      this.user.mobilePhoneVerified = true;
       return Promise.resolve();
     }
     return Promise.reject(new Error('invalid code'));
@@ -152,14 +166,18 @@ export class MockProvider implements Provider {
 
   saveUser(user: User, attribNames?: string[]): Promise<void> {
     this.saveUserCounter++;
-    expectTestUserToBeSet(user);
+    expect(user).toBeDefined();
+    expect(user!.username).toEqual('johndoe');
+    expect(user!.firstName).toEqual('John');
+    expect(user!.familyName).toEqual('Doe');
+    expect(user!.emailAddress).toEqual('johndoe@gmail.com');
+    expect(user!.mobilePhone).toEqual('9999999999');
+    this.user = user;
     return Promise.resolve();
   }
 
   readUser(attribNames?: string[]): Promise<User> {
     this.readUserCounter++;
-    const user = getTestUser();
-    user.emailAddressVerified = true;
-    return Promise.resolve(user);
+    return Promise.resolve(this.user);
   }
 }

@@ -50,7 +50,7 @@ export interface AuthActionProps {
   confirmSignUpCode: (code: string, username?: string) => redux.Action
 
   // actions on current user in state
-  resetPassword: (username?: string) => redux.Action
+  resetPassword: (username: string) => redux.Action
   updatePassword: (password: string, code: string, username?: string) => redux.Action
 
   // user authentication

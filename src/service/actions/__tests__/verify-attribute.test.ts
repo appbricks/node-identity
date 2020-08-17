@@ -6,6 +6,7 @@ import AuthService from '../../auth-service';
 
 import { AuthUserState } from '../../state';
 import { AuthLoggedInUserAttrPayload, VERIFY_ATTRIBUTE_REQ } from '../../action';
+import { ATTRIB_MOBILE_PHONE } from '../../constants';
 
 import { MockProvider } from '../../__tests__/mock-provider';
 import { ServiceRequestTester } from '../../__tests__/request-tester';
@@ -26,7 +27,7 @@ const requestTester = new ServiceRequestTester<AuthLoggedInUserAttrPayload>(logg
     switch (counter) {
       case 1:
       case 2: {
-        expect(payload.attrName!).toEqual('testAttr');
+        expect(payload.attrName!).toEqual(ATTRIB_MOBILE_PHONE);
         break;
       }
       case 3: {
@@ -38,7 +39,7 @@ const requestTester = new ServiceRequestTester<AuthLoggedInUserAttrPayload>(logg
   (counter, state, action): AuthUserState => {
     expect(counter).toBe(1);
 
-    expect((<AuthLoggedInUserAttrPayload>action.meta.relatedAction!.payload).attrName!).toEqual('testAttr');
+    expect((<AuthLoggedInUserAttrPayload>action.meta.relatedAction!.payload).attrName!).toEqual(ATTRIB_MOBILE_PHONE);
     return state;
   },
   (counter, state, action): AuthUserState => {
@@ -77,10 +78,10 @@ const dispatch = AuthService.dispatchProps(store.dispatch)
 
 it('dispatches an action to sign up a user', async () => {
   // expect error as user is not logged in
-  dispatch.verifyAttribute('testAttr');
+  dispatch.verifyAttribute(ATTRIB_MOBILE_PHONE);
   // expect no errors
   mockProvider.loggedIn = true;
-  dispatch.verifyAttribute('testAttr');
+  dispatch.verifyAttribute(ATTRIB_MOBILE_PHONE);
   // expect error from provider call as user is empty
   dispatch.verifyAttribute('');
 });

@@ -2,19 +2,20 @@ import * as redux from 'redux';
 import { Epic } from 'redux-observable';
 
 import {
+  NOOP,
   ERROR,
   ErrorPayload,
   Action,
   ActionResult,
   setActionStatus,
   LocalStorage,
-  Logger,
+  Logger
 } from '@appbricks/utils';
 
 import Session from '../model/session';
 import User, { UserStatus, VerificationType } from '../model/user';
 
-import { AUTH_NO_MFA } from './constants';
+import { AUTH_NO_MFA, ATTRIB_EMAIL_ADDRESS, ATTRIB_MOBILE_PHONE } from './constants';
 import Provider from './provider';
 
 import {
@@ -258,7 +259,19 @@ export default class AuthService {
         return this.reduceServiceResponse(state, action);
 
       case ERROR:
-        break;
+        if (action.meta.relatedAction && 
+          this.serviceRequests.has(action.meta.relatedAction.type)) {
+
+          this.logger.error(
+            'Handling service request error for action: ', 
+            action.meta.relatedAction.type);
+
+          return setActionStatus<AuthUserState>(
+            state,
+            action,
+            ActionResult.error
+          );
+        }
     }
 
     if (this.serviceRequests.has(action.type)) {
@@ -279,7 +292,7 @@ export default class AuthService {
 
     let relatedAction = action.meta.relatedAction!;
     if (this.serviceRequests.has(relatedAction.type)) {
-      this.logger.trace('Handling successfull service response: ', relatedAction.type);
+      this.logger.trace('Handling successful service response: ', relatedAction.type);
 
       switch (relatedAction.type) {
         case LOAD_AUTH_STATE_REQ: {
@@ -388,11 +401,22 @@ export default class AuthService {
           break;  
         }
 
-        case VERIFY_ATTRIBUTE_REQ: {
-          break;  
-        }
-
         case CONFIRM_ATTRIBUTE_REQ: {
+          let payload = <AuthLoggedInUserAttrPayload>relatedAction.payload!;
+          let user = state.user!;
+          switch (payload.attrName!) {
+            case ATTRIB_EMAIL_ADDRESS:
+              user.emailAddressVerified = true;
+              break;
+            case ATTRIB_MOBILE_PHONE:
+              user.mobilePhoneVerified = true;
+              break;
+          }
+
+          state = {
+            ...state,
+            user
+          }; 
           break;  
         }
 
