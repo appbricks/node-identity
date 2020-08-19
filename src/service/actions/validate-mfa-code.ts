@@ -18,7 +18,7 @@ export const validateMFACodeEpic = (csProvider: Provider): Epic => {
     {
       validateMFACode: async (action, state$, callSync) => {      
         if (await csProvider.isLoggedIn()) {
-          throw Error('The current session is already logged in.')
+          return createErrorAction(new Error('The current session is already logged in.'), action);
         }
   
         try {

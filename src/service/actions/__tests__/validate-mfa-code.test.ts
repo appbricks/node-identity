@@ -76,6 +76,7 @@ const requestTester = new ServiceRequestTester<AuthMultiFactorAuthPayload, AuthL
     }
     return state;
   },
+  false
 );
 
 const rootReducer = combineReducers({
@@ -88,7 +89,7 @@ const store: any = createStore(
   applyMiddleware(reduxLogger, epicMiddleware)
 );
 
-const mockProvider = new MockProvider();
+const mockProvider = new MockProvider(true);
 const authService = new AuthService(mockProvider)
 const rootEpic = combineEpicsWithGlobalErrorHandler(authService.epics())
 epicMiddleware.run(rootEpic);
@@ -108,7 +109,7 @@ it('dispatches an action to sign up a user', async () => {
 });
 
 it('calls reducer as expected when sign up action is dispatched', () => {
-  expect(mockProvider.isLoggedInCounter).toEqual(3);
+  expect(mockProvider.isLoggedInCounter).toEqual(4);
   expect(mockProvider.validateMFACodeCounter).toEqual(2);
   expect(requestTester.reqCounter).toEqual(3);
   expect(requestTester.okCounter).toEqual(2);
