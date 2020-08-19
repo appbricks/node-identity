@@ -125,6 +125,7 @@ export class MockProvider implements Provider {
   validateMFACode(code: string): Promise<boolean> {
     this.validateMFACodeCounter++;
     if (code == '12345') {
+      this.loggedIn = true;
       return Promise.resolve(true);
     }
     return Promise.reject(new Error('invalid code'));

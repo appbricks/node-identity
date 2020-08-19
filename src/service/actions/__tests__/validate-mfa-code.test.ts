@@ -5,10 +5,11 @@ import { Logger, LOG_LEVEL_TRACE, setLogLevel, reduxLogger, combineEpicsWithGlob
 import AuthService from '../../auth-service';
 
 import { AuthUserState } from '../../state';
-import { AuthMultiFactorAuthPayload, VALIDATE_MFA_CODE_REQ, AuthLoggedInPayload } from '../../action';
+import { AuthMultiFactorAuthPayload, AuthLoggedInPayload, AuthUserPayload, VALIDATE_MFA_CODE_REQ, READ_USER_REQ } from '../../action';
 
 import { MockProvider } from '../../__tests__/mock-provider';
 import { ServiceRequestTester } from '../../__tests__/request-tester';
+import { expectTestUserToBeSet } from '../../__tests__/request-tester-user';
 
 // set log levels
 if (process.env.DEBUG) {
@@ -38,16 +39,28 @@ const requestTester = new ServiceRequestTester<AuthMultiFactorAuthPayload, AuthL
     return state;
   },
   (counter, state, action): AuthUserState => {
-    expect(counter).toBe(1);
-    expect(action.payload!.isLoggedIn).toBeTruthy();
+    switch (action.meta.relatedAction!.type) {
+      case VALIDATE_MFA_CODE_REQ: {
+        expect(counter).toBe(1);
+        expect(action.payload!.isLoggedIn).toBeTruthy();
 
-    let payload = <AuthMultiFactorAuthPayload>action.meta.relatedAction!.payload;
-    expect(payload.mfaCode).toEqual('12345');
+        let payload = <AuthMultiFactorAuthPayload>action.meta.relatedAction!.payload;
+        expect(payload.mfaCode).toEqual('12345');
 
-    state.isLoggedIn = action.payload!.isLoggedIn;
-    return {...state, 
-      session: state.session
-    };
+        state.isLoggedIn = action.payload!.isLoggedIn;
+        return {...state, 
+          session: state.session
+        };
+      }
+      case READ_USER_REQ: {
+        expect(counter).toBe(2);
+        let payload = <unknown>action.payload!;
+        let user = (<AuthUserPayload>payload).user;
+        expectTestUserToBeSet(user, true);
+        return {...state, user};
+      }
+    }
+    return state;
   },
   (counter, state, action): AuthUserState => {
 
@@ -83,7 +96,7 @@ epicMiddleware.run(rootEpic);
 const dispatch = AuthService.dispatchProps(store.dispatch)
 
 it('dispatches an action to sign up a user', async () => {
-  // error as session alread logged in
+  // error as session already logged in
   mockProvider.loggedIn = true;
   dispatch.validateMFACode('12345');
   mockProvider.loggedIn = false;
@@ -98,10 +111,12 @@ it('calls reducer as expected when sign up action is dispatched', () => {
   expect(mockProvider.isLoggedInCounter).toEqual(3);
   expect(mockProvider.validateMFACodeCounter).toEqual(2);
   expect(requestTester.reqCounter).toEqual(3);
-  expect(requestTester.okCounter).toEqual(1);
+  expect(requestTester.okCounter).toEqual(2);
   expect(requestTester.errorCounter).toEqual(2);  
 });
 
 it('has saved the correct user in the state', () => {
-  expect((<AuthUserState>store.getState().auth).isLoggedIn).toBeTruthy();
+  let state = store.getState();
+  expectTestUserToBeSet(state.auth.user, true);
+  expect(state.auth.isLoggedIn).toBeTruthy();
 });

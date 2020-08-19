@@ -34,7 +34,7 @@ export const signInEpic = (csProvider: Provider): Epic => {
         // wait for sign-in service call to complete
         let dependsAction = await callSync['signIn'];
 
-        // is sign-in was successful then dispatch 
+        // if sign-in was successful then dispatch 
         // an action to read the user details
         if (dependsAction.type == SERVICE_RESPONSE_OK
           && dependsAction.payload!.isLoggedIn) {
@@ -45,5 +45,5 @@ export const signInEpic = (csProvider: Provider): Epic => {
         }
       }
     }
-  )
+  );
 }

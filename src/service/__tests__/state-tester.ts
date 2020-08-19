@@ -1,6 +1,5 @@
 import { Store } from 'redux';
-import { execAfter } from '@appbricks/utils';
-import { time } from 'console';
+import { Logger, execAfter } from '@appbricks/utils';
 
 export class StateTester<T> {
 
@@ -9,9 +8,13 @@ export class StateTester<T> {
 
   testFn: (counter: number, state: T) => void;
 
+  logger: Logger;
+
   constructor(testFn: (counter: number, state: T) => void) {
     this.testFn = testFn;
     this.testErr = undefined;
+
+    this.logger = new Logger('StateTester');
   }
 
   tester(store: Store): () => void {
@@ -20,11 +23,12 @@ export class StateTester<T> {
       this.counter++;
       const state = <T>store.getState().auth;
 
-      try {
-        console.log('State change:', this.counter)
+      try {        
         this.testFn(this.counter, state);
+        this.logger.debug(`State change test iteration ${this.counter} passed.`);
       } catch (err) {
-        console.error('Test Error', this.counter, err, state);
+        console.error(`State change test iteration ${this.counter} failed:`, err);
+        this.logger.debug('State with error:', state);
         this.testErr = err;
       }
     }

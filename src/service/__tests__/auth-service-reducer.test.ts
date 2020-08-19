@@ -1,7 +1,7 @@
 import * as redux from 'redux';
 import { createEpicMiddleware } from 'redux-observable';
 
-import { LOG_LEVEL_TRACE, setLogLevel, reduxLogger, combineEpicsWithGlobalErrorHandler, setLocalStorageImpl, ActionResult, NOOP } from '@appbricks/utils';
+import { LOG_LEVEL_TRACE, setLogLevel, reduxLogger, combineEpicsWithGlobalErrorHandler, setLocalStorageImpl, ActionResult } from '@appbricks/utils';
 
 import User, { UserStatus, VerificationInfo, VerificationType } from '../../model/user';
 import { ATTRIB_MOBILE_PHONE, AUTH_MFA_SMS } from '../constants';
@@ -14,6 +14,8 @@ import {
   RESEND_SIGN_UP_CODE_REQ,
   CONFIRM_SIGN_UP_CODE_REQ,
   SIGN_IN_REQ,
+  VALIDATE_MFA_CODE_REQ,
+  SIGN_OUT_REQ,
   CONFIGURE_MFA_REQ,
   READ_USER_REQ,
   VERIFY_ATTRIBUTE_REQ,
@@ -306,7 +308,7 @@ const stateTester = new StateTester<AuthUserState>(
         expect(state.isLoggedIn).toBeFalsy();
         break;
       }
-      case 32: { // Sign in response
+      case 32: { // Sign in response waiting for MFA code
         expect(state.actionStatus.action.type).toEqual(SERVICE_RESPONSE_OK);
         expect(state.actionStatus.action.meta.relatedAction!.type).toEqual(SIGN_IN_REQ);
         expect(state.actionStatus.result).toEqual(ActionResult.success);
@@ -314,10 +316,68 @@ const stateTester = new StateTester<AuthUserState>(
         timestamp = state.session.timestamp;
         expect(state.session.timestamp).toEqual(-1);
         expect(state.isLoggedIn).toBeFalsy();
+        expectTestUserToBeSet(state.user, true, true, true);
         expect(state.awaitingMFAConfirmation).toEqual(AUTH_MFA_SMS);
         break;
       }
-      case 33: { // NOOP action as user read not issued        
+      case 33: { // NOOP action as user read not issued
+        break;
+      }
+      case 34: { // Validate MFA code in request
+        expect(state.actionStatus.action.type).toEqual(VALIDATE_MFA_CODE_REQ);
+        expect(state.actionStatus.result).toEqual(ActionResult.pending);
+
+        expect(state.session.timestamp).toEqual(-1);
+        expect(state.isLoggedIn).toBeFalsy();
+        expectTestUserToBeSet(state.user, true, true, true);
+        break;
+      }
+      case 35: { // Validate MFA code response
+        expect(state.actionStatus.action.type).toEqual(SERVICE_RESPONSE_OK);
+        expect(state.actionStatus.action.meta.relatedAction!.type).toEqual(VALIDATE_MFA_CODE_REQ);
+        expect(state.actionStatus.result).toEqual(ActionResult.success);
+
+        timestamp = state.session.timestamp;
+        expect(state.session.timestamp).toBeGreaterThan(0);
+        expect(state.isLoggedIn).toBeTruthy();
+        expectTestUserToBeSet(state.user, true, true, true);
+        break;
+      }
+      case 36: { // Read user request after successful sign in
+        expect(state.actionStatus.action.type).toEqual(READ_USER_REQ);
+        expect(state.actionStatus.result).toEqual(ActionResult.pending);
+
+        expect(state.session.timestamp).toEqual(timestamp);
+        expect(state.isLoggedIn).toBeTruthy();
+        expectTestUserToBeSet(state.user, true, true, true);
+        break;
+      }
+      case 37: { // Read user response
+        expect(state.actionStatus.action.type).toEqual(SERVICE_RESPONSE_OK);
+        expect(state.actionStatus.action.meta.relatedAction!.type).toEqual(READ_USER_REQ);
+        expect(state.actionStatus.result).toEqual(ActionResult.success);
+
+        expect(state.session.timestamp).toEqual(timestamp);
+        expect(state.isLoggedIn).toBeTruthy();
+        expectTestUserToBeSet(state.user, true, true, true);
+        break;
+      }
+      case 38: { // Sign out request
+        expect(state.actionStatus.action.type).toEqual(SIGN_OUT_REQ);
+        expect(state.actionStatus.result).toEqual(ActionResult.pending);
+
+        expect(state.session.timestamp).toEqual(timestamp);
+        expect(state.isLoggedIn).toBeTruthy();
+        break;
+      }
+      case 39: { // Sign out response
+        expect(state.actionStatus.action.type).toEqual(SERVICE_RESPONSE_OK);
+        expect(state.actionStatus.action.meta.relatedAction!.type).toEqual(SIGN_OUT_REQ);
+        expect(state.actionStatus.result).toEqual(ActionResult.success);
+
+        expect(state.session.timestamp).toEqual(-1);
+        expect(state.isLoggedIn).toBeFalsy();
+        expect(state.user).toBeUndefined();
         break;
       }
       default: {
@@ -489,7 +549,7 @@ it('loads initial auth state and signs in as new user and performs some updates'
   user.rememberFor24h = true;
   dispatch.saveUser(user);
   await stateTester.until(28);
-  
+
   let auth: any = localStore['auth'];
   expect(auth.session.timestamp).toBeGreaterThan(0);
   expect(auth.user).toEqual({
@@ -513,9 +573,20 @@ it('starts new session and signs-in using MFA and signs-out', async () => {
   dispatch.loadAuthState();
   // wait until state has been loaded
   await stateTester.until(30);
+  let userLoadedFromStore = <User>store.getState().auth.user;
 
   dispatch.signIn('johndoe', 'password');
-  // wait until logged in state
-  await stateTester.until(32);
+  // wait until MFA code sent state
+  await stateTester.until(33);
 
+  dispatch.validateMFACode('12345');
+  // wait until logged in state
+  await stateTester.until(37);
+
+  let userLoadedFromProvider = <User>store.getState().auth.user;
+  expect(userLoadedFromStore !== userLoadedFromStore).toBeFalsy();
+
+  dispatch.signOut()
+  // wait until logged out state
+  await stateTester.until(39);
 });
