@@ -2,6 +2,7 @@ import * as redux from 'redux';
 import { createEpicMiddleware } from 'redux-observable';
 
 import { LOG_LEVEL_TRACE, setLogLevel, reduxLogger, combineEpicsWithGlobalErrorHandler, setLocalStorageImpl, ActionResult } from '@appbricks/utils';
+import { StateTester } from '@appbricks/test-utils';
 
 import User, { UserStatus, VerificationInfo, VerificationType } from '../../model/user';
 import { ATTRIB_MOBILE_PHONE, AUTH_MFA_SMS } from '../constants';
@@ -28,7 +29,6 @@ import { AuthUserState } from '../state';
 import AuthService from '../auth-service';
 
 import { MockProvider } from './mock-provider';
-import { StateTester } from './state-tester';
 import { getTestUser, expectTestUserToBeSet } from './request-tester-user';
 
 if (process.env.DEBUG) {
