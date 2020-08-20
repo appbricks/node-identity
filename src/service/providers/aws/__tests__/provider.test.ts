@@ -37,6 +37,9 @@ const gmail = require("gmail-tester");
 const GMAIL_CREDS_PATH = '../../../../../etc/gmail-creds.json';
 const GMAIL_AUTH_TOKEN_PATH = '../../../../../.gmail-token';
 
+const testEmail = process.env.TEST_EMAIL || 'test.appbricks@gmail.com';
+const testPhone = process.env.TEST_PHONE || '+19782950877';
+
 async function lookupCodeFromEmail(subject: string, bodyPattern: RegExp): Promise<string> {
   console.info('Waiting for an email with a verification or authentication code...');
 
@@ -57,7 +60,7 @@ async function lookupCodeFromEmail(subject: string, bodyPattern: RegExp): Promis
   );
 
   expect(email).toBeDefined();
-  expect(email.receiver).toEqual('test.appbricks@gmail.com');
+  expect(email.receiver).toEqual(testEmail);
 
   let matches = bodyPattern.exec(email.body.html);
   expect(matches).toBeDefined();
@@ -106,8 +109,8 @@ it('registers a new user, confirms registration and signs-in', async () => {
   let user = new User();
   user.username = signUpUserName;
   user.password = '@ppBr!cks2020';
-  user.emailAddress = 'test.appbricks@gmail.com';
-  user.mobilePhone = '+17165755305';
+  user.emailAddress = testEmail;
+  user.mobilePhone = testPhone;
 
   await provider.signUp(user)
     .then(info => {
@@ -192,8 +195,8 @@ it('configures user\'s mfa settings and saves additional attributes', async () =
   user.firstName = 'John';
   user.middleName = 'Kai';
   user.familyName = 'Doe';
-  user.emailAddress = 'test.appbricks@gmail.com';
-  user.mobilePhone = '+17165755305';
+  user.emailAddress = testEmail;
+  user.mobilePhone = testPhone;
   user.enableMFA = true;
   user.enableTOTP = false;
   user.rememberFor24h = true;
@@ -234,9 +237,9 @@ it('signs in using mfa and reads the user\'s attributes', async () => {
   expect(user.firstName).toEqual('John');
   expect(user.middleName).toEqual('Kai');
   expect(user.familyName).toEqual('Doe');
-  expect(user.emailAddress).toEqual('test.appbricks@gmail.com');
+  expect(user.emailAddress).toEqual(testEmail);
   expect(user.emailAddressVerified).toBeTruthy();
-  expect(user.mobilePhone).toEqual('+17165755305');
+  expect(user.mobilePhone).toEqual(testPhone);
   expect(user.mobilePhoneVerified).toBeTruthy();
   expect(user.enableMFA).toBeTruthy();
   expect(user.enableTOTP).toBeFalsy();
