@@ -1,7 +1,7 @@
 {
   "name": "@appbricks/identity",
-  "version": "0.0.3",
-  "description": "Node Typescript Module Template",
+  "version": "0.0.5",
+  "description": "Authentication and Identity SDK",
   "main": "lib/index.js",
   "scripts": {
     "lint": "eslint . --ext .ts",
@@ -27,11 +27,10 @@
   "dependencies": {
     "@appbricks/utils": "0.0.3",
     "aws-amplify": "^3.0.19",
-    "react-redux": "^7.2.0",
     "redux-observable": "^1.2.0"
   },
   "devDependencies": {
-    "@appbricks/test-utils": "0.0.2",
+    "@appbricks/test-utils": "^0.0.2",
     "@types/jest": "^25.2.3",
     "@types/node": "^14.0.6",
     "@types/react-redux": "^7.1.9",

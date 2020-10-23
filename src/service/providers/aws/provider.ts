@@ -632,7 +632,7 @@ export default class Provider implements ProviderInterface {
             logger.debug('reading attributes', attribNames,
               ' from user attributes:', attributes);
 
-            user.username = <string>cognitoUser?.getUsername();
+            user.username = <string>cognitoUser!.getUsername();
             user.status = UserStatus.Confirmed;
 
             attributes

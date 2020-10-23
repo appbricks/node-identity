@@ -1,10 +1,21 @@
 import * as redux from 'redux';
 import { createEpicMiddleware } from 'redux-observable';
 
-import { LOG_LEVEL_TRACE, setLogLevel, reduxLogger, combineEpicsWithGlobalErrorHandler, setLocalStorageImpl, ActionResult } from '@appbricks/utils';
+import { 
+  LOG_LEVEL_TRACE, 
+  setLogLevel, 
+  reduxLogger, 
+  combineEpicsWithGlobalErrorHandler, 
+  setLocalStorageImpl, 
+  ActionResult 
+} from '@appbricks/utils';
 import { StateTester } from '@appbricks/test-utils';
 
-import User, { UserStatus, VerificationInfo, VerificationType } from '../../model/user';
+import User, { 
+  UserStatus, 
+  VerificationInfo, 
+  VerificationType 
+} from '../../model/user';
 import { ATTRIB_MOBILE_PHONE, AUTH_MFA_SMS } from '../constants';
 
 import {

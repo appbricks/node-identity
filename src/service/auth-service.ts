@@ -12,7 +12,6 @@ import {
   Logger
 } from '@appbricks/utils';
 
-import Session from '../model/session';
 import User, { UserStatus, VerificationType } from '../model/user';
 
 import { AUTH_NO_MFA, ATTRIB_EMAIL_ADDRESS, ATTRIB_MOBILE_PHONE } from './constants';
