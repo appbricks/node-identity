@@ -1,5 +1,4 @@
-import User, { VerificationInfo } from './user';
-import { ActionResult } from '@appbricks/utils';
+import User from './user';
 
 const TIMEOUT_15M = 15 * 60 * 1000;      // 15 minutes
 const TIMEOUT_24H = 24 * 60 * 60 * 1000; // 24 hours
