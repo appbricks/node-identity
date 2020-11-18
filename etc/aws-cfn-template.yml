@@ -103,7 +103,7 @@ Resources:
       AutoVerifiedAttributes:
         - email
       EmailVerificationSubject:
-        Your verification code for Identity Test Module.
+        Your verification code for Identity Test Module
       EmailVerificationMessage:
         Your email address verification code for Identity Test Module is {####}.
       SmsConfiguration:

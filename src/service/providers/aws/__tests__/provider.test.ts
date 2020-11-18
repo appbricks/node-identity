@@ -47,17 +47,18 @@ async function lookupCodeFromEmail(subject: string, bodyPattern: RegExp): Promis
   // authentication message to test email account
   await sleep(10000);
 
-  let email = await gmail.check_inbox(
+  let emails = await gmail.check_inbox(
     path.resolve(__dirname, GMAIL_CREDS_PATH),
     path.resolve(__dirname, GMAIL_AUTH_TOKEN_PATH),
     {
       subject: subject,
-      wait_time_sec: 10,
+      wait_time_sec: 5,
       max_wait_time_sec: 60,
-      after: signUpTime,
       include_body: true
     }
   );
+  expect(emails.length).toBeGreaterThan(0);
+  const email = emails[0];
 
   expect(email).toBeDefined();
   expect(email.receiver).toEqual(testEmail);
@@ -132,7 +133,7 @@ it('registers a new user, confirms registration and signs-in', async () => {
     'Your verification code for Identity Test Module',
     /^Your email address verification code for Identity Test Module is ([0-9]+).$/);
 
-  console.info('Requesting new sign code...');
+  console.info('Requesting new sign up code...');
   await provider.resendSignUpCode(user.username)
     .then(info => {
       expect(info.type).toBe(VerificationType.Email);
