@@ -5,7 +5,7 @@ import { Action, createAction, createFollowUpAction, serviceEpic } from '@appbri
 
 import Provider from '../provider';
 import { AuthUsernamePayload, RESET_PASSWORD_REQ, SERVICE_RESPONSE_OK } from '../action';
-import { AuthUserStateProp } from '../state';
+import { AuthStateProps } from '../state';
 
 export const resetPasswordAction = 
   (dispatch: redux.Dispatch<redux.Action>, username: string) => 
@@ -13,7 +13,7 @@ export const resetPasswordAction =
 
 export const resetPasswordEpic = (csProvider: Provider): Epic => {
 
-  return serviceEpic<AuthUsernamePayload, AuthUserStateProp>(
+  return serviceEpic<AuthUsernamePayload, AuthStateProps>(
     RESET_PASSWORD_REQ, 
     async (action, state$) => {
       await csProvider.resetPassword(action.payload!.username);

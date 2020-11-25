@@ -5,7 +5,7 @@ import { Action, createAction, createFollowUpAction, serviceEpic } from '@appbri
 
 import Provider from '../provider';
 import { AuthStatePayload, SIGN_OUT_REQ, SERVICE_RESPONSE_OK } from '../action';
-import { AuthUserStateProp } from '../state';
+import { AuthStateProps } from '../state';
 
 export const signOutAction = 
   (dispatch: redux.Dispatch<redux.Action>) => 
@@ -13,7 +13,7 @@ export const signOutAction =
 
 export const signOutEpic = (csProvider: Provider): Epic => {
 
-  return serviceEpic<AuthStatePayload, AuthUserStateProp>(SIGN_OUT_REQ, 
+  return serviceEpic<AuthStatePayload, AuthStateProps>(SIGN_OUT_REQ, 
     async (action, state$) => {
       if (await csProvider.isLoggedIn()) {
         await csProvider.signOut();

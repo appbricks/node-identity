@@ -5,7 +5,7 @@ import { Action, createAction, createFollowUpAction, serviceEpic } from '@appbri
 
 import Provider from '../provider';
 import { AuthLoggedInUserAttrPayload, VERIFY_ATTRIBUTE_REQ, SERVICE_RESPONSE_OK } from '../action';
-import { AuthUserStateProp } from '../state';
+import { AuthStateProps } from '../state';
 
 export const verifyAttributeAction = 
   (dispatch: redux.Dispatch<redux.Action>, attrName: string) => 
@@ -13,7 +13,7 @@ export const verifyAttributeAction =
 
 export const verifyAttributeEpic = (csProvider: Provider): Epic => {
 
-  return serviceEpic<AuthLoggedInUserAttrPayload, AuthUserStateProp>(
+  return serviceEpic<AuthLoggedInUserAttrPayload, AuthStateProps>(
     VERIFY_ATTRIBUTE_REQ, 
     async (action, state$) => {
       if (!await csProvider.isLoggedIn()) {

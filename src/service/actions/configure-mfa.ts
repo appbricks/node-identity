@@ -6,7 +6,7 @@ import { Action, createAction, createFollowUpAction, serviceEpic } from '@appbri
 import User from '../../model/user';
 import Provider from '../provider';
 import { AuthUserPayload, CONFIGURE_MFA_REQ, SERVICE_RESPONSE_OK } from '../action';
-import { AuthUserStateProp } from '../state';
+import { AuthStateProps } from '../state';
 
 export const configureMFAAction = 
   (dispatch: redux.Dispatch<redux.Action>, user: User) => 
@@ -14,7 +14,7 @@ export const configureMFAAction =
 
 export const configureMFAEpic = (csProvider: Provider): Epic => {
 
-  return serviceEpic<AuthUserPayload, AuthUserStateProp>(
+  return serviceEpic<AuthUserPayload, AuthStateProps>(
     CONFIGURE_MFA_REQ, 
     async (action, state$) => {
       if (!await csProvider.isLoggedIn()) {

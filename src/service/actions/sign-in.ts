@@ -5,7 +5,7 @@ import { NOOP, Action, createAction, createFollowUpAction, createErrorAction, se
 
 import Provider from '../provider';
 import { AuthSignInPayload, AuthLoggedInPayload, SIGN_IN_REQ, READ_USER_REQ, SERVICE_RESPONSE_OK } from '../action';
-import { AuthUserStateProp } from '../state';
+import { AuthStateProps } from '../state';
 
 export const signInAction = 
   (dispatch: redux.Dispatch<redux.Action>, username: string, password: string) => 
@@ -13,7 +13,7 @@ export const signInAction =
 
 export const signInEpic = (csProvider: Provider): Epic => {
 
-  return serviceEpicFanOut<AuthSignInPayload, AuthUserStateProp>(
+  return serviceEpicFanOut<AuthSignInPayload, AuthStateProps>(
     SIGN_IN_REQ,
     {
       signIn: async (action, state$, callSync) => {

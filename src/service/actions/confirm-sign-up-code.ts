@@ -5,7 +5,7 @@ import { Action, createAction, createFollowUpAction, serviceEpic } from '@appbri
 
 import Provider from '../provider';
 import { AuthUsernamePayload, CONFIRM_SIGN_UP_CODE_REQ, SERVICE_RESPONSE_OK } from '../action';
-import { AuthUserStateProp } from '../state';
+import { AuthStateProps } from '../state';
 
 export const confirmSignUpCodeAction = 
   (dispatch: redux.Dispatch<redux.Action>, username: string, code: string) => 
@@ -13,7 +13,7 @@ export const confirmSignUpCodeAction =
 
 export const confirmSignUpCodeEpic = (csProvider: Provider): Epic => {
 
-  return serviceEpic<AuthUsernamePayload, AuthUserStateProp>(
+  return serviceEpic<AuthUsernamePayload, AuthStateProps>(
     CONFIRM_SIGN_UP_CODE_REQ, 
     async (action, state$) => {
       let state = state$.value;

@@ -1,20 +1,20 @@
 import { Logger } from '@appbricks/utils';
 
 import { AuthUserPayload, AuthVerificationPayload, SIGN_UP_REQ } from '../action';
-import { AuthUserState } from '../state';
+import { AuthState } from '../state';
 import User, { VerificationType } from '../../model/user';
 
 import { ServiceRequestTester } from './request-tester';
 
 const createRequestTester = (logger: Logger, reqActionType: string, checkConfirmed = false, checkMFAEnabled = false) => {
   return new ServiceRequestTester<AuthUserPayload>(logger, reqActionType,
-    (counter: number, state, action): AuthUserState => {
+    (counter: number, state, action): AuthState => {
       
       let payload = action.payload!;
       expect(payload.user).toBeDefined();
       return state;
     },
-    (counter, state, action): AuthUserState => {
+    (counter, state, action): AuthState => {
       expect(counter).toBe(1);
 
       if (action.meta.relatedAction!.type == SIGN_UP_REQ) {
@@ -31,7 +31,7 @@ const createRequestTester = (logger: Logger, reqActionType: string, checkConfirm
       expectTestUserToBeSet(user!, checkConfirmed, checkMFAEnabled);
       return {...state, user: user!}
     },
-    (counter, state, action): AuthUserState => {
+    (counter, state, action): AuthState => {
       let payload = <AuthUserPayload>action.meta.relatedAction!.payload;
       
       if (payload.user.username == 'error') {

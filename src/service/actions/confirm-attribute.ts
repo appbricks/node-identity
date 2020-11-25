@@ -5,7 +5,7 @@ import { Action, createAction, createFollowUpAction, serviceEpic } from '@appbri
 
 import Provider from '../provider';
 import { AuthLoggedInUserAttrPayload, CONFIRM_ATTRIBUTE_REQ, SERVICE_RESPONSE_OK } from '../action';
-import { AuthUserStateProp } from '../state';
+import { AuthStateProps } from '../state';
 
 
 export const confirmAttributeAction = 
@@ -14,7 +14,7 @@ export const confirmAttributeAction =
 
 export const confirmAttributeEpic = (csProvider: Provider): Epic => {
 
-  return serviceEpic<AuthLoggedInUserAttrPayload, AuthUserStateProp>(
+  return serviceEpic<AuthLoggedInUserAttrPayload, AuthStateProps>(
     CONFIRM_ATTRIBUTE_REQ, 
     async (action, state$) => {
       if (!await csProvider.isLoggedIn()) {

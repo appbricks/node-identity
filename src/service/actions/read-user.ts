@@ -5,7 +5,7 @@ import { Action, createAction, createFollowUpAction, serviceEpic } from '@appbri
 
 import Provider from '../provider';
 import { AuthUserPayload, READ_USER_REQ, SERVICE_RESPONSE_OK } from '../action';
-import { AuthUserStateProp } from '../state';
+import { AuthStateProps } from '../state';
 
 export const readUserAction = 
   (dispatch: redux.Dispatch<redux.Action>) => 
@@ -13,7 +13,7 @@ export const readUserAction =
 
 export const readUserEpic = (csProvider: Provider): Epic => {
 
-  return serviceEpic<AuthUserPayload, AuthUserStateProp>(
+  return serviceEpic<AuthUserPayload, AuthStateProps>(
     READ_USER_REQ, 
     async (action, state$) => {
       if (!await csProvider.isLoggedIn()) {

@@ -2,7 +2,7 @@ import { Reducer } from 'redux';
 import { Logger, ERROR, Action, ErrorPayload } from '@appbricks/utils';
 
 import { SERVICE_RESPONSE_OK } from '../action';
-import { AuthUserState, initialAuthState } from '../state';
+import { AuthState, initialAuthState } from '../state';
 import User from '../../model/user';
 
 export class ServiceRequestTester<T1, T2 = T1> {
@@ -27,7 +27,7 @@ export class ServiceRequestTester<T1, T2 = T1> {
     reqActionType: string,
     reqActionValidator: ActionValidator<T1>,
     okActionValidator: ActionValidator<T2>,
-    errorActionValidator: ActionValidator<ErrorPayload> = (counter, state, action): AuthUserState => {
+    errorActionValidator: ActionValidator<ErrorPayload> = (counter, state, action): AuthState => {
       fail('no errors conditions are being tested');
       return state;
     },
@@ -46,10 +46,10 @@ export class ServiceRequestTester<T1, T2 = T1> {
     this.initialAuthState.user = user;
   }
 
-  reducer(): Reducer<AuthUserState, Action<T1 | ErrorPayload>> {
+  reducer(): Reducer<AuthState, Action<T1 | ErrorPayload>> {
     const tester = this;
 
-    return (state: AuthUserState = this.initialAuthState, action: Action): AuthUserState => {
+    return (state: AuthState = this.initialAuthState, action: Action): AuthState => {
       tester.logger.trace('Reducer called with action', action.type);
       try {
         switch (action.type) {
@@ -83,6 +83,6 @@ export class ServiceRequestTester<T1, T2 = T1> {
 }
 type ActionValidator<T1> = (
   counter: number,
-  state: AuthUserState,
+  state: AuthState,
   action: Action<T1>
-) => AuthUserState;
+) => AuthState;

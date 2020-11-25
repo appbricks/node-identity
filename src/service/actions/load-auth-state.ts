@@ -5,7 +5,7 @@ import { Action, createAction, createFollowUpAction, serviceEpic } from '@appbri
 
 import Provider from '../provider';
 import { AuthStatePayload, LOAD_AUTH_STATE_REQ, SERVICE_RESPONSE_OK } from '../action';
-import { AuthUserStateProp } from '../state';
+import { AuthStateProps } from '../state';
 
 export const loadAuthStateAction = 
   (dispatch: redux.Dispatch<redux.Action>) => 
@@ -13,7 +13,7 @@ export const loadAuthStateAction =
 
 export const loadAuthStateEpic = (csProvider: Provider): Epic => {
 
-  return serviceEpic<AuthStatePayload, AuthUserStateProp>(
+  return serviceEpic<AuthStatePayload, AuthStateProps>(
     LOAD_AUTH_STATE_REQ, 
     async (action, state$) => {
       action.payload = <AuthStatePayload>{

@@ -4,10 +4,13 @@ import { Epic } from 'redux-observable';
 import {
   NOOP,
   ERROR,
+  RESET_STATUS,
   ErrorPayload,
+  ResetStatusPayload,
   Action,
   ActionResult,
   setActionStatus,
+  resetActionStatus,
   LocalStorage,
   Logger
 } from '@appbricks/utils';
@@ -18,8 +21,8 @@ import { AUTH_NO_MFA, ATTRIB_EMAIL_ADDRESS, ATTRIB_MOBILE_PHONE } from './consta
 import Provider from './provider';
 
 import {
-  AuthUserState,
-  AuthUserStateProp,
+  AuthState,
+  AuthStateProps,
   initialAuthState
 } from './state';
 import {
@@ -64,14 +67,16 @@ import { confirmAttributeAction, confirmAttributeEpic } from './actions/confirm-
 import { readUserAction, readUserEpic } from './actions/read-user';
 import { saveUserAction, saveUserEpic } from './actions/save-user';
 
-type AuthPayloadType = 
+type AuthPayload = 
   AuthStatePayload |
   AuthUserPayload |
   AuthUsernamePayload |
   AuthVerificationPayload |
   AuthSignInPayload |
   AuthMultiFactorAuthPayload |
-  AuthLoggedInUserAttrPayload;
+  AuthLoggedInUserAttrPayload | 
+  ErrorPayload | 
+  ResetStatusPayload;
 
 export default class AuthService {
 
@@ -105,51 +110,55 @@ export default class AuthService {
       .add(READ_USER_REQ);
   }
 
-  static dispatchProps<C extends AuthUserStateProp>(
+  static dispatchProps<C extends AuthStateProps>(
     dispatch: redux.Dispatch<redux.Action>, ownProps?: C): AuthActionProps {
 
     return {
-      // authentication initialization
-      loadAuthState: () =>
-        loadAuthStateAction(dispatch),
+      authService: {
+        // authentication initialization
+        loadAuthState: () =>
+          loadAuthStateAction(dispatch),
 
-      // registration and configuration
-      signUp: (user: User) =>
-        signUpAction(dispatch, user),
+        // registration and configuration
+        signUp: (user: User) =>
+          signUpAction(dispatch, user),
 
-      resendSignUpCode: (username?: string) => 
-        resendSignUpCodeAction(dispatch, username ? username : ownProps!.auth.user!.username),
-      confirmSignUpCode: (code: string, username?: string) =>
-        confirmSignUpCodeAction(dispatch, username ? username : ownProps!.auth.user!.username, code),
+        resendSignUpCode: (username?: string) => 
+          resendSignUpCodeAction(dispatch, username ? username : ownProps!.auth.user!.username),
+        confirmSignUpCode: (code: string, username?: string) =>
+          confirmSignUpCodeAction(dispatch, username ? username : ownProps!.auth.user!.username, code),
 
-      resetPassword: (username?: string) =>
-        resetPasswordAction(dispatch, username ? username : ownProps!.auth.user!.username),
-      updatePassword: (password: string, code: string, username?: string) =>
-        updatePasswordAction(dispatch, username ? username : ownProps!.auth.user!.username, password, code),
+        resetPassword: (username?: string) =>
+          resetPasswordAction(dispatch, username ? username : ownProps!.auth.user!.username),
+        updatePassword: (password: string, code: string, username?: string) =>
+          updatePasswordAction(dispatch, username ? username : ownProps!.auth.user!.username, password, code),
 
-      // user authentication
-      signIn: (username: string, password: string) =>
-        signInAction(dispatch, username, password),
-      validateMFACode: (code: string) =>
-        validateMFACodeAction(dispatch, code),
-      signOut: () =>
-        signOutAction(dispatch),
+        // user authentication
+        signIn: (username: string, password: string) =>
+          signInAction(dispatch, username, password),
+        validateMFACode: (code: string) =>
+          validateMFACodeAction(dispatch, code),
+        signOut: () =>
+          signOutAction(dispatch),
 
-      // actions on authenticated user
-      verifyAttribute: (attrName: string) =>
-        verifyAttributeAction(dispatch, attrName),
-      confirmAttribute: (attrName: string, code: string) =>
-        confirmAttributeAction(dispatch, attrName, code),
+        // actions on authenticated user
+        verifyAttribute: (attrName: string) =>
+          verifyAttributeAction(dispatch, attrName),
+        confirmAttribute: (attrName: string, code: string) =>
+          confirmAttributeAction(dispatch, attrName, code),
 
-      configureMFA: (user: User) =>
-        configureMFAAction(dispatch, user),
+        configureMFA: (user: User) =>
+          configureMFAAction(dispatch, user),
 
-      saveUser: (user: User) => saveUserAction(dispatch, user),
-      readUser: () => readUserAction(dispatch)
+        saveUser: (user: User) => saveUserAction(dispatch, user),
+        readUser: () => readUserAction(dispatch)
+      }
     };
   }
 
-  static stateProps<S extends AuthUserStateProp>(state: S): AuthUserStateProp {
+  static stateProps<S extends AuthStateProps, C extends AuthStateProps>(
+    state: S, ownProps?: C): AuthStateProps {
+
     return {
       auth: state.auth
     };
@@ -192,14 +201,14 @@ export default class AuthService {
     ];
   }
 
-  reducer(): redux.Reducer<AuthUserState, Action<AuthPayloadType | ErrorPayload>> {
+  reducer(): redux.Reducer<AuthState, Action<AuthPayload>> {
     return this.reduce.bind(this);
   }
 
   private reduce(
-    state: AuthUserState = initialAuthState(),
-    action: Action<AuthPayloadType | ErrorPayload>
-  ): AuthUserState {
+    state: AuthState = initialAuthState(),
+    action: Action<AuthPayload>
+  ): AuthState {
 
     switch (action.type) {
       case LOAD_AUTH_STATE_REQ: {
@@ -243,8 +252,7 @@ export default class AuthService {
       }
 
       case SIGN_UP_REQ: {
-        // save unregistered user data to store
-        let user = (<AuthUserPayload>action.payload!).user;
+        let user = Object.assign(new User(), (<AuthUserPayload>action.payload!).user);
         user.status = UserStatus.Unregistered;
 
         state = {
@@ -258,24 +266,37 @@ export default class AuthService {
         return this.reduceServiceResponse(state, action);
 
       case ERROR:
-        if (action.meta.relatedAction && 
-          this.serviceRequests.has(action.meta.relatedAction.type)) {
+        const relatedAction = action.meta.relatedAction;
+        if (relatedAction && 
+          this.serviceRequests.has(relatedAction.type)) {
 
           this.logger.error(
             'Handling service request error for action: ', 
-            action.meta.relatedAction.type);
+            relatedAction.type);
 
-          return setActionStatus<AuthUserState>(
+          return setActionStatus<AuthState>(
             state,
-            action,
-            ActionResult.error
+            relatedAction,
+            ActionResult.error,
+            {
+              error: action.payload
+            }
           );
+        }
+        break;
+      
+      case RESET_STATUS:
+        const actionStatusMetaType = (<ResetStatusPayload>action.payload)
+          .actionStatus.actionType
+        
+        if (this.serviceRequests.has(actionStatusMetaType)) {
+          return resetActionStatus(state);
         }
     }
 
     if (this.serviceRequests.has(action.type)) {
 
-      return setActionStatus<AuthUserState>(
+      return setActionStatus<AuthState>(
         state,
         action,
         ActionResult.pending
@@ -285,9 +306,9 @@ export default class AuthService {
   }
 
   private reduceServiceResponse(
-    state: AuthUserState = <AuthUserState>{},
-    action: Action<AuthPayloadType | ErrorPayload>
-  ): AuthUserState {
+    state: AuthState = <AuthState>{},
+    action: Action<AuthPayload>
+  ): AuthState {
 
     let relatedAction = action.meta.relatedAction!;
     if (this.serviceRequests.has(relatedAction.type)) {
@@ -314,7 +335,7 @@ export default class AuthService {
 
           state = {
             ...state,
-            user: (<AuthUserPayload>relatedAction.payload!).user,
+            user: Object.assign(new User(), (<AuthUserPayload>relatedAction.payload!).user),
             awaitingUserConfirmation
           };
           break;
@@ -452,9 +473,9 @@ export default class AuthService {
       ...state,
       session: state.session
     };
-    return setActionStatus<AuthUserState>(
+    return setActionStatus<AuthState>(
       state,
-      action,
+      action.meta.relatedAction!,
       ActionResult.success
     );
   }

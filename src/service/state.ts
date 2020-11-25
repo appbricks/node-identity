@@ -4,7 +4,7 @@ import User, { VerificationInfo } from '../model/user';
 import Session from '../model/session';
 
 // Authentication state type
-export interface AuthUserState extends State {
+export interface AuthState extends State {
   session: Session
   isLoggedIn: boolean
 
@@ -14,12 +14,12 @@ export interface AuthUserState extends State {
 };
 
 // Authentication state properties
-export interface AuthUserStateProp {
-  auth: AuthUserState
+export interface AuthStateProps {
+  auth: AuthState
 };
 
-export const initialAuthState = (): AuthUserState => 
-  <AuthUserState>{
+export const initialAuthState = (): AuthState => 
+  <AuthState>{
     actionStatus: {
       result: ActionResult.none
     },

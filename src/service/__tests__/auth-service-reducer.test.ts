@@ -36,7 +36,7 @@ import {
   UPDATE_PASSWORD_REQ,
   SAVE_USER_REQ
 } from '../action';
-import { AuthUserState } from '../state';
+import { AuthState } from '../state';
 import AuthService from '../auth-service';
 
 import { MockProvider } from './mock-provider';
@@ -70,11 +70,11 @@ setLocalStorageImpl({
   }
 });
 
-const stateTester = new StateTester<AuthUserState>(
+const stateTester = new StateTester<AuthState>(
   (counter, state) => {
     switch (counter) {
       case 1: { // Initial loadAuthState request
-        expect(state.actionStatus.action.type).toEqual(LOAD_AUTH_STATE_REQ);
+        expect(state.actionStatus.actionType).toEqual(LOAD_AUTH_STATE_REQ);
         expect(state.actionStatus.result).toEqual(ActionResult.pending);
 
         expect(state.session.timestamp).toEqual(-1);
@@ -83,8 +83,7 @@ const stateTester = new StateTester<AuthUserState>(
         break;
       }
       case 2: { // Initial loadAuthState request response
-        expect(state.actionStatus.action.type).toEqual(SERVICE_RESPONSE_OK);
-        expect(state.actionStatus.action.meta.relatedAction!.type).toEqual(LOAD_AUTH_STATE_REQ);
+        expect(state.actionStatus.actionType).toEqual(LOAD_AUTH_STATE_REQ);
         expect(state.actionStatus.result).toEqual(ActionResult.success);
 
         expect(state.session.timestamp).toEqual(-1);
@@ -93,7 +92,7 @@ const stateTester = new StateTester<AuthUserState>(
         break;
       }
       case 3: { // New user sign-up request
-        expect(state.actionStatus.action.type).toEqual(SIGN_UP_REQ);
+        expect(state.actionStatus.actionType).toEqual(SIGN_UP_REQ);
         expect(state.actionStatus.result).toEqual(ActionResult.pending);
 
         expectTestUserToBeSet(state.user, false);
@@ -101,8 +100,7 @@ const stateTester = new StateTester<AuthUserState>(
         break;
       }
       case 4: { // New user sign-up response
-        expect(state.actionStatus.action.type).toEqual(SERVICE_RESPONSE_OK);
-        expect(state.actionStatus.action.meta.relatedAction!.type).toEqual(SIGN_UP_REQ);
+        expect(state.actionStatus.actionType).toEqual(SIGN_UP_REQ);
         expect(state.actionStatus.result).toEqual(ActionResult.success);
 
         let sendTimestamp = state.awaitingUserConfirmation!.timestamp!;
@@ -112,7 +110,7 @@ const stateTester = new StateTester<AuthUserState>(
       }
       case 5: { // Starting new session so expecting loadAuthState
                 // request to retrieve saved user and session
-        expect(state.actionStatus.action.type).toEqual(LOAD_AUTH_STATE_REQ);
+        expect(state.actionStatus.actionType).toEqual(LOAD_AUTH_STATE_REQ);
         expect(state.actionStatus.result).toEqual(ActionResult.pending);
 
         validateStateAfterNewUserSignUp(state, timestamp);
@@ -120,23 +118,21 @@ const stateTester = new StateTester<AuthUserState>(
       }
       case 6: { // Starting new session so expecting loadAuthState
                 // response to contain saved user and session
-        expect(state.actionStatus.action.type).toEqual(SERVICE_RESPONSE_OK);
-        expect(state.actionStatus.action.meta.relatedAction!.type).toEqual(LOAD_AUTH_STATE_REQ);
+        expect(state.actionStatus.actionType).toEqual(LOAD_AUTH_STATE_REQ);
         expect(state.actionStatus.result).toEqual(ActionResult.success);
 
         validateStateAfterNewUserSignUp(state, timestamp);
         break;
       }
       case 7: { // Request sign-up code to be resent
-        expect(state.actionStatus.action.type).toEqual(RESEND_SIGN_UP_CODE_REQ);
+        expect(state.actionStatus.actionType).toEqual(RESEND_SIGN_UP_CODE_REQ);
         expect(state.actionStatus.result).toEqual(ActionResult.pending);
 
         validateStateAfterNewUserSignUp(state, timestamp);
         break;
       }
       case 8: { // Response of new sign-up code
-        expect(state.actionStatus.action.type).toEqual(SERVICE_RESPONSE_OK);
-        expect(state.actionStatus.action.meta.relatedAction!.type).toEqual(RESEND_SIGN_UP_CODE_REQ);
+        expect(state.actionStatus.actionType).toEqual(RESEND_SIGN_UP_CODE_REQ);
         expect(state.actionStatus.result).toEqual(ActionResult.success);
 
         let sendTimestamp = state.awaitingUserConfirmation!.timestamp!;
@@ -146,7 +142,7 @@ const stateTester = new StateTester<AuthUserState>(
         break;
       }
       case 9: { // Request to confirm sign-up code
-        expect(state.actionStatus.action.type).toEqual(CONFIRM_SIGN_UP_CODE_REQ);
+        expect(state.actionStatus.actionType).toEqual(CONFIRM_SIGN_UP_CODE_REQ);
         expect(state.actionStatus.result).toEqual(ActionResult.pending);
 
         validateStateAfterNewUserSignUp(state, timestamp);
@@ -154,8 +150,7 @@ const stateTester = new StateTester<AuthUserState>(
         break;
       }
       case 10: { // Response of sign-up code confirmation
-        expect(state.actionStatus.action.type).toEqual(SERVICE_RESPONSE_OK);
-        expect(state.actionStatus.action.meta.relatedAction!.type).toEqual(CONFIRM_SIGN_UP_CODE_REQ);
+        expect(state.actionStatus.actionType).toEqual(CONFIRM_SIGN_UP_CODE_REQ);
         expect(state.actionStatus.result).toEqual(ActionResult.success);
 
         let user = state.user;
@@ -164,7 +159,7 @@ const stateTester = new StateTester<AuthUserState>(
         break;
       }
       case 11: { // Starting new session and loadAuthState request should have an empty session
-        expect(state.actionStatus.action.type).toEqual(LOAD_AUTH_STATE_REQ);
+        expect(state.actionStatus.actionType).toEqual(LOAD_AUTH_STATE_REQ);
         expect(state.actionStatus.result).toEqual(ActionResult.pending);
 
         expect(state.session.timestamp).toEqual(-1);
@@ -173,8 +168,7 @@ const stateTester = new StateTester<AuthUserState>(
         break;
       }
       case 12: { // Starting new session and loadAuthState request should have an empty session
-        expect(state.actionStatus.action.type).toEqual(SERVICE_RESPONSE_OK);
-        expect(state.actionStatus.action.meta.relatedAction!.type).toEqual(LOAD_AUTH_STATE_REQ);
+        expect(state.actionStatus.actionType).toEqual(LOAD_AUTH_STATE_REQ);
         expect(state.actionStatus.result).toEqual(ActionResult.success);
 
         expect(state.session.timestamp).toEqual(-1);
@@ -183,7 +177,7 @@ const stateTester = new StateTester<AuthUserState>(
         break;
       }
       case 13: { // Sign in request
-        expect(state.actionStatus.action.type).toEqual(SIGN_IN_REQ);
+        expect(state.actionStatus.actionType).toEqual(SIGN_IN_REQ);
         expect(state.actionStatus.result).toEqual(ActionResult.pending);
 
         expect(state.session.timestamp).toEqual(-1);
@@ -192,8 +186,7 @@ const stateTester = new StateTester<AuthUserState>(
         break;
       }
       case 14: { // Sign in response
-        expect(state.actionStatus.action.type).toEqual(SERVICE_RESPONSE_OK);
-        expect(state.actionStatus.action.meta.relatedAction!.type).toEqual(SIGN_IN_REQ);
+        expect(state.actionStatus.actionType).toEqual(SIGN_IN_REQ);
         expect(state.actionStatus.result).toEqual(ActionResult.success);
 
         timestamp = state.session.timestamp;
@@ -203,7 +196,7 @@ const stateTester = new StateTester<AuthUserState>(
         break;
       }
       case 15: { // Read user request after successful sign in
-        expect(state.actionStatus.action.type).toEqual(READ_USER_REQ);
+        expect(state.actionStatus.actionType).toEqual(READ_USER_REQ);
         expect(state.actionStatus.result).toEqual(ActionResult.pending);
 
         expect(state.session.timestamp).toEqual(timestamp);
@@ -212,8 +205,7 @@ const stateTester = new StateTester<AuthUserState>(
         break;
       }
       case 16: { // Read user response
-        expect(state.actionStatus.action.type).toEqual(SERVICE_RESPONSE_OK);
-        expect(state.actionStatus.action.meta.relatedAction!.type).toEqual(READ_USER_REQ);
+        expect(state.actionStatus.actionType).toEqual(READ_USER_REQ);
         expect(state.actionStatus.result).toEqual(ActionResult.success);
 
         expect(state.session.timestamp).toEqual(timestamp);
@@ -222,78 +214,72 @@ const stateTester = new StateTester<AuthUserState>(
         break;
       }
       case 17: { // Configure MFA request after successful sign in
-        expect(state.actionStatus.action.type).toEqual(CONFIGURE_MFA_REQ);
+        expect(state.actionStatus.actionType).toEqual(CONFIGURE_MFA_REQ);
         expect(state.actionStatus.result).toEqual(ActionResult.pending);
         break;
       }
       case 18: { // Configure MFA response
-        expect(state.actionStatus.action.type).toEqual(SERVICE_RESPONSE_OK);
-        expect(state.actionStatus.action.meta.relatedAction!.type).toEqual(CONFIGURE_MFA_REQ);
+        expect(state.actionStatus.actionType).toEqual(CONFIGURE_MFA_REQ);
         expect(state.actionStatus.result).toEqual(ActionResult.success);
 
         expectTestUserToBeSet(state.user!, true, true);
         break;
       }
       case 19: { // Request verification of mobile phone attribute
-        expect(state.actionStatus.action.type).toEqual(VERIFY_ATTRIBUTE_REQ);
+        expect(state.actionStatus.actionType).toEqual(VERIFY_ATTRIBUTE_REQ);
         expect(state.actionStatus.result).toEqual(ActionResult.pending);
         break;
       }
       case 20: { // Response of verification request
-        expect(state.actionStatus.action.type).toEqual(SERVICE_RESPONSE_OK);
-        expect(state.actionStatus.action.meta.relatedAction!.type).toEqual(VERIFY_ATTRIBUTE_REQ);
+        expect(state.actionStatus.actionType).toEqual(VERIFY_ATTRIBUTE_REQ);
         expect(state.actionStatus.result).toEqual(ActionResult.success);
         break;
       }
       case 21: { // Request to confirm mobile phone attribute
-        expect(state.actionStatus.action.type).toEqual(CONFIRM_ATTRIBUTE_REQ);
+        expect(state.actionStatus.actionType).toEqual(CONFIRM_ATTRIBUTE_REQ);
         expect(state.actionStatus.result).toEqual(ActionResult.pending);
         break;
       }
       case 22: { // Response of confirmation request
-        expect(state.actionStatus.action.type).toEqual(SERVICE_RESPONSE_OK);
-        expect(state.actionStatus.action.meta.relatedAction!.type).toEqual(CONFIRM_ATTRIBUTE_REQ);
+        expect(state.actionStatus.actionType).toEqual(CONFIRM_ATTRIBUTE_REQ);
         expect(state.actionStatus.result).toEqual(ActionResult.success);
 
         expectTestUserToBeSet(state.user!, true, true, true);
         break;
       }
       case 23: { // Request password reset
-        expect(state.actionStatus.action.type).toEqual(RESET_PASSWORD_REQ);
+        expect(state.actionStatus.actionType).toEqual(RESET_PASSWORD_REQ);
         expect(state.actionStatus.result).toEqual(ActionResult.pending);
         break;
       }
       case 24: { // Response of password reset request
-        expect(state.actionStatus.action.type).toEqual(SERVICE_RESPONSE_OK);
-        expect(state.actionStatus.action.meta.relatedAction!.type).toEqual(RESET_PASSWORD_REQ);
+        expect(state.actionStatus.actionType).toEqual(RESET_PASSWORD_REQ);
         expect(state.actionStatus.result).toEqual(ActionResult.success);
         break;
       }
       case 25: { // Update password request
-        expect(state.actionStatus.action.type).toEqual(UPDATE_PASSWORD_REQ);
+        expect(state.actionStatus.actionType).toEqual(UPDATE_PASSWORD_REQ);
         expect(state.actionStatus.result).toEqual(ActionResult.pending);
         break;
       }
       case 26: { // Response of update password request
-        expect(state.actionStatus.action.type).toEqual(SERVICE_RESPONSE_OK);
-        expect(state.actionStatus.action.meta.relatedAction!.type).toEqual(UPDATE_PASSWORD_REQ);
+        expect(state.actionStatus.actionType).toEqual(UPDATE_PASSWORD_REQ);
         expect(state.actionStatus.result).toEqual(ActionResult.success);
         break;
       }
       case 27: { // Save user reset
-        expect(state.actionStatus.action.type).toEqual(SAVE_USER_REQ);
+        expect(state.actionStatus.actionType).toEqual(SAVE_USER_REQ);
         expect(state.actionStatus.result).toEqual(ActionResult.pending);
         break;
       }
       case 28: { // Response of Save user request
-        expect(state.actionStatus.action.type).toEqual(SERVICE_RESPONSE_OK);
-        expect(state.actionStatus.action.meta.relatedAction!.type).toEqual(SAVE_USER_REQ);
+        expect(state.actionStatus.actionType).toEqual(SAVE_USER_REQ);
         expect(state.actionStatus.result).toEqual(ActionResult.success);
         break;
       }
       case 29: { // Starting new session so expecting loadAuthState
                  // request to retrieve saved user and session
-        expect(state.actionStatus.action.type).toEqual(LOAD_AUTH_STATE_REQ);
+        expect(state.actionStatus.actionType).toEqual(LOAD_AUTH_STATE_REQ);
         expect(state.actionStatus.result).toEqual(ActionResult.pending);
 
         expect(state.isLoggedIn).toBeFalsy();
@@ -303,8 +289,7 @@ const stateTester = new StateTester<AuthUserState>(
       }
       case 30: { // Starting new session so expecting loadAuthState
                  // response to contain saved user and session
-        expect(state.actionStatus.action.type).toEqual(SERVICE_RESPONSE_OK);
-        expect(state.actionStatus.action.meta.relatedAction!.type).toEqual(LOAD_AUTH_STATE_REQ);
+        expect(state.actionStatus.actionType).toEqual(LOAD_AUTH_STATE_REQ);
         expect(state.actionStatus.result).toEqual(ActionResult.success);
 
         expect(state.session.timestamp).toEqual(-1);
@@ -312,7 +297,7 @@ const stateTester = new StateTester<AuthUserState>(
         break;
       }
       case 31: { // Sign in request
-        expect(state.actionStatus.action.type).toEqual(SIGN_IN_REQ);
+        expect(state.actionStatus.actionType).toEqual(SIGN_IN_REQ);
         expect(state.actionStatus.result).toEqual(ActionResult.pending);
 
         expect(state.session.timestamp).toEqual(-1);
@@ -320,8 +305,7 @@ const stateTester = new StateTester<AuthUserState>(
         break;
       }
       case 32: { // Sign in response waiting for MFA code
-        expect(state.actionStatus.action.type).toEqual(SERVICE_RESPONSE_OK);
-        expect(state.actionStatus.action.meta.relatedAction!.type).toEqual(SIGN_IN_REQ);
+        expect(state.actionStatus.actionType).toEqual(SIGN_IN_REQ);
         expect(state.actionStatus.result).toEqual(ActionResult.success);
 
         timestamp = state.session.timestamp;
@@ -335,7 +319,7 @@ const stateTester = new StateTester<AuthUserState>(
         break;
       }
       case 34: { // Validate MFA code in request
-        expect(state.actionStatus.action.type).toEqual(VALIDATE_MFA_CODE_REQ);
+        expect(state.actionStatus.actionType).toEqual(VALIDATE_MFA_CODE_REQ);
         expect(state.actionStatus.result).toEqual(ActionResult.pending);
 
         expect(state.session.timestamp).toEqual(-1);
@@ -344,8 +328,7 @@ const stateTester = new StateTester<AuthUserState>(
         break;
       }
       case 35: { // Validate MFA code response
-        expect(state.actionStatus.action.type).toEqual(SERVICE_RESPONSE_OK);
-        expect(state.actionStatus.action.meta.relatedAction!.type).toEqual(VALIDATE_MFA_CODE_REQ);
+        expect(state.actionStatus.actionType).toEqual(VALIDATE_MFA_CODE_REQ);
         expect(state.actionStatus.result).toEqual(ActionResult.success);
 
         timestamp = state.session.timestamp;
@@ -355,7 +338,7 @@ const stateTester = new StateTester<AuthUserState>(
         break;
       }
       case 36: { // Read user request after successful sign in
-        expect(state.actionStatus.action.type).toEqual(READ_USER_REQ);
+        expect(state.actionStatus.actionType).toEqual(READ_USER_REQ);
         expect(state.actionStatus.result).toEqual(ActionResult.pending);
 
         expect(state.session.timestamp).toEqual(timestamp);
@@ -364,8 +347,7 @@ const stateTester = new StateTester<AuthUserState>(
         break;
       }
       case 37: { // Read user response
-        expect(state.actionStatus.action.type).toEqual(SERVICE_RESPONSE_OK);
-        expect(state.actionStatus.action.meta.relatedAction!.type).toEqual(READ_USER_REQ);
+        expect(state.actionStatus.actionType).toEqual(READ_USER_REQ);
         expect(state.actionStatus.result).toEqual(ActionResult.success);
 
         expect(state.session.timestamp).toEqual(timestamp);
@@ -374,7 +356,7 @@ const stateTester = new StateTester<AuthUserState>(
         break;
       }
       case 38: { // Sign out request
-        expect(state.actionStatus.action.type).toEqual(SIGN_OUT_REQ);
+        expect(state.actionStatus.actionType).toEqual(SIGN_OUT_REQ);
         expect(state.actionStatus.result).toEqual(ActionResult.pending);
 
         expect(state.session.timestamp).toEqual(timestamp);
@@ -382,8 +364,7 @@ const stateTester = new StateTester<AuthUserState>(
         break;
       }
       case 39: { // Sign out response
-        expect(state.actionStatus.action.type).toEqual(SERVICE_RESPONSE_OK);
-        expect(state.actionStatus.action.meta.relatedAction!.type).toEqual(SIGN_OUT_REQ);
+        expect(state.actionStatus.actionType).toEqual(SIGN_OUT_REQ);
         expect(state.actionStatus.result).toEqual(ActionResult.success);
 
         expect(state.session.timestamp).toEqual(-1);
@@ -399,7 +380,7 @@ const stateTester = new StateTester<AuthUserState>(
   }
 );
 
-function validateStateAfterNewUserSignUp(state: AuthUserState, timestamp: number) {
+function validateStateAfterNewUserSignUp(state: AuthState, timestamp: number) {
 
   let user = state.user;
   expectTestUserToBeSet(user, false);
@@ -433,10 +414,7 @@ beforeEach(async () => {
   let rootEpic = combineEpicsWithGlobalErrorHandler(authService.epics());
   epicMiddleware.run(rootEpic);
 
-  dispatch = AuthService.dispatchProps(
-    <redux.Dispatch<redux.Action>>store.dispatch,
-    AuthService.stateProps(store.getState())
-  );
+  dispatch = AuthService.dispatchProps(<redux.Dispatch<redux.Action>>store.dispatch);
   store.subscribe(stateTester.tester(store));
 
   await authService.init();
@@ -452,11 +430,11 @@ afterEach(() => {
  */
 
 it('loads initial auth state and signs up a new user', async () => {
-  dispatch.loadAuthState();
+  dispatch.authService.loadAuthState();
   // wait until state has been loaded
   await stateTester.until(2);
 
-  dispatch.signUp(getTestUser());
+  dispatch.authService.signUp(getTestUser());
   // wait until sign up response has been received
   await stateTester.until(4);
 
@@ -492,15 +470,15 @@ it('loads initial auth state and signs up a new user', async () => {
 
 it('starts new session and initial auth state loads previous state and confirms new user', async () => {
 
-  dispatch.loadAuthState();
+  dispatch.authService.loadAuthState();
   // wait until state has been loaded
   await stateTester.until(6);
 
-  dispatch.resendSignUpCode();
+  dispatch.authService.resendSignUpCode('johndoe');
   // wait for state after request for new sign-up code has been set
   await stateTester.until(8);
 
-  dispatch.confirmSignUpCode('12345');
+  dispatch.authService.confirmSignUpCode('12345', 'johndoe');
   // wait for state after request for sign-up confirmation has been set
   await stateTester.until(10);
 
@@ -532,33 +510,33 @@ it('starts new session and initial auth state loads previous state and confirms 
 
 it('loads initial auth state and signs in as new user and performs some updates', async () => {
 
-  dispatch.loadAuthState();
+  dispatch.authService.loadAuthState();
   // wait until state has been loaded
   await stateTester.until(12);
 
-  dispatch.signIn('johndoe', '@ppBricks2020');
+  dispatch.authService.signIn('johndoe', '@ppBricks2020');
   // wait until logged in state
   await stateTester.until(16);
 
   let user = <User>store.getState().auth.user;
   user.enableMFA = true;
-  dispatch.configureMFA(user);
+  dispatch.authService.configureMFA(user);
   // wait until MFA has been configured
   await stateTester.until(18);
 
-  dispatch.verifyAttribute(ATTRIB_MOBILE_PHONE);
+  dispatch.authService.verifyAttribute(ATTRIB_MOBILE_PHONE);
   await stateTester.until(20);
-  dispatch.confirmAttribute(ATTRIB_MOBILE_PHONE, '12345');
+  dispatch.authService.confirmAttribute(ATTRIB_MOBILE_PHONE, '12345');
   await stateTester.until(22);
 
-  dispatch.resetPassword('johndoe');
+  dispatch.authService.resetPassword('johndoe');
   await stateTester.until(24);
-  dispatch.updatePassword('password', '12345', 'johndoe');
+  dispatch.authService.updatePassword('password', '12345', 'johndoe');
   await stateTester.until(26);
 
   user = <User>store.getState().auth.user;
   user.rememberFor24h = true;
-  dispatch.saveUser(user);
+  dispatch.authService.saveUser(user);
   await stateTester.until(28);
 
   let auth: any = localStore['auth'];
@@ -581,23 +559,23 @@ it('loads initial auth state and signs in as new user and performs some updates'
 
 it('starts new session and signs-in using MFA and signs-out', async () => {
 
-  dispatch.loadAuthState();
+  dispatch.authService.loadAuthState();
   // wait until state has been loaded
   await stateTester.until(30);
   let userLoadedFromStore = <User>store.getState().auth.user;
 
-  dispatch.signIn('johndoe', 'password');
+  dispatch.authService.signIn('johndoe', 'password');
   // wait until MFA code sent state
   await stateTester.until(33);
 
-  dispatch.validateMFACode('12345');
+  dispatch.authService.validateMFACode('12345');
   // wait until logged in state
   await stateTester.until(37);
 
   let userLoadedFromProvider = <User>store.getState().auth.user;
   expect(userLoadedFromStore !== userLoadedFromStore).toBeFalsy();
 
-  dispatch.signOut()
+  dispatch.authService.signOut()
   // wait until logged out state
   await stateTester.until(39);
 });

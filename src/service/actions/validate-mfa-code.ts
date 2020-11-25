@@ -5,7 +5,7 @@ import { NOOP, Action, createAction, createFollowUpAction, createErrorAction, se
 
 import Provider from '../provider';
 import { AuthMultiFactorAuthPayload, AuthLoggedInPayload, VALIDATE_MFA_CODE_REQ, READ_USER_REQ, SERVICE_RESPONSE_OK } from '../action';
-import { AuthUserStateProp } from '../state';
+import { AuthStateProps } from '../state';
 
 export const validateMFACodeAction = 
   (dispatch: redux.Dispatch<redux.Action>, mfaCode: string) => 
@@ -13,7 +13,7 @@ export const validateMFACodeAction =
 
 export const validateMFACodeEpic = (csProvider: Provider): Epic => {
   
-  return serviceEpicFanOut<AuthMultiFactorAuthPayload, AuthUserStateProp>(
+  return serviceEpicFanOut<AuthMultiFactorAuthPayload, AuthStateProps>(
     VALIDATE_MFA_CODE_REQ,
     {
       validateMFACode: async (action, state$, callSync) => {      
