@@ -354,20 +354,38 @@ export default class AuthService {
         }
 
         case CONFIRM_SIGN_UP_CODE_REQ: {
-          if (state.user!.isConfirmed()) {
-            let awaitingUserConfirmation = state.awaitingUserConfirmation!;
-            if (awaitingUserConfirmation.type == VerificationType.Email) {
-              state.user!.emailAddressVerified = true;
-            } else if (awaitingUserConfirmation.type == VerificationType.SMS) {
-              state.user!.mobilePhoneVerified = true;
-            }
-            // remove saved confirmation response data from store
-            this.store().removeItem('userConfirmation');
+          if (state.user) {
+            const user = Object.assign(new User(), state.user);
+            
+            if ((<AuthVerificationPayload>action.payload).info.isConfirmed) {              
+              user.setConfirmed(true);
+  
+              let awaitingUserConfirmation = state.awaitingUserConfirmation!;
+              if (awaitingUserConfirmation.type == VerificationType.Email) {
+                user.emailAddressVerified = true;
+              } else if (awaitingUserConfirmation.type == VerificationType.SMS) {
+                user.mobilePhoneVerified = true;
+              }
+              // remove saved confirmation response data from store
+              this.store().removeItem('userConfirmation');
+  
+              state = {
+                ...state,
+                user,
+                awaitingUserConfirmation: undefined
+              };
 
-            state = {
-              ...state,
-              awaitingUserConfirmation: undefined
-            };
+            } else {
+              user.setConfirmed(false);
+              state = {
+                ...state,
+                user
+              };
+            }
+          } else {
+            this.logger.error(
+              'Received successful user confirmed service response, but user instance was not found in state.'
+            );
           }
           break;
         }

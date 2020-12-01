@@ -1,7 +1,7 @@
 import { Logger } from '@appbricks/utils';
 
-import { AuthUserPayload, AuthUsernamePayload } from '../action';
-import { AuthUserState } from '../state';
+import { AuthUsernamePayload, AuthVerificationPayload } from '../action';
+import { AuthState } from '../state';
 
 import { ServiceRequestTester } from './request-tester';
 
@@ -11,8 +11,8 @@ const createRequestTester = (
   checkConfirmed = false, 
   code?: string) => {
 
-  return new ServiceRequestTester<AuthUsernamePayload>(logger, reqActionType,
-    (counter: number, state, action): AuthUserState => {      
+  return new ServiceRequestTester<AuthUsernamePayload & AuthVerificationPayload>(logger, reqActionType,
+    (counter: number, state, action): AuthState => {      
       let payload = action.payload!;
       expect(payload.username).toBeDefined();
       if (code) {
@@ -20,28 +20,26 @@ const createRequestTester = (
       }
       return state;
     },
-    (counter, state, action): AuthUserState => {
+    (counter, state, action): AuthState => {
       let payload = <AuthUsernamePayload>action.meta.relatedAction!.payload!;
       
       expect(payload.username).toEqual('johndoe');
       if (checkConfirmed) {
-        let user = state.user;
-        expect(user).toBeDefined();
-        expect(user!.isConfirmed()).toBeTruthy();
+        expect((<AuthVerificationPayload>action.payload).info.isConfirmed).toBeTruthy();
       }
       return state;
     },
-    (counter, state, action): AuthUserState => {
+    (counter, state, action): AuthState => {
       let payload = <AuthUsernamePayload>action.meta.relatedAction!.payload;
 
       if (code) {
         // this test is for error when there is an invalid code
-        expect(action.payload!.message).toEqual('Error: invalid code');
+        expect(action.payload!.message).toEqual('invalid code');
         expect(payload.code!).not.toEqual(code);
 
       } else if (payload.username == 'error') {
         // this test is for error when error is returned by the service
-        expect(action.payload!.message).toEqual('Error: invalid username');
+        expect(action.payload!.message).toEqual('invalid username');
 
       } else {
         logger.trace('unexpected error: ', action);

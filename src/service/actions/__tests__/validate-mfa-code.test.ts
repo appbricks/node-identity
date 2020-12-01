@@ -4,7 +4,7 @@ import { createEpicMiddleware } from 'redux-observable';
 import { Logger, LOG_LEVEL_TRACE, setLogLevel, reduxLogger, combineEpicsWithGlobalErrorHandler } from '@appbricks/utils';
 import AuthService from '../../auth-service';
 
-import { AuthUserState } from '../../state';
+import { AuthState } from '../../state';
 import { AuthMultiFactorAuthPayload, AuthLoggedInPayload, AuthUserPayload, VALIDATE_MFA_CODE_REQ, READ_USER_REQ } from '../../action';
 
 import { MockProvider } from '../../__tests__/mock-provider';
@@ -20,7 +20,7 @@ const logger = new Logger('validate-mfa-code.test');
 // test reducer validates action flows
 const requestTester = new ServiceRequestTester<AuthMultiFactorAuthPayload, AuthLoggedInPayload>(logger,
   VALIDATE_MFA_CODE_REQ,
-  (counter, state, action): AuthUserState => {
+  (counter, state, action): AuthState => {
 
     switch (counter) {
       case 1: {
@@ -38,7 +38,7 @@ const requestTester = new ServiceRequestTester<AuthMultiFactorAuthPayload, AuthL
     }
     return state;
   },
-  (counter, state, action): AuthUserState => {
+  (counter, state, action): AuthState => {
     switch (action.meta.relatedAction!.type) {
       case VALIDATE_MFA_CODE_REQ: {
         expect(counter).toBe(1);
@@ -62,15 +62,15 @@ const requestTester = new ServiceRequestTester<AuthMultiFactorAuthPayload, AuthL
     }
     return state;
   },
-  (counter, state, action): AuthUserState => {
+  (counter, state, action): AuthState => {
 
     switch (counter) {
       case 1: {
-        expect(action.payload!.message).toEqual('Error: The current session is already logged in.');
+        expect(action.payload!.message).toEqual('The current session is already logged in.');
         break;
       }
       case 2: {
-        expect(action.payload!.message).toEqual('Error: invalid code');
+        expect(action.payload!.message).toEqual('invalid code');
         break;
       }
     }
@@ -99,13 +99,13 @@ const dispatch = AuthService.dispatchProps(store.dispatch)
 it('dispatches an action to sign up a user', async () => {
   // error as session already logged in
   mockProvider.loggedIn = true;
-  dispatch.validateMFACode('12345');
+  dispatch.authService.validateMFACode('12345');
   mockProvider.loggedIn = false;
 
   // error invalide code
-  dispatch.validateMFACode('00000');
+  dispatch.authService.validateMFACode('00000');
   // succesful login
-  dispatch.validateMFACode('12345');
+  dispatch.authService.validateMFACode('12345');
 });
 
 it('calls reducer as expected when sign up action is dispatched', () => {

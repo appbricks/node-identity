@@ -40,9 +40,9 @@ const dispatch = AuthService.dispatchProps(store.dispatch)
 
 it('dispatches an action to sign up a user', async () => {
   // expect no errors
-  dispatch.confirmSignUpCode('12345', 'johndoe');
+  dispatch.authService.confirmSignUpCode('12345', 'johndoe');
   // expect invalid code error
-  dispatch.confirmSignUpCode('00000', 'johndoe');
+  dispatch.authService.confirmSignUpCode('00000', 'johndoe');
 });
 
 it('calls reducer as expected when sign up action is dispatched', () => {
@@ -50,8 +50,4 @@ it('calls reducer as expected when sign up action is dispatched', () => {
   expect(requestTester.reqCounter).toEqual(2);
   expect(requestTester.okCounter).toEqual(1);
   expect(requestTester.errorCounter).toEqual(1);
-});
-
-it('has saved the correct user in the state', () => {
-  expectTestUserToBeSet(store.getState().auth.user, true);
 });

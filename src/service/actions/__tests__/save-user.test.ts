@@ -4,7 +4,7 @@ import { createEpicMiddleware } from 'redux-observable';
 import { Logger, LOG_LEVEL_TRACE, setLogLevel, reduxLogger, combineEpicsWithGlobalErrorHandler } from '@appbricks/utils';
 import AuthService from '../../auth-service';
 
-import { AuthUserState } from '../../state';
+import { AuthState } from '../../state';
 import { AuthUserPayload, SAVE_USER_REQ } from '../../action';
 
 import { MockProvider } from '../../__tests__/mock-provider';
@@ -20,21 +20,21 @@ const logger = new Logger('save-user.test');
 // test reducer validates action flows
 const requestTester = new ServiceRequestTester<AuthUserPayload>(logger,
   SAVE_USER_REQ,
-  (counter, state, action): AuthUserState => {
+  (counter, state, action): AuthState => {
     let payload = action.payload!;
     expect(payload.user).toBeDefined();
     expectTestUserToBeSet(payload.user!)
     return state;
   },
-  (counter, state, action): AuthUserState => {
+  (counter, state, action): AuthState => {
     expect(counter).toBe(1);
     let user = (<AuthUserPayload>action.meta.relatedAction!.payload).user!;
     expectTestUserToBeSet(user);
     return {...state, user};
   },
-  (counter, state, action): AuthUserState => {
+  (counter, state, action): AuthState => {
     expect(counter).toBe(1);
-    expect(action.payload!.message).toEqual('Error: No user logged in. The user needs to be logged in before it can be saved.');
+    expect(action.payload!.message).toEqual('No user logged in. The user needs to be logged in before it can be saved.');
     return state;
   },
 );
@@ -60,10 +60,10 @@ it('dispatches an action to sign up a user', async () => {
   let user = getTestUser();
 
   // expect error as user is not logged in
-  dispatch.saveUser(user);
+  dispatch.authService.saveUser(user);
   // expect no errors
   mockProvider.loggedIn = true;
-  dispatch.saveUser(user);
+  dispatch.authService.saveUser(user);
 });
 
 it('calls reducer as expected when sign up action is dispatched', () => {

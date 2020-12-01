@@ -4,7 +4,7 @@ import { createEpicMiddleware } from 'redux-observable';
 import { Logger, LOG_LEVEL_TRACE, setLogLevel, reduxLogger, combineEpicsWithGlobalErrorHandler } from '@appbricks/utils';
 import AuthService from '../../auth-service';
 
-import { AuthUserState } from '../../state';
+import { AuthState } from '../../state';
 import { AuthStatePayload, SIGN_OUT_REQ } from '../../action';
 
 import { MockProvider } from '../../__tests__/mock-provider';
@@ -19,17 +19,17 @@ const logger = new Logger('sign-out.test');
 // test reducer validates action flows
 const requestTester = new ServiceRequestTester<AuthStatePayload>(logger,
   SIGN_OUT_REQ,
-  (counter, state, action): AuthUserState => {
+  (counter, state, action): AuthState => {
     expect(counter).toBe(1);
     expect(action.payload).toBeUndefined();
     return state;
   },
-  (counter, state, action): AuthUserState => {
+  (counter, state, action): AuthState => {
     expect(counter).toBe(1);
     expect((<AuthStatePayload>action.meta.relatedAction!.payload!).isLoggedIn).toBeFalsy();
     return state;
   },
-  (counter, state, action): AuthUserState => {
+  (counter, state, action): AuthState => {
     fail('no errors should occur');
     return state;
   },
@@ -54,7 +54,7 @@ const dispatch = AuthService.dispatchProps(store.dispatch)
 
 it('dispatches an action to sign up a user', async () => {
   mockProvider.loggedIn = true;
-  dispatch.signOut();
+  dispatch.authService.signOut();
 });
 
 it('calls reducer as expected when sign up action is dispatched', () => {

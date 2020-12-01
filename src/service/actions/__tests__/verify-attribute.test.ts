@@ -4,7 +4,7 @@ import { createEpicMiddleware } from 'redux-observable';
 import { Logger, LOG_LEVEL_TRACE, setLogLevel, reduxLogger, combineEpicsWithGlobalErrorHandler } from '@appbricks/utils';
 import AuthService from '../../auth-service';
 
-import { AuthUserState } from '../../state';
+import { AuthState } from '../../state';
 import { AuthLoggedInUserAttrPayload, VERIFY_ATTRIBUTE_REQ } from '../../action';
 import { ATTRIB_MOBILE_PHONE } from '../../constants';
 
@@ -20,7 +20,7 @@ const logger = new Logger('verify-attribute.test');
 // test reducer validates action flows
 const requestTester = new ServiceRequestTester<AuthLoggedInUserAttrPayload>(logger,
   VERIFY_ATTRIBUTE_REQ,
-  (counter, state, action): AuthUserState => {
+  (counter, state, action): AuthState => {
     let payload = action.payload!;
     expect(payload.attrName).toBeDefined();
 
@@ -36,21 +36,21 @@ const requestTester = new ServiceRequestTester<AuthLoggedInUserAttrPayload>(logg
     }
     return state;
   },
-  (counter, state, action): AuthUserState => {
+  (counter, state, action): AuthState => {
     expect(counter).toBe(1);
 
     expect((<AuthLoggedInUserAttrPayload>action.meta.relatedAction!.payload).attrName!).toEqual(ATTRIB_MOBILE_PHONE);
     return state;
   },
-  (counter, state, action): AuthUserState => {
+  (counter, state, action): AuthState => {
 
     switch (counter) {
       case 1: {
-        expect(action.payload!.message).toEqual('Error: No user logged in. You can validate an attribute only for logged in user.');
+        expect(action.payload!.message).toEqual('No user logged in. You can validate an attribute only for logged in user.');
         break;
       }
       case 2: {
-        expect(action.payload!.message).toEqual('Error: sendVerificationCodeForAttribute request action does not have an attribute name to verify.');
+        expect(action.payload!.message).toEqual('sendVerificationCodeForAttribute request action does not have an attribute name to verify.');
         expect((<AuthLoggedInUserAttrPayload>action.meta.relatedAction!.payload).attrName!.length).toEqual(0);
         break;
       }
@@ -78,12 +78,12 @@ const dispatch = AuthService.dispatchProps(store.dispatch)
 
 it('dispatches an action to sign up a user', async () => {
   // expect error as user is not logged in
-  dispatch.verifyAttribute(ATTRIB_MOBILE_PHONE);
+  dispatch.authService.verifyAttribute(ATTRIB_MOBILE_PHONE);
   // expect no errors
   mockProvider.loggedIn = true;
-  dispatch.verifyAttribute(ATTRIB_MOBILE_PHONE);
+  dispatch.authService.verifyAttribute(ATTRIB_MOBILE_PHONE);
   // expect error from provider call as user is empty
-  dispatch.verifyAttribute('');
+  dispatch.authService.verifyAttribute('');
 });
 
 it('calls reducer as expected when sign up action is dispatched', () => {

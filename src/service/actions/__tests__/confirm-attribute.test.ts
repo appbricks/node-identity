@@ -5,7 +5,7 @@ import { Logger, LOG_LEVEL_TRACE, setLogLevel, reduxLogger, combineEpicsWithGlob
 
 import AuthService from '../../auth-service';
 
-import { AuthUserState } from '../../state';
+import { AuthState } from '../../state';
 import { AuthLoggedInUserAttrPayload, CONFIRM_ATTRIBUTE_REQ } from '../../action';
 import { ATTRIB_MOBILE_PHONE } from '../../constants';
 
@@ -21,7 +21,7 @@ const logger = new Logger('confirm-attribute.test');
 // test reducer validates action flows
 const requestTester = new ServiceRequestTester<AuthLoggedInUserAttrPayload>(logger,
   CONFIRM_ATTRIBUTE_REQ,
-  (counter, state, action): AuthUserState => {
+  (counter, state, action): AuthState => {
     let payload = action.payload!;
     expect(payload.attrName).toBeDefined();
     expect(payload.code).toBeDefined();
@@ -39,7 +39,7 @@ const requestTester = new ServiceRequestTester<AuthLoggedInUserAttrPayload>(logg
     }
     return state;
   },
-  (counter, state, action): AuthUserState => {
+  (counter, state, action): AuthState => {
     expect(counter).toBe(1);
 
     let payload = <AuthLoggedInUserAttrPayload>action.meta.relatedAction!.payload;
@@ -48,15 +48,15 @@ const requestTester = new ServiceRequestTester<AuthLoggedInUserAttrPayload>(logg
 
     return state;
   },
-  (counter, state, action): AuthUserState => {
+  (counter, state, action): AuthState => {
 
     switch (counter) {
       case 1: {
-        expect(action.payload!.message).toEqual('Error: No user logged in. You can confirm an attribute only for logged in user.');
+        expect(action.payload!.message).toEqual('No user logged in. You can confirm an attribute only for logged in user.');
         break;
       }
       case 2: {
-        expect(action.payload!.message).toEqual('Error: confirmVerificationCodeForAttribute request action does not have an attribute name and code to confirm.');
+        expect(action.payload!.message).toEqual('confirmVerificationCodeForAttribute request action does not have an attribute name and code to confirm.');
         expect((<AuthLoggedInUserAttrPayload>action.meta.relatedAction!.payload).attrName!.length).toEqual(0);
         break;
       }
@@ -84,12 +84,12 @@ const dispatch = AuthService.dispatchProps(store.dispatch)
 
 it('dispatches an action to sign up a user', async () => {
   // expect error as user is not logged in
-  dispatch.confirmAttribute(ATTRIB_MOBILE_PHONE, '12345');
+  dispatch.authService.confirmAttribute(ATTRIB_MOBILE_PHONE, '12345');
   // expect no errors
   mockProvider.loggedIn = true;
-  dispatch.confirmAttribute(ATTRIB_MOBILE_PHONE, '12345');
+  dispatch.authService.confirmAttribute(ATTRIB_MOBILE_PHONE, '12345');
   // expect error from provider call as user is empty
-  dispatch.confirmAttribute('', '');
+  dispatch.authService.confirmAttribute('', '');
 });
 
 it('calls reducer as expected when sign up action is dispatched', () => {

@@ -4,7 +4,7 @@ import { createEpicMiddleware } from 'redux-observable';
 import { Logger, LOG_LEVEL_TRACE, setLogLevel, reduxLogger, combineEpicsWithGlobalErrorHandler } from '@appbricks/utils';
 import AuthService from '../../auth-service';
 
-import { AuthUserState } from '../../state';
+import { AuthState } from '../../state';
 import { AuthStatePayload, LOAD_AUTH_STATE_REQ } from '../../action';
 
 import { MockProvider } from '../../__tests__/mock-provider';
@@ -19,12 +19,12 @@ const logger = new Logger('load-auth-state.test');
 // test reducer validates action flows
 const requestTester = new ServiceRequestTester<AuthStatePayload>(logger,
   LOAD_AUTH_STATE_REQ,
-  (counter, state, action): AuthUserState => {
+  (counter, state, action): AuthState => {
     expect(counter).toBeLessThanOrEqual(2);
     expect(action.payload).toBeUndefined();
     return state;
   },
-  (counter, state, action): AuthUserState => {
+  (counter, state, action): AuthState => {
     let payload = <AuthStatePayload>action.meta.relatedAction!.payload;
     expect(payload.isLoggedIn).toBeDefined();
 
@@ -65,11 +65,11 @@ const dispatch = AuthService.dispatchProps(store.dispatch)
 
 it('dispatches an action to sign up a user', async () => {
   // not logged in state
-  dispatch.loadAuthState();
+  dispatch.authService.loadAuthState();
 
   // logged in state
   mockProvider.loggedIn = true;
-  dispatch.loadAuthState();
+  dispatch.authService.loadAuthState();
 });
 
 it('calls reducer as expected when sign up action is dispatched', () => {
@@ -80,6 +80,6 @@ it('calls reducer as expected when sign up action is dispatched', () => {
 });
 
 it('has saved the correct user in the state', () => {
-  let state = <AuthUserState>store.getState().auth;
+  let state = <AuthState>store.getState().auth;
   expect(state.isLoggedIn).toBeTruthy();
 });

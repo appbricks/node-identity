@@ -36,14 +36,14 @@ const createRequestTester = (logger: Logger, reqActionType: string, checkConfirm
       
       if (payload.user.username == 'error') {
         // this test is for error when error is returned by the service
-        expect(action.payload!.message).toEqual('Error: invalid username');
+        expect(action.payload!.message).toEqual('invalid username');
 
       }  else if (!payload.user.isValid()) {
         // this test is for error when user is invalid
-        expect(action.payload!.message).toEqual('Error: Insufficient user data provided for sign-up.');
+        expect(action.payload!.message).toEqual('Insufficient user data provided for sign-up.');
 
       } else {
-        expect(action.payload!.message).toEqual('Error: No user logged in. The user needs to be logged in before MFA can be configured.');
+        expect(action.payload!.message).toEqual('No user logged in. The user needs to be logged in before MFA can be configured.');
       }
       return state;
     }
