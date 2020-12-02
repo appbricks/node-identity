@@ -35,6 +35,9 @@ export {
 }
 
 import {
+  AUTH_NO_MFA,
+  AUTH_MFA_SMS,
+  AUTH_MFA_TOTP,
   ERROR_SIGN_UP,
   ERROR_RESEND_SIGN_UP_CODE,
   ERROR_CONFIRM_SIGN_UP_CODE,
@@ -55,6 +58,9 @@ import {
 } from './service/constants';
 
 export {
+  AUTH_NO_MFA,
+  AUTH_MFA_SMS,
+  AUTH_MFA_TOTP,
   ERROR_SIGN_UP,
   ERROR_RESEND_SIGN_UP_CODE,
   ERROR_CONFIRM_SIGN_UP_CODE,

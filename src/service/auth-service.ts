@@ -125,14 +125,14 @@ export default class AuthService {
           signUpAction(dispatch, user),
 
         resendSignUpCode: (username?: string) => 
-          resendSignUpCodeAction(dispatch, username ? username : ownProps!.auth.user!.username),
+          resendSignUpCodeAction(dispatch, username ? username : ownProps!.auth!.user!.username),
         confirmSignUpCode: (code: string, username?: string) =>
-          confirmSignUpCodeAction(dispatch, username ? username : ownProps!.auth.user!.username, code),
+          confirmSignUpCodeAction(dispatch, username ? username : ownProps!.auth!.user!.username, code),
 
         resetPassword: (username?: string) =>
-          resetPasswordAction(dispatch, username ? username : ownProps!.auth.user!.username),
+          resetPasswordAction(dispatch, username ? username : ownProps!.auth!.user!.username),
         updatePassword: (password: string, code: string, username?: string) =>
-          updatePasswordAction(dispatch, username ? username : ownProps!.auth.user!.username, password, code),
+          updatePasswordAction(dispatch, username ? username : ownProps!.auth!.user!.username, password, code),
 
         // user authentication
         signIn: (username: string, password: string) =>

@@ -15,7 +15,7 @@ export interface AuthState extends State {
 
 // Authentication state properties
 export interface AuthStateProps {
-  auth: AuthState
+  auth?: AuthState
 };
 
 export const initialAuthState = (): AuthState => 

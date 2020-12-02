@@ -31,7 +31,7 @@ export const loadAuthStateEpic = (csProvider: Provider): Epic => {
       const isLoggedIn = await csProvider.isLoggedIn();
       const username = csProvider.getLoggedInUsername();
 
-      if (!auth.session.isValid()) {
+      if (!auth!.session.isValid()) {
         // if session is not loaded then follow up with an OK 
         // to indicate to the reducer to initialize the session
   
@@ -43,7 +43,7 @@ export const loadAuthStateEpic = (csProvider: Provider): Epic => {
             username
           }
         );
-      } else if (!!!auth.user && isLoggedIn) {
+      } else if (!!!auth!.user && isLoggedIn) {
         // if underlying provider is logged in but the user of
         // the valid session has been reset then force a signout
         Logger.trace(

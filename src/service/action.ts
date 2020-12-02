@@ -42,7 +42,7 @@ export interface AuthLoggedInUserAttrPayload {
 
 // Authentication dispatch function props
 export interface AuthActionProps {
-  authService: {
+  authService?: {
     // authentication initialization
     loadAuthState: () => redux.Action
 
