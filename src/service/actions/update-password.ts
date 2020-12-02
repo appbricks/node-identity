@@ -1,10 +1,19 @@
 import * as redux from 'redux';
 import { Epic } from 'redux-observable';
 
-import { Action, createAction, createFollowUpAction, serviceEpic } from '@appbricks/utils';
+import { 
+  Action, 
+  createAction, 
+  createFollowUpAction, 
+  serviceEpic 
+} from '@appbricks/utils';
 
 import Provider from '../provider';
-import { AuthUsernamePayload, UPDATE_PASSWORD_REQ, SERVICE_RESPONSE_OK } from '../action';
+import { 
+  AuthUsernamePayload, 
+  UPDATE_PASSWORD_REQ, 
+  SERVICE_RESPONSE_OK 
+} from '../action';
 import { AuthStateProps } from '../state';
 
 export const updatePasswordAction = 

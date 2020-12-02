@@ -4,6 +4,7 @@ import User, { VerificationInfo } from '../model/user';
 
 export interface AuthStatePayload {
   isLoggedIn: boolean
+  username?: string
 };
 
 export interface AuthUserPayload {

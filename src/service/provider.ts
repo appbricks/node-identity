@@ -10,6 +10,16 @@ import User, { VerificationInfo } from '../model/user';
  export default interface Provider {
 
   /**
+   * Returns the username of the underlying 
+   * provider's logged in session. If the
+   * provider session is logged in then
+   * the name will be 'undefined'.
+   * 
+   * @return the name of the logged in user
+   */
+  getLoggedInUsername(): string | undefined
+
+  /**
    * Signs up a user
    *
    * @param {User} user  User object with the sign-up details
@@ -61,9 +71,15 @@ import User, { VerificationInfo } from '../model/user';
   validateSession(): Promise<boolean>;
 
   /**
-   * Returns whether the the user in session has completed the login process
+   * Returns whether the given username is logged in. If a 
+   * username is not provided then this method will return
+   * true if session is valid. This service method should
+   * also initialize the internal state with current
+   * logged in session state.
+   * 
+   * @param {string} username  The username to check if logged in
    */
-  isLoggedIn(): Promise<boolean>;
+  isLoggedIn(username?: string): Promise<boolean>;
 
   /**
    * Signs in the given user

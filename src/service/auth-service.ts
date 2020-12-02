@@ -15,6 +15,7 @@ import {
   Logger
 } from '@appbricks/utils';
 
+import Session from '../model/session';
 import User, { UserStatus, VerificationType } from '../model/user';
 
 import { AUTH_NO_MFA, ATTRIB_EMAIL_ADDRESS, ATTRIB_MOBILE_PHONE } from './constants';
@@ -210,43 +211,71 @@ export default class AuthService {
     action: Action<AuthPayload>
   ): AuthState {
 
+    if (state.isLoggedIn) {
+      // ensure activity timestamp is refreshed for 
+      // all actions regardless of target reducer 
+      // when logged in
+      const session = Object.assign(new Session(), state.session);
+      session.updateActivityTimestamp();  
+      state = {
+        ...state,
+        session
+      };
+    }
+
     switch (action.type) {
       case LOAD_AUTH_STATE_REQ: {
-        if (state.session.timestamp == -1) {
+        if (state.session.isValid()) 
+          // NOOP if auth session valid
+          return state;
+
+        else {
+          // rehydrate a new session
+          state = initialAuthState();
+
           // retrieve saved session if available
           let sessionData = this.store().getItem('session');
           if (sessionData) {
             this.logger.trace('Loading saved session from local store:', sessionData);
             state.session.fromJSON(sessionData);
-          }
-          // retrieve saved user if available
-          let userData = this.store().getItem('user');
-          if (userData) {
-            this.logger.trace('Loading saved user from local store:', userData);
-            state.user = new User();
-            state.user.fromJSON(userData);
 
-            let userConfirmationData = this.store().getItem('userConfirmation');
-            if (userConfirmationData) {
-              if (state.user.status != UserStatus.Unconfirmed) {
-                this.logger.trace(
-                  'Found user confirmation data, but saved user did not have an unconfirmed status:', 
-                  userConfirmationData, state.user);
+            // retrieve saved user if available
+            let userData = this.store().getItem('user');
+            if (userData) {
+              this.logger.trace('Loading saved user from local store:', userData);
+              const user = new User();
+              user.fromJSON(userData);
 
-                state.user = undefined;
+              if (user.isValid()) {
+                let userConfirmationData = this.store().getItem('userConfirmation');
+                if (userConfirmationData) {
+                  if (user.status != UserStatus.Unconfirmed) {
+                    this.logger.trace(
+                      'Found user confirmation data, but saved user did not have an unconfirmed status:', 
+                      userConfirmationData, user);
+    
+                  } else {
+                    this.logger.trace(
+                      'Setting last known user and confirmation data from local store to state:', 
+                      userConfirmationData, user);
+    
+                    state.user = user;
+                    state.awaitingUserConfirmation = userConfirmationData;
+                  }
+                } else if (!state.session.isTimedout(user)) {
+                  this.logger.trace(
+                    'Setting last logged in user to state:', 
+                    user);
 
-              } else {
-                this.logger.trace('Loading saved user confirmation data from local store:', userConfirmationData);
-                state.awaitingUserConfirmation = userConfirmationData;
+                  state.user = user;
+                } else {
+                  this.logger.trace(
+                    'Saved user has timedout:', 
+                    user);
+                }
               }
-            }
-          }
-        }
-        if ( !state.user || !state.user.isValid() ||
-          (state.session.timestamp > 0 && state.session.isTimedout(state.user)) ) {
-          
-          this.logger.trace('Invalid saved user session. User session will be reset:', state.session, state.user);
-          state = initialAuthState();
+            }            
+          }          
         }
         break;
       }
@@ -316,13 +345,54 @@ export default class AuthService {
 
       switch (relatedAction.type) {
         case LOAD_AUTH_STATE_REQ: {
-          let payload = <AuthStatePayload>relatedAction.payload!;
-          state.session.timestamp = payload.isLoggedIn! ? Date.now() : -1;
+          const session = Object.assign(new Session(), state.session);
+          session.reset();
 
-          state = {
-            ...state,            
-            isLoggedIn: payload.isLoggedIn!
-          };
+          let payload = <AuthStatePayload>action.payload!;
+          if (payload.isLoggedIn) {
+
+            if (state.user && 
+              state.user.status == UserStatus.Confirmed &&
+              state.user.username == payload.username) {
+              
+              session.updateActivityTimestamp();
+
+              state = {
+                ...state,
+                session,
+                isLoggedIn: true
+              };
+
+              this.logger.trace(
+                'Logged in user session rehydrated:', 
+                state.session, state.user);
+
+            } else {
+              // session is logged in but user 
+              // in state is not confirmed or does 
+              // not match logged in username
+              this.logger.trace(
+                'Invalid login state detected. User session will be reset:', 
+                payload, state.user);
+
+                state = {
+                  ...state,
+                  session,
+                  isLoggedIn: false,
+                  user: undefined
+                };
+            }
+
+          } else {
+            // reset session activity 
+            session.reset();
+
+            state = {
+              ...state,
+              session,
+              isLoggedIn: false
+            }
+          }
           break;
         }
 
@@ -401,9 +471,9 @@ export default class AuthService {
         case SIGN_IN_REQ: {
           let payload = <AuthLoggedInPayload>action.payload!;
           if (payload.isLoggedIn) {
-            state.session.timestamp = Date.now();
+            state.session.updateActivityTimestamp();
           } else {
-            state.session.timestamp = -1;
+            state.session.reset();
           }
 
           state = {
@@ -416,7 +486,7 @@ export default class AuthService {
 
         case VALIDATE_MFA_CODE_REQ: {
           let payload = <AuthLoggedInPayload>action.payload!;
-          state.session.timestamp = Date.now();
+          state.session.updateActivityTimestamp();
 
           state = {
             ...state,
@@ -428,9 +498,12 @@ export default class AuthService {
 
         case SIGN_OUT_REQ: {
 
-          state.session.timestamp = -1;
+          const session = Object.assign(new Session(), state.session);
+          session.reset();
+          
           state = {
             ...state,
+            session,
             isLoggedIn: false,
             user: undefined,
             awaitingUserConfirmation: undefined,
@@ -485,6 +558,8 @@ export default class AuthService {
     this.store().setItem('session', state.session.toJSON());
     if (state.user) {
       this.store().setItem('user', state.user!.toJSON());
+    } else {
+      this.store().removeItem('user');
     }
 
     state = {

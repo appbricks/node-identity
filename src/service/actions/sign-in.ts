@@ -1,10 +1,24 @@
 import * as redux from 'redux';
 import { Epic } from 'redux-observable';
 
-import { NOOP, Action, createAction, createFollowUpAction, createErrorAction, serviceEpicFanOut } from '@appbricks/utils';
+import { 
+  Logger, 
+  NOOP, 
+  Action, 
+  createAction, 
+  createFollowUpAction, 
+  createErrorAction, 
+  serviceEpicFanOut 
+} from '@appbricks/utils';
 
 import Provider from '../provider';
-import { AuthSignInPayload, AuthLoggedInPayload, SIGN_IN_REQ, READ_USER_REQ, SERVICE_RESPONSE_OK } from '../action';
+import { 
+  AuthSignInPayload, 
+  AuthLoggedInPayload, 
+  SIGN_IN_REQ, 
+  READ_USER_REQ, 
+  SERVICE_RESPONSE_OK 
+} from '../action';
 import { AuthStateProps } from '../state';
 
 export const signInAction = 
@@ -17,14 +31,18 @@ export const signInEpic = (csProvider: Provider): Epic => {
     SIGN_IN_REQ,
     {
       signIn: async (action, state$, callSync) => {
-        if (await csProvider.isLoggedIn()) {
-          return createErrorAction(new Error('The current session is already logged in.'), action);
-        }
-
         try {
           const payload = action.payload!;
+
+          if (await csProvider.isLoggedIn(payload.username)) {
+            return createErrorAction(new Error('The current session is already logged in.'), action);          
+          } else if (await csProvider.validateSession()) {
+            Logger.trace('signInEpic', 'Signing out of logged in session for different user');
+            await csProvider.signOut();
+          }
+
           const mfaType = await csProvider.signIn(payload.username, payload.password);
-          const isLoggedIn = await csProvider.isLoggedIn();
+          const isLoggedIn = await csProvider.isLoggedIn(payload.username);
           return createFollowUpAction<AuthLoggedInPayload>(action, SERVICE_RESPONSE_OK, { isLoggedIn, mfaType });
         } catch (err) {
           return createErrorAction(err, action);

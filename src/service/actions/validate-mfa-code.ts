@@ -1,10 +1,23 @@
 import * as redux from 'redux';
 import { Epic } from 'redux-observable';
 
-import { NOOP, Action, createAction, createFollowUpAction, createErrorAction, serviceEpicFanOut } from '@appbricks/utils';
+import { 
+  NOOP, 
+  Action, 
+  createAction, 
+  createFollowUpAction, 
+  createErrorAction, 
+  serviceEpicFanOut 
+} from '@appbricks/utils';
 
 import Provider from '../provider';
-import { AuthMultiFactorAuthPayload, AuthLoggedInPayload, VALIDATE_MFA_CODE_REQ, READ_USER_REQ, SERVICE_RESPONSE_OK } from '../action';
+import { 
+  AuthMultiFactorAuthPayload, 
+  AuthLoggedInPayload, 
+  VALIDATE_MFA_CODE_REQ, 
+  READ_USER_REQ, 
+  SERVICE_RESPONSE_OK 
+} from '../action';
 import { AuthStateProps } from '../state';
 
 export const validateMFACodeAction = 

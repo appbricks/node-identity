@@ -20,7 +20,6 @@ import { ATTRIB_MOBILE_PHONE, AUTH_MFA_SMS } from '../constants';
 
 import {
   AuthActionProps,
-  SERVICE_RESPONSE_OK,
   LOAD_AUTH_STATE_REQ,
   SIGN_UP_REQ,
   RESEND_SIGN_UP_CODE_REQ,
@@ -77,7 +76,7 @@ const stateTester = new StateTester<AuthState>(
         expect(state.actionStatus.actionType).toEqual(LOAD_AUTH_STATE_REQ);
         expect(state.actionStatus.result).toEqual(ActionResult.pending);
 
-        expect(state.session.timestamp).toEqual(-1);
+        expect(state.session.activityTimestamp).toEqual(-1);
         expect(state.isLoggedIn).toBeFalsy();
         expect(state.user).toBeUndefined();
         break;
@@ -86,7 +85,7 @@ const stateTester = new StateTester<AuthState>(
         expect(state.actionStatus.actionType).toEqual(LOAD_AUTH_STATE_REQ);
         expect(state.actionStatus.result).toEqual(ActionResult.success);
 
-        expect(state.session.timestamp).toEqual(-1);
+        expect(state.session.activityTimestamp).toEqual(-1);
         expect(state.isLoggedIn).toBeFalsy();
         expect(state.user).toBeUndefined();
         break;
@@ -162,7 +161,7 @@ const stateTester = new StateTester<AuthState>(
         expect(state.actionStatus.actionType).toEqual(LOAD_AUTH_STATE_REQ);
         expect(state.actionStatus.result).toEqual(ActionResult.pending);
 
-        expect(state.session.timestamp).toEqual(-1);
+        expect(state.session.activityTimestamp).toEqual(-1);
         expect(state.isLoggedIn).toBeFalsy();
         expect(state.user).toBeUndefined();
         break;
@@ -171,7 +170,7 @@ const stateTester = new StateTester<AuthState>(
         expect(state.actionStatus.actionType).toEqual(LOAD_AUTH_STATE_REQ);
         expect(state.actionStatus.result).toEqual(ActionResult.success);
 
-        expect(state.session.timestamp).toEqual(-1);
+        expect(state.session.activityTimestamp).toEqual(-1);
         expect(state.isLoggedIn).toBeFalsy();
         expect(state.user).toBeUndefined();
         break;
@@ -180,7 +179,7 @@ const stateTester = new StateTester<AuthState>(
         expect(state.actionStatus.actionType).toEqual(SIGN_IN_REQ);
         expect(state.actionStatus.result).toEqual(ActionResult.pending);
 
-        expect(state.session.timestamp).toEqual(-1);
+        expect(state.session.activityTimestamp).toEqual(-1);
         expect(state.isLoggedIn).toBeFalsy();
         expect(state.user).toBeUndefined();
         break;
@@ -189,8 +188,8 @@ const stateTester = new StateTester<AuthState>(
         expect(state.actionStatus.actionType).toEqual(SIGN_IN_REQ);
         expect(state.actionStatus.result).toEqual(ActionResult.success);
 
-        timestamp = state.session.timestamp;
-        expect(state.session.timestamp).toBeGreaterThan(0);
+        timestamp = state.session.activityTimestamp;
+        expect(state.session.activityTimestamp).toBeGreaterThan(0);
         expect(state.isLoggedIn).toBeTruthy();
         expect(state.user).toBeUndefined();
         break;
@@ -199,7 +198,7 @@ const stateTester = new StateTester<AuthState>(
         expect(state.actionStatus.actionType).toEqual(READ_USER_REQ);
         expect(state.actionStatus.result).toEqual(ActionResult.pending);
 
-        expect(state.session.timestamp).toEqual(timestamp);
+        expect(state.session.activityTimestamp).toBeGreaterThan(timestamp);
         expect(state.isLoggedIn).toBeTruthy();
         expect(state.user).toBeUndefined();
         break;
@@ -208,7 +207,7 @@ const stateTester = new StateTester<AuthState>(
         expect(state.actionStatus.actionType).toEqual(READ_USER_REQ);
         expect(state.actionStatus.result).toEqual(ActionResult.success);
 
-        expect(state.session.timestamp).toEqual(timestamp);
+        expect(state.session.activityTimestamp).toBeGreaterThan(timestamp);
         expect(state.isLoggedIn).toBeTruthy();
         expectTestUserToBeSet(state.user!, true);
         break;
@@ -292,7 +291,7 @@ const stateTester = new StateTester<AuthState>(
         expect(state.actionStatus.actionType).toEqual(LOAD_AUTH_STATE_REQ);
         expect(state.actionStatus.result).toEqual(ActionResult.success);
 
-        expect(state.session.timestamp).toEqual(-1);
+        expect(state.session.activityTimestamp).toEqual(-1);
         expect(state.isLoggedIn).toBeFalsy();
         break;
       }
@@ -300,7 +299,7 @@ const stateTester = new StateTester<AuthState>(
         expect(state.actionStatus.actionType).toEqual(SIGN_IN_REQ);
         expect(state.actionStatus.result).toEqual(ActionResult.pending);
 
-        expect(state.session.timestamp).toEqual(-1);
+        expect(state.session.activityTimestamp).toEqual(-1);
         expect(state.isLoggedIn).toBeFalsy();
         break;
       }
@@ -308,8 +307,8 @@ const stateTester = new StateTester<AuthState>(
         expect(state.actionStatus.actionType).toEqual(SIGN_IN_REQ);
         expect(state.actionStatus.result).toEqual(ActionResult.success);
 
-        timestamp = state.session.timestamp;
-        expect(state.session.timestamp).toEqual(-1);
+        timestamp = state.session.activityTimestamp;
+        expect(state.session.activityTimestamp).toEqual(-1);
         expect(state.isLoggedIn).toBeFalsy();
         expectTestUserToBeSet(state.user, true, true, true);
         expect(state.awaitingMFAConfirmation).toEqual(AUTH_MFA_SMS);
@@ -322,7 +321,7 @@ const stateTester = new StateTester<AuthState>(
         expect(state.actionStatus.actionType).toEqual(VALIDATE_MFA_CODE_REQ);
         expect(state.actionStatus.result).toEqual(ActionResult.pending);
 
-        expect(state.session.timestamp).toEqual(-1);
+        expect(state.session.activityTimestamp).toEqual(-1);
         expect(state.isLoggedIn).toBeFalsy();
         expectTestUserToBeSet(state.user, true, true, true);
         break;
@@ -331,8 +330,8 @@ const stateTester = new StateTester<AuthState>(
         expect(state.actionStatus.actionType).toEqual(VALIDATE_MFA_CODE_REQ);
         expect(state.actionStatus.result).toEqual(ActionResult.success);
 
-        timestamp = state.session.timestamp;
-        expect(state.session.timestamp).toBeGreaterThan(0);
+        timestamp = state.session.activityTimestamp;
+        expect(state.session.activityTimestamp).toBeGreaterThan(0);
         expect(state.isLoggedIn).toBeTruthy();
         expectTestUserToBeSet(state.user, true, true, true);
         break;
@@ -341,7 +340,7 @@ const stateTester = new StateTester<AuthState>(
         expect(state.actionStatus.actionType).toEqual(READ_USER_REQ);
         expect(state.actionStatus.result).toEqual(ActionResult.pending);
 
-        expect(state.session.timestamp).toEqual(timestamp);
+        expect(state.session.activityTimestamp).toBeGreaterThan(timestamp);
         expect(state.isLoggedIn).toBeTruthy();
         expectTestUserToBeSet(state.user, true, true, true);
         break;
@@ -350,7 +349,7 @@ const stateTester = new StateTester<AuthState>(
         expect(state.actionStatus.actionType).toEqual(READ_USER_REQ);
         expect(state.actionStatus.result).toEqual(ActionResult.success);
 
-        expect(state.session.timestamp).toEqual(timestamp);
+        expect(state.session.activityTimestamp).toBeGreaterThan(timestamp);
         expect(state.isLoggedIn).toBeTruthy();
         expectTestUserToBeSet(state.user, true, true, true);
         break;
@@ -359,7 +358,7 @@ const stateTester = new StateTester<AuthState>(
         expect(state.actionStatus.actionType).toEqual(SIGN_OUT_REQ);
         expect(state.actionStatus.result).toEqual(ActionResult.pending);
 
-        expect(state.session.timestamp).toEqual(timestamp);
+        expect(state.session.activityTimestamp).toBeGreaterThan(timestamp);
         expect(state.isLoggedIn).toBeTruthy();
         break;
       }
@@ -367,7 +366,7 @@ const stateTester = new StateTester<AuthState>(
         expect(state.actionStatus.actionType).toEqual(SIGN_OUT_REQ);
         expect(state.actionStatus.result).toEqual(ActionResult.success);
 
-        expect(state.session.timestamp).toEqual(-1);
+        expect(state.session.activityTimestamp).toEqual(-1);
         expect(state.isLoggedIn).toBeFalsy();
         expect(state.user).toBeUndefined();
         break;
@@ -441,7 +440,7 @@ it('loads initial auth state and signs up a new user', async () => {
   expect(localStore).toEqual({
     auth: {
       session: {
-        timestamp: -1
+        activityTimestamp: -1
       },
       user: {
         status: UserStatus.Unconfirmed,
@@ -485,7 +484,7 @@ it('starts new session and initial auth state loads previous state and confirms 
   expect(localStore).toEqual({
     auth: {
       session: {
-        timestamp: -1
+        activityTimestamp: -1
       },
       user: {
         status: UserStatus.Confirmed,
@@ -540,7 +539,7 @@ it('loads initial auth state and signs in as new user and performs some updates'
   await stateTester.until(28);
 
   let auth: any = localStore['auth'];
-  expect(auth.session.timestamp).toBeGreaterThan(0);
+  expect(auth.session.activityTimestamp).toBeGreaterThan(0);
   expect(auth.user).toEqual({
     status: UserStatus.Confirmed,
     username: 'johndoe',

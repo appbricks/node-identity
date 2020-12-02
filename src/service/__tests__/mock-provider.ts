@@ -37,6 +37,10 @@ export class MockProvider implements Provider {
     this.user.setConfirmed(userConfirmed);
   }
 
+  getLoggedInUsername(): string | undefined {
+    return this.user && this.user.username;
+  }
+
   signUp(user: User): Promise<VerificationInfo> {
     this.signUpCounter++;
     if (user.username == 'error') {
@@ -103,12 +107,16 @@ export class MockProvider implements Provider {
   }
 
   validateSession(): Promise<boolean> {
-    return Promise.reject('unexpected invocation');
+    this.validateSessionCounter++;
+    return Promise.resolve(this.loggedIn);
   }
 
-  isLoggedIn(): Promise<boolean> {
+  isLoggedIn(username?: string): Promise<boolean> {
     this.isLoggedInCounter++;
-    return Promise.resolve(this.loggedIn);
+    return Promise.resolve(
+      (username && this.loggedIn && this.user.username == username) ||
+      (!username && this.loggedIn)
+    );
   }
 
   signIn(username: string, password: string): Promise<number> {

@@ -108,6 +108,7 @@ it('dispatches an action to sign up a user', async () => {
 
 it('calls reducer as expected when sign up action is dispatched', () => {
   expect(mockProvider.isLoggedInCounter).toEqual(4);
+  expect(mockProvider.validateSessionCounter).toEqual(2);
   expect(mockProvider.signInCounter).toEqual(2);
   expect(requestTester.reqCounter).toEqual(2);
   expect(requestTester.okCounter).toEqual(2);

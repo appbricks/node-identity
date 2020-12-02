@@ -25,7 +25,7 @@ const requestTester = new ServiceRequestTester<AuthStatePayload>(logger,
     return state;
   },
   (counter, state, action): AuthState => {
-    let payload = <AuthStatePayload>action.meta.relatedAction!.payload;
+    let payload = <AuthStatePayload>action.payload;
     expect(payload.isLoggedIn).toBeDefined();
 
     switch (counter) {

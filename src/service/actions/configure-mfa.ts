@@ -1,11 +1,20 @@
 import * as redux from 'redux';
 import { Epic } from 'redux-observable';
 
-import { Action, createAction, createFollowUpAction, serviceEpic } from '@appbricks/utils';
+import { 
+  Action, 
+  createAction, 
+  createFollowUpAction, 
+  serviceEpic 
+} from '@appbricks/utils';
 
 import User from '../../model/user';
 import Provider from '../provider';
-import { AuthUserPayload, CONFIGURE_MFA_REQ, SERVICE_RESPONSE_OK } from '../action';
+import { 
+  AuthUserPayload, 
+  CONFIGURE_MFA_REQ, 
+  SERVICE_RESPONSE_OK 
+} from '../action';
 import { AuthStateProps } from '../state';
 
 export const configureMFAAction = 

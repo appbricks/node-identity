@@ -5,11 +5,27 @@ const TIMEOUT_24H = 24 * 60 * 60 * 1000; // 24 hours
 
 export default class Session {
 
-  // persisted properties
   timestamp: number = -1;
 
-  resetTimestamp() {
-    this.timestamp = Date.now();
+  // persisted properties
+  activityTimestamp: number = -1;
+
+  reset() {
+    if (this.timestamp == -1) {
+      this.timestamp = Date.now();
+    }
+    this.activityTimestamp = -1;
+  }
+
+  updateActivityTimestamp() {
+    this.activityTimestamp = Date.now();
+  }
+
+  /**
+   * Check if session is valid
+   */
+  isValid(): boolean {
+    return this.timestamp != -1;
   }
 
   /**
@@ -17,24 +33,24 @@ export default class Session {
    * 
    * @param {User} user  the user to check timeout
    */
-  isTimedout(user: User) {
+  isTimedout(user: User): boolean {
     if (user.rememberFor24h) {
-      return (this.timestamp + TIMEOUT_24H) < Date.now();
+      return (this.activityTimestamp + TIMEOUT_24H) < Date.now();
     }
 
     // default session timeout is 15m
-    return (this.timestamp + TIMEOUT_15M) < Date.now();
+    return (this.activityTimestamp + TIMEOUT_15M) < Date.now();
   }
 
   fromJSON(data: {
-    timestamp: number
+    activityTimestamp: number
   }) {
-    this.timestamp = data.timestamp;
+    this.activityTimestamp = data.activityTimestamp;
   }
 
   toJSON() {
     return {
-      timestamp: this.timestamp,
+      activityTimestamp: this.activityTimestamp
     };
   }
 }

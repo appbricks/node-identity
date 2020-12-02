@@ -16,7 +16,6 @@ import {
   SERVICE_RESPONSE_OK 
 } from '../action';
 import { AuthStateProps } from '../state';
-import { VerificationInfo } from '../../model/user';
 
 export const confirmSignUpCodeAction = 
   (dispatch: redux.Dispatch<redux.Action>, username: string, code: string) => 

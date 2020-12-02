@@ -64,6 +64,18 @@ export default class Provider implements ProviderInterface {
   }
 
   /**
+   * Returns the username of the underlying 
+   * provider's logged in session. If the
+   * provider session is logged in then
+   * the name will be 'undefined'.
+   * 
+   * @return the name of the logged in user
+   */
+  getLoggedInUsername(): string | undefined {
+    return this.cognitoUser && this.cognitoUser.getUsername();
+  }
+
+  /**
    * Signs up a user
    * 
    * @param {User} user  user object with the sign-up details
@@ -288,13 +300,14 @@ export default class Provider implements ProviderInterface {
   /**
    * Returns whether the the user in session has completed the login process
    */
-  async isLoggedIn(): Promise<boolean> {
+  async isLoggedIn(username?: string): Promise<boolean> {
 
     try {
       if (await this.validateSession()) {
         await this.auth.currentAuthenticatedUser().then(user => this.cognitoUser = user)
         this.logger.trace('the cognito session is authenticated: ', this.cognitoSession, this.cognitoUser);
-        return true;
+        return !!this.cognitoUser &&
+          (!!!username || (this.cognitoUser.getUsername() == username));
       }
 
     } catch (exception) {
