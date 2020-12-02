@@ -216,7 +216,7 @@ export default class AuthService {
       // all actions regardless of target reducer 
       // when logged in
       const session = Object.assign(new Session(), state.session);
-      session.updateActivityTimestamp();  
+      session.updateActivityTimestamp();
       state = {
         ...state,
         session
@@ -287,6 +287,27 @@ export default class AuthService {
         state = {
           ...state,
           user
+        };
+        break;
+      }
+
+      case RESEND_SIGN_UP_CODE_REQ: {
+        state = {
+          ...state,
+          awaitingUserConfirmation: undefined
+        };
+        break;
+      }
+
+      case SIGN_IN_REQ: {
+        const user = new User();
+        user.username = (<AuthSignInPayload>action.payload!).username;
+        
+        state = {
+          ...state,
+          isLoggedIn: false,
+          user: user,
+          awaitingMFAConfirmation: undefined
         };
         break;
       }
@@ -469,15 +490,18 @@ export default class AuthService {
         }
         
         case SIGN_IN_REQ: {
+          const session = Object.assign(new Session(), state.session);
+
           let payload = <AuthLoggedInPayload>action.payload!;
           if (payload.isLoggedIn) {
-            state.session.updateActivityTimestamp();
+            session.updateActivityTimestamp();
           } else {
-            state.session.reset();
+            session.reset();
           }
 
           state = {
             ...state,
+            session,
             isLoggedIn: payload.isLoggedIn,
             awaitingMFAConfirmation: payload.isLoggedIn ? AUTH_NO_MFA : payload.mfaType
           };
@@ -485,11 +509,14 @@ export default class AuthService {
         }
 
         case VALIDATE_MFA_CODE_REQ: {
+          const session = Object.assign(new Session(), state.session);
+          session.updateActivityTimestamp();
+
           let payload = <AuthLoggedInPayload>action.payload!;
-          state.session.updateActivityTimestamp();
 
           state = {
             ...state,
+            session,
             isLoggedIn: payload.isLoggedIn,
             awaitingMFAConfirmation: undefined
           };

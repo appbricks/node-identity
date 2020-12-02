@@ -43,13 +43,13 @@ export const loadAuthStateEpic = (csProvider: Provider): Epic => {
             username
           }
         );
-      } else if (!!!auth!.user && isLoggedIn) {
-        // if underlying provider is logged in but the user of
-        // the valid session has been reset then force a signout
+      } else if (!!!auth!.isLoggedIn && isLoggedIn) {
+        // if underlying provider is logged in but the auth state
+        // is not then force a signout in the provider
         Logger.trace(
           'loadAuthState', 
           'Forcing signout of stale logged in provider session for user', 
-          username
+          username, auth
         );
         
         await csProvider.signOut();
