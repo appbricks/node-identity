@@ -54,6 +54,12 @@ export const loadAuthStateEpic = (csProvider: Provider): Epic => {
         
         await csProvider.signOut();
       }
+
+      Logger.trace(
+        'loadAuthState', 
+        'Session is valid. Sending a NOOP response for auth/LOAD_AUTH_STATE_REQ action.', 
+        username
+      );
       
       return createAction(NOOP);
     }
