@@ -127,7 +127,12 @@ const stateTester = new StateTester<AuthState>(
         expect(state.actionStatus.actionType).toEqual(RESEND_SIGN_UP_CODE_REQ);
         expect(state.actionStatus.result).toEqual(ActionResult.pending);
 
-        validateStateAfterNewUserSignUp(state, timestamp);
+        let user = state.user;
+        expectTestUserToBeSet(user, false);
+        expect(state.user!.status).toEqual(UserStatus.Unconfirmed);
+
+        expect(state.isLoggedIn).toBe(false);
+        expect(state.awaitingUserConfirmation).toBeUndefined();
         break;
       }
       case 8: { // Response of new sign-up code
@@ -181,7 +186,8 @@ const stateTester = new StateTester<AuthState>(
 
         expect(state.session.activityTimestamp).toEqual(-1);
         expect(state.isLoggedIn).toBeFalsy();
-        expect(state.user).toBeUndefined();
+        expect(state.user).toBeDefined();
+        expect(state.user!.username).toEqual('johndoe');
         break;
       }
       case 14: { // Sign in response
@@ -191,7 +197,8 @@ const stateTester = new StateTester<AuthState>(
         timestamp = state.session.activityTimestamp;
         expect(state.session.activityTimestamp).toBeGreaterThan(0);
         expect(state.isLoggedIn).toBeTruthy();
-        expect(state.user).toBeUndefined();
+        expect(state.user).toBeDefined();
+        expect(state.user!.username).toEqual('johndoe');
         break;
       }
       case 15: { // Read user request after successful sign in
@@ -200,7 +207,6 @@ const stateTester = new StateTester<AuthState>(
 
         expect(state.session.activityTimestamp).toBeGreaterThan(timestamp);
         expect(state.isLoggedIn).toBeTruthy();
-        expect(state.user).toBeUndefined();
         break;
       }
       case 16: { // Read user response
@@ -301,6 +307,8 @@ const stateTester = new StateTester<AuthState>(
 
         expect(state.session.activityTimestamp).toEqual(-1);
         expect(state.isLoggedIn).toBeFalsy();
+        expect(state.user).toBeDefined();
+        expect(state.user!.username).toEqual('johndoe');
         break;
       }
       case 32: { // Sign in response waiting for MFA code
@@ -310,7 +318,8 @@ const stateTester = new StateTester<AuthState>(
         timestamp = state.session.activityTimestamp;
         expect(state.session.activityTimestamp).toEqual(-1);
         expect(state.isLoggedIn).toBeFalsy();
-        expectTestUserToBeSet(state.user, true, true, true);
+        expect(state.user).toBeDefined();
+        expect(state.user!.username).toEqual('johndoe');
         expect(state.awaitingMFAConfirmation).toEqual(AUTH_MFA_SMS);
         break;
       }
@@ -323,7 +332,8 @@ const stateTester = new StateTester<AuthState>(
 
         expect(state.session.activityTimestamp).toEqual(-1);
         expect(state.isLoggedIn).toBeFalsy();
-        expectTestUserToBeSet(state.user, true, true, true);
+        expect(state.user).toBeDefined();
+        expect(state.user!.username).toEqual('johndoe');
         break;
       }
       case 35: { // Validate MFA code response
@@ -333,7 +343,8 @@ const stateTester = new StateTester<AuthState>(
         timestamp = state.session.activityTimestamp;
         expect(state.session.activityTimestamp).toBeGreaterThan(0);
         expect(state.isLoggedIn).toBeTruthy();
-        expectTestUserToBeSet(state.user, true, true, true);
+        expect(state.user).toBeDefined();
+        expect(state.user!.username).toEqual('johndoe');
         break;
       }
       case 36: { // Read user request after successful sign in
@@ -342,7 +353,8 @@ const stateTester = new StateTester<AuthState>(
 
         expect(state.session.activityTimestamp).toBeGreaterThan(timestamp);
         expect(state.isLoggedIn).toBeTruthy();
-        expectTestUserToBeSet(state.user, true, true, true);
+        expect(state.user).toBeDefined();
+        expect(state.user!.username).toEqual('johndoe');
         break;
       }
       case 37: { // Read user response
@@ -429,11 +441,11 @@ afterEach(() => {
  */
 
 it('loads initial auth state and signs up a new user', async () => {
-  dispatch.authService.loadAuthState();
+  dispatch.authService!.loadAuthState();
   // wait until state has been loaded
   await stateTester.until(2);
 
-  dispatch.authService.signUp(getTestUser());
+  dispatch.authService!.signUp(getTestUser());
   // wait until sign up response has been received
   await stateTester.until(4);
 
@@ -469,15 +481,15 @@ it('loads initial auth state and signs up a new user', async () => {
 
 it('starts new session and initial auth state loads previous state and confirms new user', async () => {
 
-  dispatch.authService.loadAuthState();
+  dispatch.authService!.loadAuthState();
   // wait until state has been loaded
   await stateTester.until(6);
 
-  dispatch.authService.resendSignUpCode('johndoe');
+  dispatch.authService!.resendSignUpCode('johndoe');
   // wait for state after request for new sign-up code has been set
   await stateTester.until(8);
 
-  dispatch.authService.confirmSignUpCode('12345', 'johndoe');
+  dispatch.authService!.confirmSignUpCode('12345', 'johndoe');
   // wait for state after request for sign-up confirmation has been set
   await stateTester.until(10);
 
@@ -509,33 +521,33 @@ it('starts new session and initial auth state loads previous state and confirms 
 
 it('loads initial auth state and signs in as new user and performs some updates', async () => {
 
-  dispatch.authService.loadAuthState();
+  dispatch.authService!.loadAuthState();
   // wait until state has been loaded
   await stateTester.until(12);
 
-  dispatch.authService.signIn('johndoe', '@ppBricks2020');
+  dispatch.authService!.signIn('johndoe', '@ppBricks2020');
   // wait until logged in state
   await stateTester.until(16);
 
   let user = <User>store.getState().auth.user;
   user.enableMFA = true;
-  dispatch.authService.configureMFA(user);
+  dispatch.authService!.configureMFA(user);
   // wait until MFA has been configured
   await stateTester.until(18);
 
-  dispatch.authService.verifyAttribute(ATTRIB_MOBILE_PHONE);
+  dispatch.authService!.verifyAttribute(ATTRIB_MOBILE_PHONE);
   await stateTester.until(20);
-  dispatch.authService.confirmAttribute(ATTRIB_MOBILE_PHONE, '12345');
+  dispatch.authService!.confirmAttribute(ATTRIB_MOBILE_PHONE, '12345');
   await stateTester.until(22);
 
-  dispatch.authService.resetPassword('johndoe');
+  dispatch.authService!.resetPassword('johndoe');
   await stateTester.until(24);
-  dispatch.authService.updatePassword('password', '12345', 'johndoe');
+  dispatch.authService!.updatePassword('password', '12345', 'johndoe');
   await stateTester.until(26);
 
   user = <User>store.getState().auth.user;
   user.rememberFor24h = true;
-  dispatch.authService.saveUser(user);
+  dispatch.authService!.saveUser(user);
   await stateTester.until(28);
 
   let auth: any = localStore['auth'];
@@ -558,23 +570,23 @@ it('loads initial auth state and signs in as new user and performs some updates'
 
 it('starts new session and signs-in using MFA and signs-out', async () => {
 
-  dispatch.authService.loadAuthState();
+  dispatch.authService!.loadAuthState();
   // wait until state has been loaded
   await stateTester.until(30);
   let userLoadedFromStore = <User>store.getState().auth.user;
 
-  dispatch.authService.signIn('johndoe', 'password');
+  dispatch.authService!.signIn('johndoe', 'password');
   // wait until MFA code sent state
   await stateTester.until(33);
 
-  dispatch.authService.validateMFACode('12345');
+  dispatch.authService!.validateMFACode('12345');
   // wait until logged in state
   await stateTester.until(37);
 
   let userLoadedFromProvider = <User>store.getState().auth.user;
   expect(userLoadedFromStore !== userLoadedFromStore).toBeFalsy();
 
-  dispatch.authService.signOut()
+  dispatch.authService!.signOut()
   // wait until logged out state
   await stateTester.until(39);
 });
