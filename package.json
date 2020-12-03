@@ -27,11 +27,14 @@
   "dependencies": {
     "@appbricks/utils": "^0.0.3",
     "aws-amplify": "^3.3.8",
+    "axios": "^0.21.0",
+    "gravatar": "^1.8.1",
     "redux-observable": "^1.2.0",
     "rxjs": "^6.6.3"
   },
   "devDependencies": {
     "@appbricks/test-utils": "^0.0.2",
+    "@types/gravatar": "^1.8.1",
     "@types/jest": "^26.0.15",
     "@types/node": "^14.14.8",
     "@types/react-redux": "^7.1.11",

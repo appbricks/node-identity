@@ -1,7 +1,10 @@
 import * as redux from 'redux';
 import { Epic } from 'redux-observable';
+import gravatar from 'gravatar';
+import axios from 'axios';
 
 import { 
+  Logger,
   Action, 
   createAction, 
   createFollowUpAction, 
@@ -29,7 +32,41 @@ export const readUserEpic = (csProvider: Provider): Epic => {
         throw Error('No user logged in. The user needs to be logged in before it can be read.')
       }
 
-      const user = await csProvider.readUser()
+      const user = await csProvider.readUser();
+
+      // *** AVATAR retrieval should be moved to the profile module ***
+      //
+      // determine gravatar image url using the user login/email
+      if (user.emailAddress) {
+        const gravatarUrl = gravatar.url(
+          user.emailAddress,
+          {
+            protocol: 'https',
+            default: '404',
+            size: '42'
+          }
+        );
+        await axios.get(gravatarUrl)
+          .then( () => {
+            Logger.trace(
+              'readUser', 
+              'Found Gravatar profile image for email:', 
+              user.emailAddress, 
+              gravatarUrl
+            );
+            user.profilePictureUrl = gravatarUrl;
+          })
+          .catch(() => {
+            Logger.trace(
+              'readUser', 
+              'Gravatar profile image not found:', 
+              user.emailAddress, 
+              gravatarUrl
+            );
+          });
+      }
+      // **************************************************************
+      
       return createFollowUpAction<AuthUserPayload>(action, SERVICE_RESPONSE_OK, { user });
     }
   );
