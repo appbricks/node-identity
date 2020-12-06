@@ -291,14 +291,6 @@ export default class AuthService {
         break;
       }
 
-      case RESEND_SIGN_UP_CODE_REQ: {
-        state = {
-          ...state,
-          awaitingUserConfirmation: undefined
-        };
-        break;
-      }
-
       case SIGN_IN_REQ: {
         const user = new User();
         user.username = (<AuthSignInPayload>action.payload!).username;
