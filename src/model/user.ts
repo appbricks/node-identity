@@ -11,6 +11,7 @@ export default class User {
   firstName?: string;
   middleName?: string;
   familyName?: string;
+  preferredName?: string;
 
   emailAddress: string;
   emailAddressVerified: boolean;
@@ -58,6 +59,7 @@ export default class User {
     firstName?: string
     middleName?: string
     familyName?: string
+    preferredName?: string
     emailAddress: string
     emailAddressVerified: boolean
     mobilePhone: string
@@ -82,10 +84,12 @@ export default class User {
       firstName: this.firstName,
       middleName: this.middleName,
       familyName: this.familyName,
+      preferredName: this.preferredName,
       emailAddress: this.emailAddress,
       emailAddressVerified: this.emailAddressVerified,
       mobilePhone: this.mobilePhone,
       mobilePhoneVerified: this.mobilePhoneVerified,
+      profilePictureUrl: this.profilePictureUrl,
       enableBiometric: this.enableBiometric,
       enableMFA: this.enableMFA,
       enableTOTP: this.enableTOTP,
@@ -99,6 +103,7 @@ export default class User {
     firstName?: string
     middleName?: string
     familyName?: string
+    preferredName?: string
     emailAddress: string
     emailAddressVerified: boolean
     mobilePhone: string
@@ -123,6 +128,7 @@ export default class User {
     this.firstName = data.firstName;
     this.middleName = data.middleName;
     this.familyName = data.familyName;
+    this.preferredName = data.preferredName;
     this.emailAddress = data.emailAddress;
     this.emailAddressVerified = data.emailAddressVerified;
     this.mobilePhone = data.mobilePhone;

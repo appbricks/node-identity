@@ -65,11 +65,11 @@ const dispatch = AuthService.dispatchProps(store.dispatch)
 
 it('dispatches an action to sign up a user', async () => {
   // not logged in state
-  dispatch.authService.loadAuthState();
+  dispatch.authService!.loadAuthState();
 
   // logged in state
   mockProvider.loggedIn = true;
-  dispatch.authService.loadAuthState();
+  dispatch.authService!.loadAuthState();
 });
 
 it('calls reducer as expected when sign up action is dispatched', () => {

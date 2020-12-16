@@ -60,10 +60,10 @@ it('dispatches an action to sign up a user', async () => {
   let user = getTestUser();
 
   // expect error as user is not logged in
-  dispatch.authService.saveUser(user);
+  dispatch.authService!.saveUser(user);
   // expect no errors
   mockProvider.loggedIn = true;
-  dispatch.authService.saveUser(user);
+  dispatch.authService!.saveUser(user);
 });
 
 it('calls reducer as expected when sign up action is dispatched', () => {

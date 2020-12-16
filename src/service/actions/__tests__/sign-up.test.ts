@@ -42,15 +42,15 @@ const dispatch = AuthService.dispatchProps(store.dispatch)
 
 it('dispatches an action to sign up a user', async () => {
   let user = getTestUser();
-  dispatch.authService.signUp(user);
+  dispatch.authService!.signUp(user);
 
   // Should throw an error
   let userWithError = getTestUser();
   userWithError.username = 'error';
-  dispatch.authService.signUp(userWithError);
+  dispatch.authService!.signUp(userWithError);
 
   // Should throw another error as user is invalid
-  dispatch.authService.signUp(new User());
+  dispatch.authService!.signUp(new User());
 });
 
 it('calls reducer as expected when sign up action is dispatched', () => {

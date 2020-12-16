@@ -37,7 +37,7 @@ const dispatch = AuthService.dispatchProps(store.dispatch)
 
 it('dispatches an action to sign up a user', async () => {
   // expect no errors
-  dispatch.authService.resetPassword('johndoe');
+  dispatch.authService!.resetPassword('johndoe');
 });
 
 it('calls reducer as expected when sign up action is dispatched', () => {

@@ -84,12 +84,12 @@ const dispatch = AuthService.dispatchProps(store.dispatch)
 
 it('dispatches an action to sign up a user', async () => {
   // expect error as user is not logged in
-  dispatch.authService.confirmAttribute(ATTRIB_MOBILE_PHONE, '12345');
+  dispatch.authService!.confirmAttribute(ATTRIB_MOBILE_PHONE, '12345');
   // expect no errors
   mockProvider.loggedIn = true;
-  dispatch.authService.confirmAttribute(ATTRIB_MOBILE_PHONE, '12345');
+  dispatch.authService!.confirmAttribute(ATTRIB_MOBILE_PHONE, '12345');
   // expect error from provider call as user is empty
-  dispatch.authService.confirmAttribute('', '');
+  dispatch.authService!.confirmAttribute('', '');
 });
 
 it('calls reducer as expected when sign up action is dispatched', () => {

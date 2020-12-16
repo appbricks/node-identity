@@ -99,13 +99,13 @@ const dispatch = AuthService.dispatchProps(store.dispatch)
 it('dispatches an action to sign up a user', async () => {
   // error as session already logged in
   mockProvider.loggedIn = true;
-  dispatch.authService.validateMFACode('12345');
+  dispatch.authService!.validateMFACode('12345');
   mockProvider.loggedIn = false;
 
   // error invalide code
-  dispatch.authService.validateMFACode('00000');
+  dispatch.authService!.validateMFACode('00000');
   // succesful login
-  dispatch.authService.validateMFACode('12345');
+  dispatch.authService!.validateMFACode('12345');
 });
 
 it('calls reducer as expected when sign up action is dispatched', () => {

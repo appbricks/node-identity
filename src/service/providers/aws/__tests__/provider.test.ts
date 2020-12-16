@@ -196,6 +196,7 @@ it('configures user\'s mfa settings and saves additional attributes', async () =
   user.firstName = 'John';
   user.middleName = 'Kai';
   user.familyName = 'Doe';
+  user.preferredName = 'JD';
   user.emailAddress = testEmail;
   user.mobilePhone = testPhone;
   user.enableMFA = true;
@@ -238,6 +239,7 @@ it('signs in using mfa and reads the user\'s attributes', async () => {
   expect(user.firstName).toEqual('John');
   expect(user.middleName).toEqual('Kai');
   expect(user.familyName).toEqual('Doe');
+  expect(user.preferredName).toEqual('JD');
   expect(user.emailAddress).toEqual(testEmail);
   expect(user.emailAddressVerified).toBeTruthy();
   expect(user.mobilePhone).toEqual(testPhone);

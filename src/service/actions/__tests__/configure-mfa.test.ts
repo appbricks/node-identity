@@ -38,19 +38,19 @@ const dispatch = AuthService.dispatchProps(store.dispatch)
 it('dispatches an action to configure MFA for a user', async () => {
 
   // expect error as user is not logged in
-  dispatch.authService.configureMFA(getTestUser());
+  dispatch.authService!.configureMFA(getTestUser());
   mockProvider.loggedIn = true;
 
   // Should throw an error
   let userWithError = getTestUser();
   userWithError.username = 'error';
-  dispatch.authService.configureMFA(userWithError);
+  dispatch.authService!.configureMFA(userWithError);
 
   // expect no errors
   let user = getTestUser();
   user.setConfirmed(true);
   user.enableMFA = true;
-  dispatch.authService.configureMFA(user);
+  dispatch.authService!.configureMFA(user);
 });
 
 it('calls reducer as expected when configure MFA action is dispatched', () => {

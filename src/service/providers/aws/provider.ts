@@ -587,6 +587,7 @@ export default class Provider implements ProviderInterface {
           case 'custom:preferences':
             attributes = Object.assign(attributes, {
               'custom:preferences': JSON.stringify({
+                preferredName: user.preferredName,
                 enableBiometric: user.enableBiometric,
                 enableMFA: user.enableMFA,
                 enableTOTP: user.enableTOTP,
@@ -680,6 +681,7 @@ export default class Provider implements ProviderInterface {
                     break;
                   case 'custom:preferences':
                     let prefs = JSON.parse(a.getValue());
+                    user.preferredName = prefs.preferredName;
                     user.enableBiometric = prefs.enableBiometric;
                     user.enableMFA = prefs.enableMFA;
                     user.enableTOTP = prefs.enableTOTP;

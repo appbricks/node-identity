@@ -132,7 +132,6 @@ const stateTester = new StateTester<AuthState>(
         expect(state.user!.status).toEqual(UserStatus.Unconfirmed);
 
         expect(state.isLoggedIn).toBe(false);
-        expect(state.awaitingUserConfirmation).toBeUndefined();
         break;
       }
       case 8: { // Response of new sign-up code
@@ -458,7 +457,9 @@ it('loads initial auth state and signs up a new user', async () => {
         status: UserStatus.Unconfirmed,
         username: 'johndoe',
         firstName: 'John',
+        middleName: 'Bee',
         familyName: 'Doe',
+        preferredName: 'JD',
         emailAddress: 'johndoe@gmail.com',
         emailAddressVerified: false,
         mobilePhone: '9999999999',
@@ -502,7 +503,9 @@ it('starts new session and initial auth state loads previous state and confirms 
         status: UserStatus.Confirmed,
         username: 'johndoe',
         firstName: 'John',
+        middleName: 'Bee',
         familyName: 'Doe',
+        preferredName: 'JD',
         emailAddress: 'johndoe@gmail.com',
         emailAddressVerified: true,
         mobilePhone: '9999999999',
@@ -556,7 +559,9 @@ it('loads initial auth state and signs in as new user and performs some updates'
     status: UserStatus.Confirmed,
     username: 'johndoe',
     firstName: 'John',
+    middleName: 'Bee',
     familyName: 'Doe',
+    preferredName: 'JD',
     emailAddress: 'johndoe@gmail.com',
     emailAddressVerified: true,
     mobilePhone: '9999999999',

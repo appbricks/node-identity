@@ -101,9 +101,9 @@ const dispatch = AuthService.dispatchProps(store.dispatch)
 
 it('dispatches an action to sign up a user', async () => {  
   // invalid login
-  dispatch.authService.signIn('johndoe', '00000');
+  dispatch.authService!.signIn('johndoe', '00000');
   // successful login
-  dispatch.authService.signIn('johndoe', '@ppBricks2020');
+  dispatch.authService!.signIn('johndoe', '@ppBricks2020');
 });
 
 it('calls reducer as expected when sign up action is dispatched', () => {
@@ -123,7 +123,7 @@ it('has saved the correct user in the state', () => {
 
 it('it attempts to sign to an existing session', () => {
   // relogin attempt should return error as already logged in
-  dispatch.authService.signIn('johndoe', '@ppBricks2020');
+  dispatch.authService!.signIn('johndoe', '@ppBricks2020');
 });
 
 it('calls reducer as expected when sign up action is dispatched', () => {

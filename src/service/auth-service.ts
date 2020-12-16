@@ -491,6 +491,10 @@ export default class AuthService {
             session.reset();
           }
 
+          // ensure any saved confirmation response
+          // data is removed from store
+          this.store().removeItem('userConfirmation');
+
           state = {
             ...state,
             session,
