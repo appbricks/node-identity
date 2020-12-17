@@ -537,7 +537,7 @@ export default class AuthService {
 
         case CONFIRM_ATTRIBUTE_REQ: {
           let payload = <AuthLoggedInUserAttrPayload>relatedAction.payload!;
-          let user = state.user!;
+          const user = Object.assign(new User(), state.user);
           switch (payload.attrName!) {
             case ATTRIB_EMAIL_ADDRESS:
               user.emailAddressVerified = true;
