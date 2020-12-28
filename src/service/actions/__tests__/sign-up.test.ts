@@ -1,16 +1,21 @@
-import { combineReducers, createStore, applyMiddleware } from 'redux';
-import { createEpicMiddleware } from 'redux-observable';
+import {
+  Logger,
+  LOG_LEVEL_TRACE,
+  setLogLevel,
+} from '@appbricks/utils';
+import { ActionTester } from '@appbricks/test-utils';
 
-import { Logger, LOG_LEVEL_TRACE, setLogLevel, reduxLogger, combineEpicsWithGlobalErrorHandler } from '@appbricks/utils';
+import { 
+  SIGN_UP_REQ,
+  AuthUserPayload,
+  AuthVerificationPayload
+} from '../../action';
 
-import User from '../../../model/user';
-import AuthService from '../../auth-service';
-
-import { SIGN_UP_REQ } from '../../action';
-import { signUpAction } from '../../actions/sign-up'
-
-import { MockProvider } from '../../__tests__/mock-provider';
-import createRequestTester, { getTestUser, expectTestUserToBeSet } from '../../__tests__/request-tester-user';
+import { 
+  MockProvider,
+  getTestUser
+} from '../../__tests__/mock-provider';
+import { initServiceDispatch }  from './initialize-test';
 
 // set log levels
 if (process.env.DEBUG) {
@@ -19,47 +24,52 @@ if (process.env.DEBUG) {
 const logger = new Logger('sign-up.test');
 
 // test reducer validates action flows
-const requestTester = createRequestTester(logger, SIGN_UP_REQ, true);
-
-let rootReducer = combineReducers({
-  auth: requestTester.reducer()
-})
-
-let epicMiddleware = createEpicMiddleware();
-let store: any = createStore(
-  rootReducer, 
-  applyMiddleware(reduxLogger, epicMiddleware)
-);
-
 const mockProvider = new MockProvider();
-mockProvider.setConfirmed = true;
-
-const authService = new AuthService(mockProvider)
-let rootEpic = combineEpicsWithGlobalErrorHandler(authService.epics())
-epicMiddleware.run(rootEpic);
-
-const dispatch = AuthService.dispatchProps(store.dispatch)
+const actionTester = new ActionTester(logger);
+// test service dispatcher
+const dispatch = initServiceDispatch(mockProvider, actionTester);
 
 it('dispatches an action to sign up a user', async () => {
+  
   let user = getTestUser();
+  user.username = ''
+
+  // user validation error
+  actionTester.expectAction<AuthUserPayload>(SIGN_UP_REQ, { user })
+    .error('Insufficient user data provided for sign-up.');
+
   dispatch.authService!.signUp(user);
+  await actionTester.done();
+  expect(actionTester.hasErrors).toBeFalsy();
 
-  // Should throw an error
-  let userWithError = getTestUser();
-  userWithError.username = 'error';
-  dispatch.authService!.signUp(userWithError);
+  // provider error
+  user.username = 'error'
 
-  // Should throw another error as user is invalid
-  dispatch.authService!.signUp(new User());
-});
+  actionTester.expectAction<AuthUserPayload>(SIGN_UP_REQ, { user })
+    .error('invalid username');
 
-it('calls reducer as expected when sign up action is dispatched', () => {
+  dispatch.authService!.signUp(user);
+  await actionTester.done();
+  expect(actionTester.hasErrors).toBeFalsy();
+
+  // no errors
+  user.username = 'johndoe'
+
+  actionTester.expectAction<AuthUserPayload>(SIGN_UP_REQ, { user })
+    .success<AuthVerificationPayload>(undefined,
+      (counter, state, action): any => {
+        const info = action.payload!.info;
+        expect(info.type).toEqual(1);
+        expect(info.destination).toEqual('test.appbricks@gmail.com');
+        expect(info.attrName).toEqual('email');
+        expect(info.isConfirmed).toBeFalsy();
+        return state;
+      }
+    );
+
+  dispatch.authService!.signUp(user);
+  await actionTester.done();
+  expect(actionTester.hasErrors).toBeFalsy();
+
   expect(mockProvider.signUpCounter).toEqual(2);
-  expect(requestTester.reqCounter).toEqual(3);
-  expect(requestTester.okCounter).toEqual(1);
-  expect(requestTester.errorCounter).toEqual(2);
-});
-
-it('has saved the correct user in the state', () => {
-  expectTestUserToBeSet(store.getState().auth.user, true);
 });

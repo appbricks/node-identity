@@ -26,6 +26,8 @@ export const ERROR_VALIDATE_MFA_CODE = 'validateMFACodeError';
 export const ERROR_SIGN_OUT = 'signOutError';
 export const ERROR_SEND_VERIFICATION_CODE_FOR_ATTRIBUTE = 'sendVerificationCodeForAttributeError';
 export const ERROR_CONFIRM_VERIFICATION_CODE_FOR_ATTRIBUTE = 'confirmVerificationCodeForAttributeError';
+export const ERROR_SETUP_TOTP = 'setupTOTPError';
+export const ERROR_VERIFY_TOTP= 'verifyTOTPError';
 export const ERROR_READ_USER = 'readUserError';
 export const ERROR_SAVE_USER = 'saveUserError';
 

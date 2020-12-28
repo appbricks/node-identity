@@ -2,6 +2,7 @@ import * as redux from 'redux';
 import { Epic } from 'redux-observable';
 
 import { 
+  SUCCESS,
   Action, 
   createAction, 
   createFollowUpAction, 
@@ -11,8 +12,7 @@ import {
 import Provider from '../provider';
 import { 
   AuthUsernamePayload, 
-  RESET_PASSWORD_REQ, 
-  SERVICE_RESPONSE_OK 
+  RESET_PASSWORD_REQ 
 } from '../action';
 import { AuthStateProps } from '../state';
 
@@ -26,7 +26,7 @@ export const resetPasswordEpic = (csProvider: Provider): Epic => {
     RESET_PASSWORD_REQ, 
     async (action, state$) => {
       await csProvider.resetPassword(action.payload!.username);
-      return createFollowUpAction(action, SERVICE_RESPONSE_OK);
+      return createFollowUpAction(action, SUCCESS);
     }
   );
 }

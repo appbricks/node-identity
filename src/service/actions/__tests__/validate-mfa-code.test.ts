@@ -1,15 +1,25 @@
-import { combineReducers, createStore, applyMiddleware } from 'redux';
-import { createEpicMiddleware } from 'redux-observable';
+import {
+  Logger,
+  LOG_LEVEL_TRACE,
+  setLogLevel,
+  NOOP
+} from '@appbricks/utils';
+import { ActionTester } from '@appbricks/test-utils';
 
-import { Logger, LOG_LEVEL_TRACE, setLogLevel, reduxLogger, combineEpicsWithGlobalErrorHandler } from '@appbricks/utils';
-import AuthService from '../../auth-service';
+import { 
+  VALIDATE_MFA_CODE_REQ, 
+  READ_USER_REQ, 
+  AuthMultiFactorAuthPayload, 
+  AuthLoggedInPayload, 
+  AuthUserPayload 
+} from '../../action';
+import { AUTH_MFA_SMS } from '../../constants';
 
-import { AuthState } from '../../state';
-import { AuthMultiFactorAuthPayload, AuthLoggedInPayload, AuthUserPayload, VALIDATE_MFA_CODE_REQ, READ_USER_REQ } from '../../action';
-
-import { MockProvider } from '../../__tests__/mock-provider';
-import { ServiceRequestTester } from '../../__tests__/request-tester';
-import { expectTestUserToBeSet } from '../../__tests__/request-tester-user';
+import { 
+  MockProvider,
+  getTestUser
+} from '../../__tests__/mock-provider';
+import { initServiceDispatch }  from './initialize-test';
 
 // set log levels
 if (process.env.DEBUG) {
@@ -18,106 +28,61 @@ if (process.env.DEBUG) {
 const logger = new Logger('validate-mfa-code.test');
 
 // test reducer validates action flows
-const requestTester = new ServiceRequestTester<AuthMultiFactorAuthPayload, AuthLoggedInPayload>(logger,
-  VALIDATE_MFA_CODE_REQ,
-  (counter, state, action): AuthState => {
-
-    switch (counter) {
-      case 1: {
-        expect(action.payload!.mfaCode).toEqual('12345');
-        break;
-      }
-      case 2: {
-        expect(action.payload!.mfaCode).toEqual('00000');
-        break;
-      }
-      case 3: {
-        expect(action.payload!.mfaCode).toEqual('12345');
-        break;
-      }
-    }
-    return state;
-  },
-  (counter, state, action): AuthState => {
-    switch (action.meta.relatedAction!.type) {
-      case VALIDATE_MFA_CODE_REQ: {
-        expect(counter).toBe(1);
-        expect(action.payload!.isLoggedIn).toBeTruthy();
-
-        let payload = <AuthMultiFactorAuthPayload>action.meta.relatedAction!.payload;
-        expect(payload.mfaCode).toEqual('12345');
-
-        state.isLoggedIn = action.payload!.isLoggedIn;
-        return {...state, 
-          session: state.session
-        };
-      }
-      case READ_USER_REQ: {
-        expect(counter).toBe(2);
-        let payload = <unknown>action.payload!;
-        let user = (<AuthUserPayload>payload).user;
-        expectTestUserToBeSet(user, true);
-        return {...state, user};
-      }
-    }
-    return state;
-  },
-  (counter, state, action): AuthState => {
-
-    switch (counter) {
-      case 1: {
-        expect(action.payload!.message).toEqual('The current session is already logged in.');
-        break;
-      }
-      case 2: {
-        expect(action.payload!.message).toEqual('invalid code');
-        break;
-      }
-    }
-    return state;
-  },
-  false
-);
-
-const rootReducer = combineReducers({
-  auth: requestTester.reducer()
-})
-
-const epicMiddleware = createEpicMiddleware();
-const store: any = createStore(
-  rootReducer, 
-  applyMiddleware(reduxLogger, epicMiddleware)
-);
-
 const mockProvider = new MockProvider(true);
-const authService = new AuthService(mockProvider)
-const rootEpic = combineEpicsWithGlobalErrorHandler(authService.epics())
-epicMiddleware.run(rootEpic);
-
-const dispatch = AuthService.dispatchProps(store.dispatch)
+const actionTester = new ActionTester(logger);
+// test service dispatcher
+const dispatch = initServiceDispatch(mockProvider, actionTester);
 
 it('dispatches an action to sign up a user', async () => {
-  // error as session already logged in
-  mockProvider.loggedIn = true;
-  dispatch.authService!.validateMFACode('12345');
-  mockProvider.loggedIn = false;
 
   // error invalide code
-  dispatch.authService!.validateMFACode('00000');
-  // succesful login
-  dispatch.authService!.validateMFACode('12345');
-});
+  actionTester.expectAction<AuthMultiFactorAuthPayload>(VALIDATE_MFA_CODE_REQ, <AuthMultiFactorAuthPayload>{ 
+    mfaCode: '00000', 
+    mfaType: AUTH_MFA_SMS
+  })
+    .error('invalid code');
+  actionTester.expectAction(NOOP);
 
-it('calls reducer as expected when sign up action is dispatched', () => {
+  dispatch.authService!.validateMFACode('00000', AUTH_MFA_SMS);
+  await actionTester.done();
+  expect(actionTester.hasErrors).toBeFalsy();
+
+  // no errors (valid code)
+  mockProvider.loginMethod = AUTH_MFA_SMS;
+
+  const user = getTestUser();
+  user.setConfirmed(true);
+  user.profilePictureUrl = 'https://s.gravatar.com/avatar/d9ef80abd8bcc51c54f1daaad268ad58?default=404&size=42';
+
+  // successful but requires MFA
+  actionTester.expectAction<AuthMultiFactorAuthPayload>(VALIDATE_MFA_CODE_REQ, { 
+    mfaCode: '12345', 
+    mfaType: AUTH_MFA_SMS
+  })
+    .success<AuthLoggedInPayload>({
+      isLoggedIn: true,
+      mfaType: AUTH_MFA_SMS
+    })
+      .followUpAction(READ_USER_REQ)
+        .success<AuthUserPayload>({ user });
+
+  dispatch.authService!.validateMFACode('12345', AUTH_MFA_SMS);
+  await actionTester.done();
+  expect(actionTester.hasErrors).toBeFalsy();
+      
+  // error as session already logged in
+  actionTester.expectAction<AuthMultiFactorAuthPayload>(VALIDATE_MFA_CODE_REQ, { 
+    mfaCode: '12345', 
+    mfaType: AUTH_MFA_SMS
+  })
+    .error('The current session is already logged in.');
+  actionTester.expectAction(NOOP);
+
+  dispatch.authService!.validateMFACode('12345', AUTH_MFA_SMS);
+  await actionTester.done();
+  expect(actionTester.hasErrors).toBeFalsy();
+  
   expect(mockProvider.isLoggedInCounter).toEqual(4);
   expect(mockProvider.validateMFACodeCounter).toEqual(2);
-  expect(requestTester.reqCounter).toEqual(3);
-  expect(requestTester.okCounter).toEqual(2);
-  expect(requestTester.errorCounter).toEqual(2);  
-});
-
-it('has saved the correct user in the state', () => {
-  let state = store.getState();
-  expectTestUserToBeSet(state.auth.user, true);
-  expect(state.auth.isLoggedIn).toBeTruthy();
+  expect(mockProvider.readUserCounter).toEqual(1);
 });

@@ -2,6 +2,7 @@ import * as redux from 'redux';
 import { Epic } from 'redux-observable';
 
 import { 
+  SUCCESS,
   Action,
   createAction, 
   createFollowUpAction, 
@@ -11,8 +12,7 @@ import {
 import Provider from '../provider';
 import { 
   AuthStatePayload, 
-  SIGN_OUT_REQ, 
-  SERVICE_RESPONSE_OK 
+  SIGN_OUT_REQ 
 } from '../action';
 import { AuthStateProps } from '../state';
 
@@ -28,10 +28,9 @@ export const signOutEpic = (csProvider: Provider): Epic => {
         await csProvider.signOut();
       }
             
-      action.payload = <AuthStatePayload>{
+      return createFollowUpAction<AuthStatePayload>(action, SUCCESS, {
         isLoggedIn: false
-      }
-      return createFollowUpAction(action, SERVICE_RESPONSE_OK);
+      });
     }
   );
 }

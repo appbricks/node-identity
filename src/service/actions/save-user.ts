@@ -2,6 +2,7 @@ import * as redux from 'redux';
 import { Epic } from 'redux-observable';
 
 import { 
+  SUCCESS,
   Action, 
   createAction, 
   createFollowUpAction, 
@@ -12,8 +13,7 @@ import User from '../../model/user';
 import Provider from '../provider';
 import { 
   AuthUserPayload, 
-  SAVE_USER_REQ, 
-  SERVICE_RESPONSE_OK 
+  SAVE_USER_REQ
 } from '../action';
 import { AuthStateProps } from '../state';
 
@@ -31,7 +31,7 @@ export const saveUserEpic = (csProvider: Provider): Epic => {
       }
 
       await csProvider.saveUser(action.payload!.user);
-      return createFollowUpAction(action, SERVICE_RESPONSE_OK);
+      return createFollowUpAction(action, SUCCESS);
     }
   );
 }

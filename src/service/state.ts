@@ -9,7 +9,14 @@ export interface AuthState extends State {
   isLoggedIn: boolean
 
   user?: User
+
+  // new user signup
   awaitingUserConfirmation?: VerificationInfo
+
+  // secret for TOTP setup
+  tokenSecret?: string
+
+  // 2nd factor auth code
   awaitingMFAConfirmation?: number
 };
 
@@ -20,9 +27,7 @@ export interface AuthStateProps {
 
 export const initialAuthState = (): AuthState => 
   <AuthState>{
-    actionStatus: {
-      result: ActionResult.none
-    },
+    status: [],
 
     session: new Session(),
     isLoggedIn: false

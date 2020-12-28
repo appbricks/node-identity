@@ -1,15 +1,28 @@
-import { combineReducers, createStore, applyMiddleware } from 'redux';
-import { createEpicMiddleware } from 'redux-observable';
+import {
+  Logger,
+  LOG_LEVEL_TRACE,
+  setLogLevel,
+  NOOP
+} from '@appbricks/utils';
+import { ActionTester } from '@appbricks/test-utils';
 
-import { Logger, LOG_LEVEL_TRACE, setLogLevel, reduxLogger, combineEpicsWithGlobalErrorHandler } from '@appbricks/utils';
-import AuthService from '../../auth-service';
+import { 
+  SIGN_IN_REQ,
+  READ_USER_REQ,
+  AuthSignInPayload, 
+  AuthUserPayload, 
+  AuthLoggedInPayload 
+} from '../../action';
+import { 
+  AUTH_NO_MFA,
+  AUTH_MFA_SMS 
+} from '../../constants';
 
-import { AuthState } from '../../state';
-import { AuthSignInPayload, AuthUserPayload, SIGN_IN_REQ, READ_USER_REQ, AuthLoggedInPayload } from '../../action';
-
-import { MockProvider } from '../../__tests__/mock-provider';
-import { ServiceRequestTester } from '../../__tests__/request-tester';
-import { expectTestUserToBeSet } from '../../__tests__/request-tester-user';
+import { 
+  MockProvider,
+  getTestUser
+} from '../../__tests__/mock-provider';
+import { initServiceDispatch }  from './initialize-test';
 
 // set log levels
 if (process.env.DEBUG) {
@@ -18,116 +31,105 @@ if (process.env.DEBUG) {
 const logger = new Logger('sign-in.test');
 
 // test reducer validates action flows
-const requestTester = new ServiceRequestTester<AuthSignInPayload, AuthLoggedInPayload>(logger,
-  SIGN_IN_REQ,
-  (counter, state, action): AuthState => {
-    expect(action.payload!.username).toEqual('johndoe');
-
-    switch (counter) {
-      case 1: {
-        // login error
-        expect(action.payload!.password).toEqual('00000');
-        break;
-      }
-      case 2:
-      case 3: {
-        // successful login
-        expect(action.payload!.password).toEqual('@ppBricks2020');
-        break;
-      }
-    }
-    return state;
-  },
-  (counter, state, action): AuthState => {
-    switch (action.meta.relatedAction!.type) {
-      case SIGN_IN_REQ: {
-        expect(counter).toBe(1);
-        expect((<AuthLoggedInPayload>action.payload).isLoggedIn).toBeTruthy();
-
-        let payload = (<AuthSignInPayload>action.meta.relatedAction!.payload);
-        expect(payload.username).toEqual('johndoe');
-        expect(payload.password).toEqual('@ppBricks2020');
-
-        state.isLoggedIn = true;
-        return {
-          ...state,
-          session: state.session
-        };
-      }
-      case READ_USER_REQ: {
-        expect(counter).toBe(2);
-        let payload = <unknown>action.payload!;
-        let user = (<AuthUserPayload>payload).user;
-        expectTestUserToBeSet(user, true);
-        return {...state, user};
-      }
-    }
-    return state;
-  },
-  (counter, state, action): AuthState => {
-    switch (counter) {
-      case 1: {
-        // login error
-        expect(action.payload!.message).toEqual('invalid password');
-        break;
-      }
-      case 2: {
-        // login error
-        expect(action.payload!.message).toEqual('The current session is already logged in.');
-        break;
-      }
-    }
-    return state;
-  },
-  false
-);
-
-const rootReducer = combineReducers({
-  auth: requestTester.reducer()
-})
-
-const epicMiddleware = createEpicMiddleware();
-const store: any = createStore(
-  rootReducer, 
-  applyMiddleware(reduxLogger, epicMiddleware)
-);
-
 const mockProvider = new MockProvider(true);
-const authService = new AuthService(mockProvider)
-const rootEpic = combineEpicsWithGlobalErrorHandler(authService.epics())
-epicMiddleware.run(rootEpic);
-
-const dispatch = AuthService.dispatchProps(store.dispatch)
+const actionTester = new ActionTester(logger);
+// test service dispatcher
+const dispatch = initServiceDispatch(mockProvider, actionTester);
 
 it('dispatches an action to sign up a user', async () => {  
+  
   // invalid login
+  actionTester.expectAction<AuthSignInPayload>(SIGN_IN_REQ, { 
+    username: 'johndoe', 
+    password: '00000'
+  })
+    .error('invalid password');
+  actionTester.expectAction(NOOP);
+
   dispatch.authService!.signIn('johndoe', '00000');
-  // successful login
+  await actionTester.done();
+  expect(actionTester.hasErrors).toBeFalsy();
+
+  // return SMS MFA on successful credential validation
+  mockProvider.loginMethod = AUTH_MFA_SMS;
+
+  // successful but requires MFA
+  actionTester.expectAction<AuthSignInPayload>(SIGN_IN_REQ, { 
+    username: 'johndoe', 
+    password: '@ppBricks2020'
+  })
+    .success<AuthLoggedInPayload>({
+      isLoggedIn: false,
+      mfaType: AUTH_MFA_SMS
+    });
+  actionTester.expectAction(NOOP);
+
   dispatch.authService!.signIn('johndoe', '@ppBricks2020');
-});
+  await actionTester.done();
+  expect(actionTester.hasErrors).toBeFalsy();
 
-it('calls reducer as expected when sign up action is dispatched', () => {
-  expect(mockProvider.isLoggedInCounter).toEqual(4);
-  expect(mockProvider.validateSessionCounter).toEqual(2);
-  expect(mockProvider.signInCounter).toEqual(2);
-  expect(requestTester.reqCounter).toEqual(2);
-  expect(requestTester.okCounter).toEqual(2);
-  expect(requestTester.errorCounter).toEqual(1);
-});
+  // return NO MFA on successful credential validation
+  mockProvider.loginMethod = AUTH_NO_MFA;
 
-it('has saved the correct user in the state', () => {
-  let state = store.getState();
-  expectTestUserToBeSet(state.auth.user, true);
-  expect(state.auth.isLoggedIn).toBeTruthy();
-});
+  const user = getTestUser();
+  user.setConfirmed(true);
+  user.profilePictureUrl = 'https://s.gravatar.com/avatar/d9ef80abd8bcc51c54f1daaad268ad58?default=404&size=42';
 
-it('it attempts to sign to an existing session', () => {
-  // relogin attempt should return error as already logged in
+  // successful but requires MFA
+  actionTester.expectAction<AuthSignInPayload>(SIGN_IN_REQ, { 
+    username: 'johndoe', 
+    password: '@ppBricks2020'
+  })
+    .success<AuthLoggedInPayload>({
+      isLoggedIn: true,
+      mfaType: AUTH_NO_MFA
+    })
+      .followUpAction(READ_USER_REQ)
+        .success<AuthUserPayload>({ user });
+
   dispatch.authService!.signIn('johndoe', '@ppBricks2020');
-});
+  await actionTester.done();
+  expect(actionTester.hasErrors).toBeFalsy();
+  expect(mockProvider.isLoggedIn).toBeTruthy();
 
-it('calls reducer as expected when sign up action is dispatched', () => {
-  expect(requestTester.reqCounter).toEqual(3);
-  expect(requestTester.okCounter).toEqual(2);
-  expect(requestTester.errorCounter).toEqual(2);
+  // error 
+  actionTester.expectAction<AuthSignInPayload>(SIGN_IN_REQ, { 
+    username: 'johndoe', 
+    password: '@ppBricks2020'
+  })
+    .error('The current session is already logged in.');
+
+  dispatch.authService!.signIn('johndoe', '@ppBricks2020');
+  await actionTester.done();
+  expect(actionTester.hasErrors).toBeFalsy();
+
+  expect(mockProvider.signOutCounter).toEqual(0);
+
+  // session valid but for different user so 
+  // that user should be logged out and new
+  // user logged in
+  mockProvider.loggedIn = false;
+  mockProvider.sessionValid = true;
+
+  actionTester.expectAction<AuthSignInPayload>(SIGN_IN_REQ, { 
+    username: 'johndoe', 
+    password: '@ppBricks2020'
+  })
+    .success<AuthLoggedInPayload>({
+      isLoggedIn: true,
+      mfaType: AUTH_NO_MFA
+    })
+      .followUpAction(READ_USER_REQ)
+        .success<AuthUserPayload>({ user });
+
+  dispatch.authService!.signIn('johndoe', '@ppBricks2020');
+  await actionTester.done();
+  expect(actionTester.hasErrors).toBeFalsy();
+  expect(mockProvider.isLoggedIn).toBeTruthy();
+  
+  expect(mockProvider.isLoggedInCounter).toEqual(10);
+  expect(mockProvider.validateSessionCounter).toEqual(4);
+  expect(mockProvider.signOutCounter).toEqual(1);
+  expect(mockProvider.signInCounter).toEqual(4);
+  expect(mockProvider.readUserCounter).toEqual(2);
 });

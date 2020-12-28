@@ -1,14 +1,22 @@
-import { combineReducers, createStore, applyMiddleware } from 'redux';
-import { createEpicMiddleware } from 'redux-observable';
+import { 
+  Logger, 
+  LOG_LEVEL_TRACE, 
+  setLogLevel, 
+} from '@appbricks/utils';
+import { ActionTester } from '@appbricks/test-utils';
 
-import { Logger, LOG_LEVEL_TRACE, setLogLevel, reduxLogger, combineEpicsWithGlobalErrorHandler } from '@appbricks/utils';
+import User from '../../../model/user';
 
-import AuthService from '../../auth-service';
+import { 
+  CONFIGURE_MFA_REQ,
+  AuthUserPayload
+} from '../../action';
 
-import { CONFIGURE_MFA_REQ } from '../../action';
-
-import { MockProvider } from '../../__tests__/mock-provider';
-import createRequestTester, { getTestUser, expectTestUserToBeSet } from '../../__tests__/request-tester-user';
+import { 
+  getTestUser, 
+  MockProvider 
+} from '../../__tests__/mock-provider';
+import { initServiceDispatch } from './initialize-test';
 
 // set log levels
 if (process.env.DEBUG) {
@@ -17,50 +25,55 @@ if (process.env.DEBUG) {
 const logger = new Logger('configure-mfa.test');
 
 // test reducer validates action flows
-const requestTester = createRequestTester(logger, CONFIGURE_MFA_REQ, true, true);
-let rootReducer = combineReducers({
-  auth: requestTester.reducer()
-})
-
-let epicMiddleware = createEpicMiddleware();
-let store: any = createStore(
-  rootReducer, 
-  applyMiddleware(reduxLogger, epicMiddleware)
-);
-
 const mockProvider = new MockProvider();
-let authService = new AuthService(mockProvider);
-let rootEpic = combineEpicsWithGlobalErrorHandler(authService.epics())
-epicMiddleware.run(rootEpic);
-
-const dispatch = AuthService.dispatchProps(store.dispatch)
+const actionTester = new ActionTester(logger);
+// test service dispatcher
+const dispatch = initServiceDispatch(mockProvider, actionTester);
 
 it('dispatches an action to configure MFA for a user', async () => {
 
   // expect error as user is not logged in
+  actionTester.expectAction<AuthUserPayload>(CONFIGURE_MFA_REQ, { 
+    user: getTestUser() 
+  })
+    .error('No user logged in. The user needs to be logged in before MFA can be configured.');
+
   dispatch.authService!.configureMFA(getTestUser());
+  await actionTester.done();
+  expect(actionTester.hasErrors).toBeFalsy();
+
+  // set logged in state to true
   mockProvider.loggedIn = true;
 
-  // Should throw an error
-  let userWithError = getTestUser();
-  userWithError.username = 'error';
-  dispatch.authService!.configureMFA(userWithError);
-
-  // expect no errors
-  let user = getTestUser();
+  // confirmed valid user
+  let user = getTestUser();  
   user.setConfirmed(true);
   user.enableMFA = true;
-  dispatch.authService!.configureMFA(user);
-});
 
-it('calls reducer as expected when configure MFA action is dispatched', () => {
+  // expect no errors
+  actionTester.expectAction<AuthUserPayload>(CONFIGURE_MFA_REQ, { 
+    user 
+  })
+    .success();
+
+  dispatch.authService!.configureMFA(user);
+  await actionTester.done();
+  expect(actionTester.hasErrors).toBeFalsy();
+
+  // create user that will cause mock
+  // provider to throw and error
+  let userWithError = Object.assign(new User(), user);
+  userWithError.username = 'error';
+
+  actionTester.expectAction<AuthUserPayload>(CONFIGURE_MFA_REQ, { 
+    user: userWithError 
+  })
+    .error('invalid username');
+
+  dispatch.authService!.configureMFA(userWithError);
+  await actionTester.done();
+  expect(actionTester.hasErrors).toBeFalsy();
+
   expect(mockProvider.isLoggedInCounter).toEqual(3);
   expect(mockProvider.configureMFACounter).toEqual(2);
-  expect(requestTester.reqCounter).toEqual(3);
-  expect(requestTester.okCounter).toEqual(1);
-  expect(requestTester.errorCounter).toEqual(2);
-});
-
-it('has saved the correct user changes to the state', () => {
-  expectTestUserToBeSet(store.getState().auth.user, true, true);
 });

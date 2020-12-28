@@ -39,7 +39,7 @@ import { AuthState } from '../state';
 import AuthService from '../auth-service';
 
 import { MockProvider } from './mock-provider';
-import { getTestUser, expectTestUserToBeSet } from './request-tester-user';
+import { getTestUser, expectTestUserToBeSet } from './test-user';
 
 if (process.env.DEBUG) {
   setLogLevel(LOG_LEVEL_TRACE);

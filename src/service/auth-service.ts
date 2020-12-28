@@ -2,7 +2,7 @@ import * as redux from 'redux';
 import { Epic } from 'redux-observable';
 
 import {
-  NOOP,
+  SUCCESS,
   ERROR,
   RESET_STATUS,
   ErrorPayload,
@@ -12,13 +12,20 @@ import {
   setActionStatus,
   resetActionStatus,
   LocalStorage,
-  Logger
+  Logger,
 } from '@appbricks/utils';
 
 import Session from '../model/session';
-import User, { UserStatus, VerificationType } from '../model/user';
+import User, {
+  UserStatus,
+  VerificationType
+} from '../model/user';
 
-import { AUTH_NO_MFA, ATTRIB_EMAIL_ADDRESS, ATTRIB_MOBILE_PHONE } from './constants';
+import {
+  AUTH_NO_MFA,
+  ATTRIB_EMAIL_ADDRESS,
+  ATTRIB_MOBILE_PHONE
+} from './constants';
 import Provider from './provider';
 
 import {
@@ -33,9 +40,9 @@ import {
   AuthVerificationPayload,
   AuthSignInPayload,
   AuthMultiFactorAuthPayload,
+  AuthTOTPSecretPayload,
   AuthLoggedInUserAttrPayload,
   AuthActionProps,
-  SERVICE_RESPONSE_OK,
   SIGN_UP_REQ,
   RESEND_SIGN_UP_CODE_REQ,
   CONFIRM_SIGN_UP_CODE_REQ,
@@ -48,6 +55,8 @@ import {
   VERIFY_ATTRIBUTE_REQ,
   CONFIRM_ATTRIBUTE_REQ,
   CONFIGURE_MFA_REQ,
+  SETUP_TOTP_REQ,
+  VERIFY_TOTP_REQ,
   SAVE_USER_REQ,
   READ_USER_REQ,
   AuthLoggedInPayload
@@ -62,21 +71,23 @@ import { updatePasswordAction, updatePasswordEpic } from './actions/update-passw
 import { loadAuthStateAction, loadAuthStateEpic } from './actions/load-auth-state';
 import { signInAction, signInEpic } from './actions/sign-in';
 import { validateMFACodeAction, validateMFACodeEpic } from './actions/validate-mfa-code';
+import { setupTOTPAction, setupTOTPEpic } from './actions/setup-totp';
+import { verifyTOTPAction, verifyTOTPEpic } from './actions/verify-totp';
 import { signOutAction, signOutEpic } from './actions/sign-out';
 import { verifyAttributeAction, verifyAttributeEpic } from './actions/verify-attribute';
 import { confirmAttributeAction, confirmAttributeEpic } from './actions/confirm-attribute';
 import { readUserAction, readUserEpic } from './actions/read-user';
 import { saveUserAction, saveUserEpic } from './actions/save-user';
 
-type AuthPayload = 
+type AuthPayload =
   AuthStatePayload |
   AuthUserPayload |
   AuthUsernamePayload |
   AuthVerificationPayload |
   AuthSignInPayload |
   AuthMultiFactorAuthPayload |
-  AuthLoggedInUserAttrPayload | 
-  ErrorPayload | 
+  AuthLoggedInUserAttrPayload |
+  ErrorPayload |
   ResetStatusPayload;
 
 export default class AuthService {
@@ -106,7 +117,9 @@ export default class AuthService {
       .add(SIGN_OUT_REQ)
       .add(VERIFY_ATTRIBUTE_REQ)
       .add(CONFIRM_ATTRIBUTE_REQ)
-      .add(CONFIGURE_MFA_REQ)      
+      .add(CONFIGURE_MFA_REQ)
+      .add(SETUP_TOTP_REQ)
+      .add(VERIFY_TOTP_REQ)
       .add(SAVE_USER_REQ)
       .add(READ_USER_REQ);
   }
@@ -124,7 +137,7 @@ export default class AuthService {
         signUp: (user: User) =>
           signUpAction(dispatch, user),
 
-        resendSignUpCode: (username?: string) => 
+        resendSignUpCode: (username?: string) =>
           resendSignUpCodeAction(dispatch, username ? username : ownProps!.auth!.user!.username),
         confirmSignUpCode: (code: string, username?: string) =>
           confirmSignUpCodeAction(dispatch, username ? username : ownProps!.auth!.user!.username, code),
@@ -137,8 +150,8 @@ export default class AuthService {
         // user authentication
         signIn: (username: string, password: string) =>
           signInAction(dispatch, username, password),
-        validateMFACode: (code: string) =>
-          validateMFACodeAction(dispatch, code),
+        validateMFACode: (code: string, type: number) =>
+          validateMFACodeAction(dispatch, code, type),
         signOut: () =>
           signOutAction(dispatch),
 
@@ -150,6 +163,10 @@ export default class AuthService {
 
         configureMFA: (user: User) =>
           configureMFAAction(dispatch, user),
+        setupTOTP: () =>
+          setupTOTPAction(dispatch),
+        verifyTOTP: (code: string) =>
+          verifyTOTPAction(dispatch, code),
 
         saveUser: (user: User) => saveUserAction(dispatch, user),
         readUser: () => readUserAction(dispatch)
@@ -180,21 +197,23 @@ export default class AuthService {
     }
     return this.localStore!;
   }
-  
+
   epics(): Epic[] {
     const csProvider = this.csProvider;
 
     return [
+      loadAuthStateEpic(csProvider),
       signUpEpic(csProvider),
       resendSignUpCodeEpic(csProvider),
       confirmSignUpCodeEpic(csProvider),
-      configureMFAEpic(csProvider),
       resetPasswordEpic(csProvider),
       updatePasswordEpic(csProvider),
-      loadAuthStateEpic(csProvider),
       signInEpic(csProvider),
       validateMFACodeEpic(csProvider),
       signOutEpic(csProvider),
+      configureMFAEpic(csProvider),
+      setupTOTPEpic(csProvider),
+      verifyTOTPEpic(csProvider),
       verifyAttributeEpic(csProvider),
       confirmAttributeEpic(csProvider),
       readUserEpic(csProvider),
@@ -212,8 +231,8 @@ export default class AuthService {
   ): AuthState {
 
     if (state.isLoggedIn) {
-      // ensure activity timestamp is refreshed for 
-      // all actions regardless of target reducer 
+      // ensure activity timestamp is refreshed for
+      // all actions regardless of target reducer
       // when logged in
       const session = Object.assign(new Session(), state.session);
       session.updateActivityTimestamp();
@@ -225,7 +244,7 @@ export default class AuthService {
 
     switch (action.type) {
       case LOAD_AUTH_STATE_REQ: {
-        if (state.session.isValid()) 
+        if (state.session.isValid())
           // NOOP if auth session valid
           return state;
 
@@ -251,31 +270,31 @@ export default class AuthService {
                 if (userConfirmationData) {
                   if (user.status != UserStatus.Unconfirmed) {
                     this.logger.trace(
-                      'Found user confirmation data, but saved user did not have an unconfirmed status:', 
+                      'Found user confirmation data, but saved user did not have an unconfirmed status:',
                       userConfirmationData, user);
-    
+
                   } else {
                     this.logger.trace(
-                      'Setting last known user and confirmation data from local store to state:', 
+                      'Setting last known user and confirmation data from local store to state:',
                       userConfirmationData, user);
-    
+
                     state.user = user;
                     state.awaitingUserConfirmation = userConfirmationData;
                   }
                 } else if (!state.session.isTimedout(user)) {
                   this.logger.trace(
-                    'Setting last logged in user to state:', 
+                    'Setting last logged in user to state:',
                     user);
 
                   state.user = user;
                 } else {
                   this.logger.trace(
-                    'Saved user has timedout:', 
+                    'Saved user has timedout:',
                     user);
                 }
               }
-            }            
-          }          
+            }
+          }
         }
         break;
       }
@@ -294,7 +313,7 @@ export default class AuthService {
       case SIGN_IN_REQ: {
         const user = new User();
         user.username = (<AuthSignInPayload>action.payload!).username;
-        
+
         state = {
           ...state,
           isLoggedIn: false,
@@ -304,16 +323,16 @@ export default class AuthService {
         break;
       }
 
-      case SERVICE_RESPONSE_OK:
+      case SUCCESS:
         return this.reduceServiceResponse(state, action);
 
       case ERROR:
         const relatedAction = action.meta.relatedAction;
-        if (relatedAction && 
+        if (relatedAction &&
           this.serviceRequests.has(relatedAction.type)) {
 
           this.logger.error(
-            'Handling service request error for action: ', 
+            'Handling service request error for action: ',
             relatedAction.type);
 
           return setActionStatus<AuthState>(
@@ -326,13 +345,13 @@ export default class AuthService {
           );
         }
         break;
-      
+
       case RESET_STATUS:
         const actionStatusMetaType = (<ResetStatusPayload>action.payload)
           .actionStatus.actionType
-        
+
         if (this.serviceRequests.has(actionStatusMetaType)) {
-          return resetActionStatus(state);
+          return resetActionStatus(actionStatusMetaType, state);
         }
     }
 
@@ -364,10 +383,10 @@ export default class AuthService {
           let payload = <AuthStatePayload>action.payload!;
           if (payload.isLoggedIn) {
 
-            if (state.user && 
+            if (state.user &&
               state.user.status == UserStatus.Confirmed &&
               state.user.username == payload.username) {
-              
+
               session.updateActivityTimestamp();
 
               state = {
@@ -377,15 +396,15 @@ export default class AuthService {
               };
 
               this.logger.trace(
-                'Logged in user session rehydrated:', 
+                'Logged in user session rehydrated:',
                 state.session, state.user);
 
             } else {
-              // session is logged in but user 
-              // in state is not confirmed or does 
+              // session is logged in but user
+              // in state is not confirmed or does
               // not match logged in username
               this.logger.trace(
-                'Invalid login state detected. User session will be reset:', 
+                'Invalid login state detected. User session will be reset:',
                 payload, state.user);
 
                 state = {
@@ -397,7 +416,7 @@ export default class AuthService {
             }
 
           } else {
-            // reset session activity 
+            // reset session activity
             session.reset();
 
             state = {
@@ -439,10 +458,10 @@ export default class AuthService {
         case CONFIRM_SIGN_UP_CODE_REQ: {
           if (state.user) {
             const user = Object.assign(new User(), state.user);
-            
-            if ((<AuthVerificationPayload>action.payload).info.isConfirmed) {              
+
+            if ((<AuthVerificationPayload>action.payload).info.isConfirmed) {
               user.setConfirmed(true);
-  
+
               let awaitingUserConfirmation = state.awaitingUserConfirmation!;
               if (awaitingUserConfirmation.type == VerificationType.Email) {
                 user.emailAddressVerified = true;
@@ -451,7 +470,7 @@ export default class AuthService {
               }
               // remove saved confirmation response data from store
               this.store().removeItem('userConfirmation');
-  
+
               state = {
                 ...state,
                 user,
@@ -474,13 +493,13 @@ export default class AuthService {
         }
 
         case RESET_PASSWORD_REQ: {
-          break;  
+          break;
         }
 
         case UPDATE_PASSWORD_REQ: {
-          break;  
+          break;
         }
-        
+
         case SIGN_IN_REQ: {
           const session = Object.assign(new Session(), state.session);
 
@@ -501,7 +520,7 @@ export default class AuthService {
             isLoggedIn: payload.isLoggedIn,
             awaitingMFAConfirmation: payload.isLoggedIn ? AUTH_NO_MFA : payload.mfaType
           };
-          break;  
+          break;
         }
 
         case VALIDATE_MFA_CODE_REQ: {
@@ -523,7 +542,7 @@ export default class AuthService {
 
           const session = Object.assign(new Session(), state.session);
           session.reset();
-          
+
           state = {
             ...state,
             session,
@@ -532,7 +551,7 @@ export default class AuthService {
             awaitingUserConfirmation: undefined,
             awaitingMFAConfirmation: undefined
           };
-          break;  
+          break;
         }
 
         case CONFIRM_ATTRIBUTE_REQ: {
@@ -550,9 +569,17 @@ export default class AuthService {
           state = {
             ...state,
             user
-          }; 
-          break;  
+          };
+          break;
         }
+
+        case SETUP_TOTP_REQ:
+          let payload = <AuthTOTPSecretPayload>action.payload!;
+          state = {
+            ...state,
+            tokenSecret: payload.secret
+          }
+          break;
 
         case CONFIGURE_MFA_REQ:
         case SAVE_USER_REQ: {
@@ -561,8 +588,8 @@ export default class AuthService {
           state = {
             ...state,
             user: payload.user!
-          };          
-          break; 
+          };
+          break;
         }
 
         case READ_USER_REQ: {
@@ -571,7 +598,7 @@ export default class AuthService {
           state = {
             ...state,
             user: payload.user!
-          };          
+          };
           break;
         }
       }

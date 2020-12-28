@@ -88,7 +88,8 @@ import {
 
   ERROR_NOT_CONFIRMED,
   ERROR_INVALID_CODE,
-  ERROR_INVALID_LOGIN
+  ERROR_INVALID_LOGIN,
+  ERROR_SETUP_TOTP
 } from '../../../constants';
 
 let provider = new Provider(Auth);
@@ -183,6 +184,23 @@ it('initiates verification of the new user\'s mobile phone', async () => {
 
   console.info(`Confirming phone number with verification code ${verificationCode}...`);
   await provider.confirmVerificationCodeForAttribute('phone_number', verificationCode);
+});
+
+it('sets up and verifies user\'s totp settings', async () => {
+
+  console.info(`Logging in with test user ${testUser}...`);
+  await provider.signIn(testUser, '@ppBr!cks2020')
+    .then(authType => expect(authType).toEqual(AUTH_NO_MFA));
+
+  // configure TOTP
+  const secret = await provider.setupTOTP();
+  expect(secret).toBeDefined();
+  expect(secret.length).toBeGreaterThan(0);
+  // we cannot verify the code without setting 
+  // up the secret in google authenticator so 
+  // expect and error on an invalid code
+  await provider.verifyTOTP('123456')
+    .catch(err => expect(err.name).toEqual(ERROR_SETUP_TOTP));
 });
 
 it('configures user\'s mfa settings and saves additional attributes', async () => {

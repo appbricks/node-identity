@@ -23,6 +23,8 @@ import {
   ERROR_SIGN_OUT,
   ERROR_SEND_VERIFICATION_CODE_FOR_ATTRIBUTE,
   ERROR_CONFIRM_VERIFICATION_CODE_FOR_ATTRIBUTE,
+  ERROR_SETUP_TOTP,
+  ERROR_VERIFY_TOTP,
   ERROR_READ_USER,
   ERROR_SAVE_USER,
 
@@ -339,6 +341,8 @@ export default class Provider implements ProviderInterface {
             switch (cognitoUser.challengeName) {
               case 'SMS_MFA':
                 resolve(AUTH_MFA_SMS);
+              case 'SOFTWARE_TOKEN_MFA':
+                resolve(AUTH_MFA_TOTP);
               default:
                 resolve(AUTH_NO_MFA);
             }
@@ -377,8 +381,9 @@ export default class Provider implements ProviderInterface {
    * Validates the given multi-factor authentication code
    * 
    * @param {string} code  The MFA code to validate
+   * @param {number} type  The MFA type (i.e. SMS or TOTP)
    */
-  async validateMFACode(code: string): Promise<boolean> {
+  async validateMFACode(code: string, type: number): Promise<boolean> {
 
     const logger = this.logger;
     const auth = this.auth;
@@ -387,7 +392,15 @@ export default class Provider implements ProviderInterface {
     const isLoggedIn = this.isLoggedIn.bind(this);
 
     return new Promise(function (resolve, reject) {
-      auth.confirmSignIn(cognitoUser, code)
+      auth.confirmSignIn(
+        cognitoUser, 
+        code,
+        type == AUTH_MFA_SMS 
+          ? 'SMS_MFA'
+          : type == AUTH_MFA_TOTP 
+            ? 'SOFTWARE_TOKEN_MFA' 
+            : undefined
+      )
         .then(
           cognitoUser => {
             logger.trace('confirmed sign in: ', cognitoUser);
@@ -526,6 +539,60 @@ export default class Provider implements ProviderInterface {
   }
 
   /**
+   * Setup Time-based One Time Password MFA for the user
+   * 
+   * @return the secret to be used by a token generator 
+   *         app like Google Authenticate app
+   */
+  setupTOTP(): Promise<string> {
+
+    const logger = this.logger;
+    const auth = this.auth;
+    const cognitoUser = this.cognitoUser;
+
+    return new Promise(function (resolve, reject) {
+      auth.setupTOTP(cognitoUser)
+        .then(
+          secret => {
+            logger.trace('successfully setup TOTP: ', secret);
+            resolve(secret);
+          },
+          error => {
+            logger.error('error setting up TOTP: ', error);
+            reject(new Error(ERROR_SETUP_TOTP, error));
+          }
+        );
+    });
+  }
+
+  /**
+   * Verifies the TOTP setup by validating a code generated
+   * by the token generator app with the current setup
+   * 
+   * @param code the token to validate the setup with
+   */
+  verifyTOTP(code: string): Promise<void> {
+
+    const logger = this.logger;
+    const auth = this.auth;
+    const cognitoUser = this.cognitoUser;
+
+    return new Promise(function (resolve, reject) {
+      auth.verifyTotpToken(cognitoUser, code)
+        .then(
+          () => {
+            logger.trace('successfully verified TOTP setup');
+            resolve();
+          },
+          error => {
+            logger.error('error verifying TOTP setup: ', error);
+            reject(new Error(ERROR_SETUP_TOTP, error));
+          }
+        );
+    });
+  }
+
+  /**
    * Saves the user attributes to the AWS Cognito backend.
    * 
    * @param {User} user             User to persist to the Cognito backend
@@ -536,6 +603,7 @@ export default class Provider implements ProviderInterface {
   async saveUser(user: User, attribNames?: string[]): Promise<void> {
 
     let attributes = {};
+    let configureMFA = false;
 
     [
       'given_name',
@@ -595,30 +663,42 @@ export default class Provider implements ProviderInterface {
               })
             });
 
-            this.configureMFA(user);
-            break;
+            configureMFA = true;
         }
       });
 
+    const provider = this;
     const logger = this.logger;
     const auth = this.auth;
     const cognitoUser = this.cognitoUser;
 
-    return new Promise<void>(function (resolve, reject) {
-      logger.debug('saving user attributes: ', attributes, user);
-      auth.updateUserAttributes(cognitoUser, attributes)
-        .then(
-          result => {
-            logger.trace('successfully saved user attributes: ', result);
-            resolve();
-          },
-          error => {
-            reject(new Error(ERROR_SAVE_USER, error));
-          }
-        )
-        .catch(exception => {
-          reject(new Error(ERROR_SAVE_USER, exception));
-        });
+    return new Promise<void>(async function (resolve, reject) {
+
+      const updateUserAttributes = () => {
+        logger.debug('saving user attributes: ', attributes, user);
+        auth.updateUserAttributes(cognitoUser, attributes)
+          .then(
+            result => {
+              logger.trace('successfully saved user attributes: ', result);
+              resolve();
+            },
+            error => {
+              reject(new Error(ERROR_SAVE_USER, error));
+            }
+          )
+          .catch(exception => {
+            reject(new Error(ERROR_SAVE_USER, exception));
+          });
+      }
+
+      if (configureMFA) {
+        logger.debug('updating user MFA settings: ', user);
+        provider.configureMFA(user)
+          .then(() => updateUserAttributes())
+          .catch(exception => reject(exception));
+      } else {
+        updateUserAttributes();
+      }
     });
   }
 

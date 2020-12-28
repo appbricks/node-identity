@@ -1,14 +1,17 @@
-import { combineReducers, createStore, applyMiddleware } from 'redux';
-import { createEpicMiddleware } from 'redux-observable';
+import {
+  Logger,
+  LOG_LEVEL_TRACE,
+  setLogLevel,
+} from '@appbricks/utils';
+import { ActionTester } from '@appbricks/test-utils';
 
-import { Logger, LOG_LEVEL_TRACE, setLogLevel, reduxLogger, combineEpicsWithGlobalErrorHandler } from '@appbricks/utils';
-import AuthService from '../../auth-service';
-
-import { UPDATE_PASSWORD_REQ } from '../../action';
+import { 
+  UPDATE_PASSWORD_REQ,
+  AuthUsernamePayload
+} from '../../action';
 
 import { MockProvider } from '../../__tests__/mock-provider';
-import createRequestTester from '../../__tests__/request-tester-username';
-
+import { initServiceDispatch }  from './initialize-test';
 
 // set log levels
 if (process.env.DEBUG) {
@@ -17,35 +20,35 @@ if (process.env.DEBUG) {
 const logger = new Logger('update-password.test');
 
 // test reducer validates action flows
-const requestTester = createRequestTester(logger, UPDATE_PASSWORD_REQ, false, '12345');
-
-const rootReducer = combineReducers({
-  auth: requestTester.reducer()
-})
-
-const epicMiddleware = createEpicMiddleware();
-const store: any = createStore(
-  rootReducer, 
-  applyMiddleware(reduxLogger, epicMiddleware)
-);
-
 const mockProvider = new MockProvider();
-const authService = new AuthService(mockProvider)
-const rootEpic = combineEpicsWithGlobalErrorHandler(authService.epics())
-epicMiddleware.run(rootEpic);
-
-const dispatch = AuthService.dispatchProps(store.dispatch)
+const actionTester = new ActionTester(logger);
+// test service dispatcher
+const dispatch = initServiceDispatch(mockProvider, actionTester);
 
 it('dispatches an action to sign up a user', async () => {
-  // expect no errors
-  dispatch.authService!.updatePassword('password', '12345', 'johndoe');
   // expect invalid code error
-  dispatch.authService!.updatePassword('password', '00000', 'johndoe');
-});
+  actionTester.expectAction<AuthUsernamePayload>(UPDATE_PASSWORD_REQ, { 
+    username: 'johndoe', 
+    password: 'password',
+    code: '00000'
+  })
+    .error('invalid code');
 
-it('calls reducer as expected when sign up action is dispatched', () => {
+  dispatch.authService!.updatePassword('password', '00000', 'johndoe');
+  await actionTester.done();
+  expect(actionTester.hasErrors).toBeFalsy();
+
+  // expect no errors
+  actionTester.expectAction<AuthUsernamePayload>(UPDATE_PASSWORD_REQ, { 
+    username: 'johndoe', 
+    password: 'password',
+    code: '12345'
+  })
+    .success();
+
+  dispatch.authService!.updatePassword('password', '12345', 'johndoe');
+  await actionTester.done();
+  expect(actionTester.hasErrors).toBeFalsy();
+
   expect(mockProvider.updatePasswordCounter).toEqual(2);
-  expect(requestTester.reqCounter).toEqual(2);
-  expect(requestTester.okCounter).toEqual(1);
-  expect(requestTester.errorCounter).toEqual(1);
 });

@@ -3,11 +3,10 @@ import User, { VerificationInfo, VerificationType } from '../../model/user';
 
 import { AUTH_NO_MFA, AUTH_MFA_SMS, ATTRIB_MOBILE_PHONE } from '../constants';
 
-import { getTestUser, expectTestUserToBeSet } from './request-tester-user';
-
 export class MockProvider implements Provider {
 
   loggedIn = false;
+  sessionValid = false;
 
   signUpCounter = 0;
   resendSignUpCodeCounter = 0;
@@ -22,6 +21,8 @@ export class MockProvider implements Provider {
   sendVerificationCodeForAttributeCounter = 0;
   confirmVerificationCodeForAttributeCounter = 0;
   configureMFACounter = 0;
+  setupTOTPCounter = 0;
+  verifyTOTPCounter = 0;
   saveUserCounter = 0;
   readUserCounter = 0;
 
@@ -57,7 +58,7 @@ export class MockProvider implements Provider {
       return Promise.resolve(<VerificationInfo>{
         timestamp: Date.now(),
         type: VerificationType.Email,
-        destination: 'johndoe@gmail.com',
+        destination: 'test.appbricks@gmail.com',
         attrName: 'email',
         isConfirmed: false
       });
@@ -70,7 +71,7 @@ export class MockProvider implements Provider {
     return Promise.resolve(<VerificationInfo>{
       timestamp: Date.now(),
       type: VerificationType.Email,
-      destination: 'johndoe@gmail.com',
+      destination: 'test.appbricks@gmail.com',
       attrName: 'email',
       isConfirmed: false
     });
@@ -108,7 +109,7 @@ export class MockProvider implements Provider {
 
   validateSession(): Promise<boolean> {
     this.validateSessionCounter++;
-    return Promise.resolve(this.loggedIn);
+    return Promise.resolve(this.sessionValid || this.loggedIn);
   }
 
   isLoggedIn(username?: string): Promise<boolean> {
@@ -130,7 +131,7 @@ export class MockProvider implements Provider {
     return Promise.reject(new Error('invalid password'));
   }
 
-  validateMFACode(code: string): Promise<boolean> {
+  validateMFACode(code: string, type: number): Promise<boolean> {
     this.validateMFACodeCounter++;
     if (code == '12345') {
       this.loggedIn = true;
@@ -173,13 +174,27 @@ export class MockProvider implements Provider {
     return Promise.resolve();
   }
 
+  setupTOTP(): Promise<string> {
+    this.setupTOTPCounter++;
+    return Promise.resolve('abcd');
+  }
+
+  verifyTOTP(code: string): Promise<void> {
+    this.verifyTOTPCounter++;
+    if (code == '6789') {
+      return Promise.resolve();
+    } else {
+      return Promise.reject(new Error('invalid totp verification code'));
+    }    
+  }
+
   saveUser(user: User, attribNames?: string[]): Promise<void> {
     this.saveUserCounter++;
     expect(user).toBeDefined();
     expect(user!.username).toEqual('johndoe');
     expect(user!.firstName).toEqual('John');
     expect(user!.familyName).toEqual('Doe');
-    expect(user!.emailAddress).toEqual('johndoe@gmail.com');
+    expect(user!.emailAddress).toEqual('test.appbricks@gmail.com');
     expect(user!.mobilePhone).toEqual('9999999999');
     this.user = user;
     return Promise.resolve();
@@ -189,4 +204,39 @@ export class MockProvider implements Provider {
     this.readUserCounter++;
     return Promise.resolve(this.user);
   }
+}
+
+export const getTestUser = (): User => {
+
+  let user = new User();
+  user.username = 'johndoe';
+  user.firstName = 'John';
+  user.middleName = 'Bee'
+  user.familyName = 'Doe';
+  user.preferredName = 'JD';
+  user.emailAddress = 'test.appbricks@gmail.com';
+  user.mobilePhone = '9999999999';
+  return user;
+}
+
+export const expectTestUserToBeSet = (
+  user: User | undefined, 
+  userConfirmed: boolean = false, 
+  mfaEnabled: boolean = false,
+  mobilePhoneVerified = false
+) => {
+
+  expect(user).toBeDefined();
+  expect(user!.username).toEqual('johndoe');
+  expect(user!.firstName).toEqual('John');
+  expect(user!.middleName).toEqual('Bee');
+  expect(user!.familyName).toEqual('Doe');
+  expect(user!.preferredName).toEqual('JD');
+  expect(user!.emailAddress).toEqual('test.appbricks@gmail.com');
+  expect(user!.mobilePhone).toEqual('9999999999');
+  expect(user!.mobilePhoneVerified).toBe(mobilePhoneVerified);
+  expect(user!.isConfirmed()).toEqual(userConfirmed);
+  expect(user!.enableBiometric).toEqual(false);
+  expect(user!.enableTOTP).toEqual(false);
+  expect(user!.enableMFA).toEqual(mfaEnabled);
 }

@@ -2,6 +2,7 @@ import * as redux from 'redux';
 import { Epic } from 'redux-observable';
 
 import { 
+  SUCCESS,
   Action, 
   createAction, 
   createFollowUpAction, 
@@ -13,8 +14,7 @@ import Provider from '../provider';
 import { 
   AuthUserPayload, 
   AuthVerificationPayload, 
-  SIGN_UP_REQ, 
-  SERVICE_RESPONSE_OK 
+  SIGN_UP_REQ
 } from '../action';
 import { AuthStateProps } from '../state';
 
@@ -34,7 +34,7 @@ export const signUpEpic = (csProvider: Provider): Epic => {
 
       let info = await csProvider.signUp(user);
       user.setConfirmed(info.isConfirmed);
-      return createFollowUpAction<AuthVerificationPayload>(action, SERVICE_RESPONSE_OK, { info });
+      return createFollowUpAction<AuthVerificationPayload>(action, SUCCESS, { info });
     }
   );
 }

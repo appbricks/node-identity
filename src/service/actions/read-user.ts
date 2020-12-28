@@ -5,6 +5,7 @@ import axios from 'axios';
 
 import { 
   Logger,
+  SUCCESS,
   Action, 
   createAction, 
   createFollowUpAction, 
@@ -14,8 +15,7 @@ import {
 import Provider from '../provider';
 import { 
   AuthUserPayload, 
-  READ_USER_REQ, 
-  SERVICE_RESPONSE_OK 
+  READ_USER_REQ
 } from '../action';
 import { AuthStateProps } from '../state';
 
@@ -37,37 +37,36 @@ export const readUserEpic = (csProvider: Provider): Epic => {
       // *** AVATAR retrieval should be moved to the profile module ***
       //
       // determine gravatar image url using the user login/email
-      if (user.emailAddress) {
-        const gravatarUrl = gravatar.url(
-          user.emailAddress,
-          {
-            protocol: 'https',
-            default: '404',
-            size: '42'
-          }
-        );
-        await axios.get(gravatarUrl)
-          .then( () => {
-            Logger.trace(
-              'readUser', 
-              'Found Gravatar profile image for email:', 
-              user.emailAddress, 
-              gravatarUrl
-            );
-            user.profilePictureUrl = gravatarUrl;
-          })
-          .catch(() => {
-            Logger.trace(
-              'readUser', 
-              'Gravatar profile image not found:', 
-              user.emailAddress, 
-              gravatarUrl
-            );
-          });
-      }
+      const gravatarUrl = gravatar.url(
+        user.emailAddress,
+        {
+          protocol: 'https',
+          default: '404',
+          size: '42'
+        }
+      );
+      await axios.get(gravatarUrl)
+        .then( () => {
+          Logger.trace(
+            'readUser', 
+            'Found Gravatar profile image for email:', 
+            user.emailAddress, 
+            gravatarUrl
+          );
+          user.profilePictureUrl = gravatarUrl;
+        })
+        .catch(() => {
+          Logger.trace(
+            'readUser', 
+            'Gravatar profile image not found:', 
+            user.emailAddress, 
+            gravatarUrl
+          );
+          user.profilePictureUrl = undefined;
+        });
       // **************************************************************
       
-      return createFollowUpAction<AuthUserPayload>(action, SERVICE_RESPONSE_OK, { user });
+      return createFollowUpAction<AuthUserPayload>(action, SUCCESS, { user });
     }
   );
 }

@@ -3,6 +3,7 @@ import { Epic } from 'redux-observable';
 
 import { 
   Logger, 
+  SUCCESS,
   NOOP, 
   Action, 
   createAction, 
@@ -16,8 +17,7 @@ import {
   AuthSignInPayload, 
   AuthLoggedInPayload, 
   SIGN_IN_REQ, 
-  READ_USER_REQ, 
-  SERVICE_RESPONSE_OK 
+  READ_USER_REQ 
 } from '../action';
 import { AuthStateProps } from '../state';
 
@@ -43,7 +43,7 @@ export const signInEpic = (csProvider: Provider): Epic => {
 
           const mfaType = await csProvider.signIn(payload.username, payload.password);
           const isLoggedIn = await csProvider.isLoggedIn(payload.username);
-          return createFollowUpAction<AuthLoggedInPayload>(action, SERVICE_RESPONSE_OK, { isLoggedIn, mfaType });
+          return createFollowUpAction<AuthLoggedInPayload>(action, SUCCESS, { isLoggedIn, mfaType });
         } catch (err) {
           return createErrorAction(err, action);
         }
@@ -54,7 +54,7 @@ export const signInEpic = (csProvider: Provider): Epic => {
 
         // if sign-in was successful then dispatch 
         // an action to read the user details
-        if (dependsAction.type == SERVICE_RESPONSE_OK
+        if (dependsAction.type == SUCCESS
           && dependsAction.payload!.isLoggedIn) {
           
           return createFollowUpAction(dependsAction, READ_USER_REQ);;

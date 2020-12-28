@@ -1,48 +1,40 @@
-import { combineReducers, createStore, applyMiddleware } from 'redux';
-import { createEpicMiddleware } from 'redux-observable';
+import {
+  Logger,
+  LOG_LEVEL_TRACE,
+  setLogLevel,
+} from '@appbricks/utils';
+import { ActionTester } from '@appbricks/test-utils';
 
-import { Logger, LOG_LEVEL_TRACE, setLogLevel, reduxLogger, combineEpicsWithGlobalErrorHandler } from '@appbricks/utils';
-import AuthService from '../../auth-service';
-
-import { RESET_PASSWORD_REQ } from '../../action';
+import { 
+  RESET_PASSWORD_REQ,
+  AuthUsernamePayload 
+} from '../../action';
 
 import { MockProvider } from '../../__tests__/mock-provider';
-import createRequestTester from '../../__tests__/request-tester-username';
+import { initServiceDispatch }  from './initialize-test';
 
 // set log levels
 if (process.env.DEBUG) {
   setLogLevel(LOG_LEVEL_TRACE);
 }
-const logger = new Logger('reset-password.test');
+const logger = new Logger('verify-totp.test');
 
 // test reducer validates action flows
-const requestTester = createRequestTester(logger, RESET_PASSWORD_REQ);
-
-const rootReducer = combineReducers({
-  auth: requestTester.reducer()
-})
-
-const epicMiddleware = createEpicMiddleware();
-const store: any = createStore(
-  rootReducer, 
-  applyMiddleware(reduxLogger, epicMiddleware)
-);
-
 const mockProvider = new MockProvider();
-const authService = new AuthService(mockProvider)
-const rootEpic = combineEpicsWithGlobalErrorHandler(authService.epics())
-epicMiddleware.run(rootEpic);
-
-const dispatch = AuthService.dispatchProps(store.dispatch)
+const actionTester = new ActionTester(logger);
+// test service dispatcher
+const dispatch = initServiceDispatch(mockProvider, actionTester);
 
 it('dispatches an action to sign up a user', async () => {
   // expect no errors
+  actionTester.expectAction<AuthUsernamePayload>(RESET_PASSWORD_REQ, { 
+    username: 'johndoe'
+  })
+    .success();
+  
   dispatch.authService!.resetPassword('johndoe');
-});
+  await actionTester.done();
+  expect(actionTester.hasErrors).toBeFalsy();
 
-it('calls reducer as expected when sign up action is dispatched', () => {
   expect(mockProvider.resetPasswordCounter).toEqual(1);
-  expect(requestTester.reqCounter).toEqual(1);
-  expect(requestTester.okCounter).toEqual(1);
-  expect(requestTester.errorCounter).toEqual(0);
 });

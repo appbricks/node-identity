@@ -3,6 +3,7 @@ import { Epic } from 'redux-observable';
 
 import { 
   Logger,
+  SUCCESS,
   NOOP,
   Action, 
   createAction, 
@@ -13,8 +14,7 @@ import {
 import Provider from '../provider';
 import { 
   AuthStatePayload, 
-  LOAD_AUTH_STATE_REQ, 
-  SERVICE_RESPONSE_OK 
+  LOAD_AUTH_STATE_REQ 
 } from '../action';
 import { AuthStateProps } from '../state';
 
@@ -37,7 +37,7 @@ export const loadAuthStateEpic = (csProvider: Provider): Epic => {
   
         return createFollowUpAction<AuthStatePayload>(
           action, 
-          SERVICE_RESPONSE_OK, 
+          SUCCESS, 
           { 
             isLoggedIn,
             username

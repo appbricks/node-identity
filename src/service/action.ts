@@ -28,11 +28,16 @@ export interface AuthSignInPayload {
 
 export interface AuthMultiFactorAuthPayload {
   mfaCode: string,
+  mfaType: number
 };
 
 export interface AuthLoggedInPayload {
   isLoggedIn: boolean
   mfaType?: number,
+}
+
+export interface AuthTOTPSecretPayload {
+  secret: string
 }
 
 export interface AuthLoggedInUserAttrPayload {
@@ -57,7 +62,7 @@ export interface AuthActionProps {
 
     // user authentication
     signIn: (username: string, password: string) => redux.Action
-    validateMFACode: (code: string) => redux.Action
+    validateMFACode: (code: string, type: number) => redux.Action
     signOut: () => redux.Action
 
     // actions on authenticated user
@@ -65,6 +70,9 @@ export interface AuthActionProps {
     confirmAttribute: (attrName: string, code: string) => redux.Action
 
     configureMFA: (user: User) => redux.Action
+    setupTOTP: () => redux.Action
+    verifyTOTP: (code: string) => redux.Action
+
     saveUser: (user: User) => redux.Action
 
     readUser: () => redux.Action
@@ -72,8 +80,6 @@ export interface AuthActionProps {
 }
 
 // User action types
-
-export const SERVICE_RESPONSE_OK = 'auth/SERVICE_RESPONSE_OK';
 
 // registration and configuration
 export const SIGN_UP_REQ = 'auth/SIGN_UP_REQ';
@@ -96,6 +102,9 @@ export const VERIFY_ATTRIBUTE_REQ = 'auth/VERIFY_ATTRIBUTE_REQ';
 export const CONFIRM_ATTRIBUTE_REQ = 'auth/CONFIRM_ATTRIBUTE_REQ';
 
 export const CONFIGURE_MFA_REQ = 'auth/CONFIGURE_MFA_REQ';
+export const SETUP_TOTP_REQ = 'auth/SETUP_TOTP_REQ';
+export const VERIFY_TOTP_REQ = 'auth/VERIFY_TOTP_REQ';
+
 export const SAVE_USER_REQ = 'auth/SAVE_USER_REQ';
 
 export const READ_USER_REQ = 'auth/READ_USER_REQ';

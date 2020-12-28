@@ -93,8 +93,9 @@ import User, { VerificationInfo } from '../model/user';
    * Validates the given multi-factor authentication code
    *
    * @param {string} code  The MFA code to validate
+   * @param {number} type  The MFA type (i.e. SMS or TOTP)
    */
-  validateMFACode(code: string): Promise<boolean>;
+  validateMFACode(code: string, type: number): Promise<boolean>;
 
   /**
    * Signs out the logged in user
@@ -122,6 +123,22 @@ import User, { VerificationInfo } from '../model/user';
    * @param {User} User object with MFA preferences
    */
   configureMFA(user: User): Promise<void>;
+
+  /**
+   * Setup Time-based One Time Password MFA for the user
+   * 
+   * @return the secret to be used by a token generator 
+   *         app like Google Authenticate app
+   */
+  setupTOTP(): Promise<string>;
+
+  /**
+   * Verifies the TOTP setup by validating a code generated
+   * by the token generator app with the current setup
+   * 
+   * @param code the token to validate the setup with
+   */
+  verifyTOTP(code: string): Promise<void>;
 
   /**
    * Saves the user attributes to the AWS Cognito backend.

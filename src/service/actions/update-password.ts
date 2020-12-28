@@ -2,6 +2,7 @@ import * as redux from 'redux';
 import { Epic } from 'redux-observable';
 
 import { 
+  SUCCESS,
   Action, 
   createAction, 
   createFollowUpAction, 
@@ -11,8 +12,7 @@ import {
 import Provider from '../provider';
 import { 
   AuthUsernamePayload, 
-  UPDATE_PASSWORD_REQ, 
-  SERVICE_RESPONSE_OK 
+  UPDATE_PASSWORD_REQ
 } from '../action';
 import { AuthStateProps } from '../state';
 
@@ -27,7 +27,7 @@ export const updatePasswordEpic = (csProvider: Provider): Epic => {
     async (action, state$) => {
       let payload = action.payload!;
       await csProvider.updatePassword(payload.username, payload.password!, payload.code!);
-      return createFollowUpAction(action, SERVICE_RESPONSE_OK);
+      return createFollowUpAction(action, SUCCESS);
     }
   );
 }

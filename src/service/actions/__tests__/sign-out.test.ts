@@ -1,14 +1,17 @@
-import { combineReducers, createStore, applyMiddleware } from 'redux';
-import { createEpicMiddleware } from 'redux-observable';
+import {
+  Logger,
+  LOG_LEVEL_TRACE,
+  setLogLevel,
+} from '@appbricks/utils';
+import { ActionTester } from '@appbricks/test-utils';
 
-import { Logger, LOG_LEVEL_TRACE, setLogLevel, reduxLogger, combineEpicsWithGlobalErrorHandler } from '@appbricks/utils';
-import AuthService from '../../auth-service';
-
-import { AuthState } from '../../state';
-import { AuthStatePayload, SIGN_OUT_REQ } from '../../action';
+import { 
+  SIGN_OUT_REQ,
+  AuthStatePayload 
+} from '../../action';
 
 import { MockProvider } from '../../__tests__/mock-provider';
-import { ServiceRequestTester } from '../../__tests__/request-tester';
+import { initServiceDispatch }  from './initialize-test';
 
 // set log levels
 if (process.env.DEBUG) {
@@ -17,53 +20,38 @@ if (process.env.DEBUG) {
 const logger = new Logger('sign-out.test');
 
 // test reducer validates action flows
-const requestTester = new ServiceRequestTester<AuthStatePayload>(logger,
-  SIGN_OUT_REQ,
-  (counter, state, action): AuthState => {
-    expect(counter).toBe(1);
-    expect(action.payload).toBeUndefined();
-    return state;
-  },
-  (counter, state, action): AuthState => {
-    expect(counter).toBe(1);
-    expect((<AuthStatePayload>action.meta.relatedAction!.payload!).isLoggedIn).toBeFalsy();
-    return state;
-  },
-  (counter, state, action): AuthState => {
-    fail('no errors should occur');
-    return state;
-  },
-);
-
-const rootReducer = combineReducers({
-  auth: requestTester.reducer()
-})
-
-const epicMiddleware = createEpicMiddleware();
-const store: any = createStore(
-  rootReducer, 
-  applyMiddleware(reduxLogger, epicMiddleware)
-);
-
 const mockProvider = new MockProvider();
-const authService = new AuthService(mockProvider)
-const rootEpic = combineEpicsWithGlobalErrorHandler(authService.epics())
-epicMiddleware.run(rootEpic);
-
-const dispatch = AuthService.dispatchProps(store.dispatch)
+const actionTester = new ActionTester(logger);
+// test service dispatcher
+const dispatch = initServiceDispatch(mockProvider, actionTester);
 
 it('dispatches an action to sign up a user', async () => {
+
+  // set provider logged in state to true
   mockProvider.loggedIn = true;
+
+  actionTester.expectAction<AuthStatePayload>(SIGN_OUT_REQ)
+    .success<AuthStatePayload>({
+      isLoggedIn: false
+    });
+
   dispatch.authService!.signOut();
-});
+  await actionTester.done();
+  expect(actionTester.hasErrors).toBeFalsy();
 
-it('calls reducer as expected when sign up action is dispatched', () => {
-  expect(mockProvider.isLoggedInCounter).toEqual(1);
-  expect(mockProvider.signOutCounter).toEqual(1);
-  expect(requestTester.reqCounter).toEqual(1);
-  expect(requestTester.okCounter).toEqual(1);
-});
-
-it('has saved the correct user in the state', () => {
   expect(mockProvider.loggedIn).toBeFalsy();
+
+  // signing out of a logged in provider should have no effect
+  actionTester.expectAction<AuthStatePayload>(SIGN_OUT_REQ)
+    .success<AuthStatePayload>({
+      isLoggedIn: false
+    });
+
+  dispatch.authService!.signOut();
+  await actionTester.done();
+  expect(actionTester.hasErrors).toBeFalsy();
+
+  expect(mockProvider.loggedIn).toBeFalsy();
+  expect(mockProvider.isLoggedInCounter).toEqual(2);
+  expect(mockProvider.signOutCounter).toEqual(1);
 });

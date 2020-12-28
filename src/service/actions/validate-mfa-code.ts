@@ -1,7 +1,8 @@
 import * as redux from 'redux';
 import { Epic } from 'redux-observable';
 
-import { 
+import {
+  SUCCESS, 
   NOOP, 
   Action, 
   createAction, 
@@ -15,14 +16,13 @@ import {
   AuthMultiFactorAuthPayload, 
   AuthLoggedInPayload, 
   VALIDATE_MFA_CODE_REQ, 
-  READ_USER_REQ, 
-  SERVICE_RESPONSE_OK 
+  READ_USER_REQ 
 } from '../action';
 import { AuthStateProps } from '../state';
 
 export const validateMFACodeAction = 
-  (dispatch: redux.Dispatch<redux.Action>, mfaCode: string) => 
-    dispatch(createAction(VALIDATE_MFA_CODE_REQ, <AuthMultiFactorAuthPayload>{ mfaCode }));
+  (dispatch: redux.Dispatch<redux.Action>, mfaCode: string, mfaType: number) => 
+    dispatch(createAction(VALIDATE_MFA_CODE_REQ, <AuthMultiFactorAuthPayload>{ mfaCode, mfaType }));
 
 export const validateMFACodeEpic = (csProvider: Provider): Epic => {
   
@@ -36,8 +36,11 @@ export const validateMFACodeEpic = (csProvider: Provider): Epic => {
   
         try {
           let payload = action.payload!;
-          let isLoggedIn = await csProvider.validateMFACode(payload.mfaCode);
-          return createFollowUpAction<AuthLoggedInPayload>(action, SERVICE_RESPONSE_OK, { isLoggedIn });
+          let isLoggedIn = await csProvider.validateMFACode(payload.mfaCode, payload.mfaType);
+          return createFollowUpAction<AuthLoggedInPayload>(action, SUCCESS, { 
+            isLoggedIn, 
+            mfaType: payload.mfaType
+          });
 
         } catch (err) {
           return createErrorAction(err, action);
@@ -49,7 +52,7 @@ export const validateMFACodeEpic = (csProvider: Provider): Epic => {
 
         // if MFA code validation was successful then 
         // dispatch an action to read the user details
-        if (dependsAction.type == SERVICE_RESPONSE_OK
+        if (dependsAction.type == SUCCESS
           && dependsAction.payload!.isLoggedIn) {
           
           return createFollowUpAction(dependsAction, READ_USER_REQ);;

@@ -2,6 +2,7 @@ import * as redux from 'redux';
 import { Epic } from 'redux-observable';
 
 import { 
+  SUCCESS,
   Action, 
   createAction, 
   createFollowUpAction, 
@@ -11,8 +12,7 @@ import {
 import Provider from '../provider';
 import { 
   AuthLoggedInUserAttrPayload, 
-  CONFIRM_ATTRIBUTE_REQ, 
-  SERVICE_RESPONSE_OK 
+  CONFIRM_ATTRIBUTE_REQ
 } from '../action';
 import { AuthStateProps } from '../state';
 
@@ -33,7 +33,7 @@ export const confirmAttributeEpic = (csProvider: Provider): Epic => {
       let code = action.payload!.code;
       if (attrName && code) {
         await csProvider.confirmVerificationCodeForAttribute(attrName, code);
-        return createFollowUpAction(action, SERVICE_RESPONSE_OK);
+        return createFollowUpAction(action, SUCCESS);
       } else {
         throw Error('confirmVerificationCodeForAttribute request action does not have an attribute name and code to confirm.');
       }
