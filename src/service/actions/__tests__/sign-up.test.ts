@@ -40,7 +40,6 @@ it('dispatches an action to sign up a user', async () => {
 
   dispatch.authService!.signUp(user);
   await actionTester.done();
-  expect(actionTester.hasErrors).toBeFalsy();
 
   // provider error
   user.username = 'error'
@@ -50,7 +49,6 @@ it('dispatches an action to sign up a user', async () => {
 
   dispatch.authService!.signUp(user);
   await actionTester.done();
-  expect(actionTester.hasErrors).toBeFalsy();
 
   // no errors
   user.username = 'johndoe'
@@ -69,7 +67,6 @@ it('dispatches an action to sign up a user', async () => {
 
   dispatch.authService!.signUp(user);
   await actionTester.done();
-  expect(actionTester.hasErrors).toBeFalsy();
 
   expect(mockProvider.signUpCounter).toEqual(2);
 });

@@ -8,7 +8,7 @@ export const getTestUser = (): User => {
   user.middleName = 'Bee'
   user.familyName = 'Doe';
   user.preferredName = 'JD';
-  user.emailAddress = 'johndoe@gmail.com';
+  user.emailAddress = 'test.appbricks@gmail.com';
   user.mobilePhone = '9999999999';
   return user;
 }
@@ -26,7 +26,7 @@ export const expectTestUserToBeSet = (
   expect(user!.middleName).toEqual('Bee');
   expect(user!.familyName).toEqual('Doe');
   expect(user!.preferredName).toEqual('JD');
-  expect(user!.emailAddress).toEqual('johndoe@gmail.com');
+  expect(user!.emailAddress).toEqual('test.appbricks@gmail.com');
   expect(user!.mobilePhone).toEqual('9999999999');
   expect(user!.mobilePhoneVerified).toBe(mobilePhoneVerified);
   expect(user!.isConfirmed()).toEqual(userConfirmed);

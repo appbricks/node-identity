@@ -44,7 +44,6 @@ it('dispatches an action to sign up a user', async () => {
 
   dispatch.authService!.resendSignUpCode('johndoe');
   await actionTester.done();
-  expect(actionTester.hasErrors).toBeFalsy();
 
   expect(mockProvider.resendSignUpCodeCounter).toEqual(1);
 });

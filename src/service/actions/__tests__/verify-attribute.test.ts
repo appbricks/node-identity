@@ -36,7 +36,6 @@ it('dispatches an action to sign up a user', async () => {
 
   dispatch.authService!.verifyAttribute(ATTRIB_MOBILE_PHONE);
   await actionTester.done();
-  expect(actionTester.hasErrors).toBeFalsy();
 
   // set logged in state to true
   mockProvider.loggedIn = true;
@@ -49,7 +48,6 @@ it('dispatches an action to sign up a user', async () => {
 
   dispatch.authService!.verifyAttribute('');
   await actionTester.done();
-  expect(actionTester.hasErrors).toBeFalsy();
 
   // expect no errors
   actionTester.expectAction<AuthLoggedInUserAttrPayload>(VERIFY_ATTRIBUTE_REQ, { 
@@ -59,7 +57,6 @@ it('dispatches an action to sign up a user', async () => {
 
   dispatch.authService!.verifyAttribute(ATTRIB_MOBILE_PHONE);
   await actionTester.done();
-  expect(actionTester.hasErrors).toBeFalsy();
 
   expect(mockProvider.isLoggedInCounter).toEqual(3);
   expect(mockProvider.sendVerificationCodeForAttributeCounter).toEqual(1);

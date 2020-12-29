@@ -36,7 +36,6 @@ it('dispatches an action to setup TOTP for a user', async () => {
 
   dispatch.authService!.verifyTOTP('');
   await actionTester.done();
-  expect(actionTester.hasErrors).toBeFalsy();
 
   // set logged in state to true
   mockProvider.loggedIn = true;
@@ -50,7 +49,6 @@ it('dispatches an action to setup TOTP for a user', async () => {
 
   dispatch.authService!.verifyTOTP('');
   await actionTester.done();
-  expect(actionTester.hasErrors).toBeFalsy();
 
   // expect error as code is incorrect
   actionTester.expectAction<AuthMultiFactorAuthPayload>(VERIFY_TOTP_REQ, { 
@@ -61,7 +59,6 @@ it('dispatches an action to setup TOTP for a user', async () => {
 
   dispatch.authService!.verifyTOTP('4567');
   await actionTester.done();
-  expect(actionTester.hasErrors).toBeFalsy();
 
   // expect no errors
   actionTester.expectAction<AuthMultiFactorAuthPayload>(VERIFY_TOTP_REQ, { 
@@ -72,7 +69,6 @@ it('dispatches an action to setup TOTP for a user', async () => {
 
   dispatch.authService!.verifyTOTP('6789');
   await actionTester.done();
-  expect(actionTester.hasErrors).toBeFalsy();
 
   expect(mockProvider.isLoggedInCounter).toEqual(4);
   expect(mockProvider.verifyTOTPCounter).toEqual(2);

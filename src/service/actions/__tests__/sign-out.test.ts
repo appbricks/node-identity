@@ -37,7 +37,6 @@ it('dispatches an action to sign up a user', async () => {
 
   dispatch.authService!.signOut();
   await actionTester.done();
-  expect(actionTester.hasErrors).toBeFalsy();
 
   expect(mockProvider.loggedIn).toBeFalsy();
 
@@ -49,7 +48,6 @@ it('dispatches an action to sign up a user', async () => {
 
   dispatch.authService!.signOut();
   await actionTester.done();
-  expect(actionTester.hasErrors).toBeFalsy();
 
   expect(mockProvider.loggedIn).toBeFalsy();
   expect(mockProvider.isLoggedInCounter).toEqual(2);

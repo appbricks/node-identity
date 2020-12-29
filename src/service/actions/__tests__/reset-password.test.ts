@@ -34,7 +34,6 @@ it('dispatches an action to sign up a user', async () => {
   
   dispatch.authService!.resetPassword('johndoe');
   await actionTester.done();
-  expect(actionTester.hasErrors).toBeFalsy();
 
   expect(mockProvider.resetPasswordCounter).toEqual(1);
 });

@@ -36,7 +36,6 @@ it('dispatches an action to sign up a user', async () => {
 
   dispatch.authService!.updatePassword('password', '00000', 'johndoe');
   await actionTester.done();
-  expect(actionTester.hasErrors).toBeFalsy();
 
   // expect no errors
   actionTester.expectAction<AuthUsernamePayload>(UPDATE_PASSWORD_REQ, { 
@@ -48,7 +47,6 @@ it('dispatches an action to sign up a user', async () => {
 
   dispatch.authService!.updatePassword('password', '12345', 'johndoe');
   await actionTester.done();
-  expect(actionTester.hasErrors).toBeFalsy();
 
   expect(mockProvider.updatePasswordCounter).toEqual(2);
 });

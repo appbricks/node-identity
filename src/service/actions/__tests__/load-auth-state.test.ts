@@ -46,7 +46,6 @@ it('dispatches an action to sign up a user', async () => {
 
   dispatch.authService!.loadAuthState();
   await actionTester.done();
-  expect(actionTester.hasErrors).toBeFalsy();
 
   // set provider logged in state to true
   mockProvider.loggedIn = true;
@@ -61,7 +60,6 @@ it('dispatches an action to sign up a user', async () => {
 
   dispatch.authService!.loadAuthState();
   await actionTester.done();
-  expect(actionTester.hasErrors).toBeFalsy();
 
   // session is valid and logged in and
   // provider is also logged in so NOOP
@@ -73,7 +71,6 @@ it('dispatches an action to sign up a user', async () => {
 
   dispatch.authService!.loadAuthState();
   await actionTester.done();
-  expect(actionTester.hasErrors).toBeFalsy();
   expect(mockProvider.loggedIn).toBeTruthy();
 
   // store session is valid and logged out
@@ -85,7 +82,6 @@ it('dispatches an action to sign up a user', async () => {
 
   dispatch.authService!.loadAuthState();
   await actionTester.done();
-  expect(actionTester.hasErrors).toBeFalsy();
   expect(mockProvider.loggedIn).toBeFalsy();
 
   expect(mockProvider.isLoggedInCounter).toEqual(4);

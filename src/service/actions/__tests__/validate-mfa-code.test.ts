@@ -45,7 +45,6 @@ it('dispatches an action to sign up a user', async () => {
 
   dispatch.authService!.validateMFACode('00000', AUTH_MFA_SMS);
   await actionTester.done();
-  expect(actionTester.hasErrors).toBeFalsy();
 
   // no errors (valid code)
   mockProvider.loginMethod = AUTH_MFA_SMS;
@@ -68,7 +67,6 @@ it('dispatches an action to sign up a user', async () => {
 
   dispatch.authService!.validateMFACode('12345', AUTH_MFA_SMS);
   await actionTester.done();
-  expect(actionTester.hasErrors).toBeFalsy();
       
   // error as session already logged in
   actionTester.expectAction<AuthMultiFactorAuthPayload>(VALIDATE_MFA_CODE_REQ, { 
@@ -80,7 +78,6 @@ it('dispatches an action to sign up a user', async () => {
 
   dispatch.authService!.validateMFACode('12345', AUTH_MFA_SMS);
   await actionTester.done();
-  expect(actionTester.hasErrors).toBeFalsy();
   
   expect(mockProvider.isLoggedInCounter).toEqual(4);
   expect(mockProvider.validateMFACodeCounter).toEqual(2);

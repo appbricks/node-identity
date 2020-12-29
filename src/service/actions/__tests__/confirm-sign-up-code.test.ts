@@ -37,7 +37,6 @@ it('dispatches an action to sign up a user', async () => {
 
   dispatch.authService!.confirmSignUpCode('00000', 'johndoe');
   await actionTester.done();
-  expect(actionTester.hasErrors).toBeFalsy();
 
   // expect no errors
   actionTester.expectAction<AuthUsernamePayload>(CONFIRM_SIGN_UP_CODE_REQ, { 
@@ -52,7 +51,6 @@ it('dispatches an action to sign up a user', async () => {
 
   dispatch.authService!.confirmSignUpCode('12345', 'johndoe');
   await actionTester.done();
-  expect(actionTester.hasErrors).toBeFalsy();
 
   expect(mockProvider.confirmSignUpCodeCounter).toEqual(2);
 });

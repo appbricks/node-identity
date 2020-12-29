@@ -39,7 +39,6 @@ it('dispatches an action to sign up a user', async () => {
   // expect error as user is not logged in
   dispatch.authService!.saveUser(user);
   await actionTester.done();
-  expect(actionTester.hasErrors).toBeFalsy();
 
   // set logged in state to true
   mockProvider.loggedIn = true;
@@ -50,7 +49,6 @@ it('dispatches an action to sign up a user', async () => {
 
   dispatch.authService!.saveUser(user);
   await actionTester.done();
-  expect(actionTester.hasErrors).toBeFalsy();
   
   expect(mockProvider.isLoggedInCounter).toEqual(2);
   expect(mockProvider.saveUserCounter).toEqual(1);

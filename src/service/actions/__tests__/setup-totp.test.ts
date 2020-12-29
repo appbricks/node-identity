@@ -33,7 +33,6 @@ it('dispatches an action to setup TOTP for a user', async () => {
 
   dispatch.authService!.setupTOTP();
   await actionTester.done();
-  expect(actionTester.hasErrors).toBeFalsy();
 
   // set logged in state to true
   mockProvider.loggedIn = true;
@@ -43,7 +42,6 @@ it('dispatches an action to setup TOTP for a user', async () => {
 
   dispatch.authService!.setupTOTP();
   await actionTester.done();
-  expect(actionTester.hasErrors).toBeFalsy();
 
   expect(mockProvider.isLoggedInCounter).toEqual(2);
   expect(mockProvider.setupTOTPCounter).toEqual(1);

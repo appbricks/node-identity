@@ -38,7 +38,6 @@ it('dispatches an action to sign up a user', async () => {
   // expect error as user is not logged in
   dispatch.authService!.readUser();
   await actionTester.done();
-  expect(actionTester.hasErrors).toBeFalsy();
 
   // set logged in state to true
   mockProvider.loggedIn = true;
@@ -53,7 +52,6 @@ it('dispatches an action to sign up a user', async () => {
 
   dispatch.authService!.readUser();
   await actionTester.done();
-  expect(actionTester.hasErrors).toBeFalsy();
 
   // expect no errors and email has no gravar url
   mockProvider.user.emailAddress = 'foo@acme.com';
@@ -67,7 +65,6 @@ it('dispatches an action to sign up a user', async () => {
 
   dispatch.authService!.readUser();
   await actionTester.done();
-  expect(actionTester.hasErrors).toBeFalsy();
 
   expect(mockProvider.isLoggedInCounter).toEqual(3);
   expect(mockProvider.readUserCounter).toEqual(2);

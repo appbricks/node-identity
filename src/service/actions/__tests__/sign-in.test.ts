@@ -48,7 +48,6 @@ it('dispatches an action to sign up a user', async () => {
 
   dispatch.authService!.signIn('johndoe', '00000');
   await actionTester.done();
-  expect(actionTester.hasErrors).toBeFalsy();
 
   // return SMS MFA on successful credential validation
   mockProvider.loginMethod = AUTH_MFA_SMS;
@@ -66,7 +65,6 @@ it('dispatches an action to sign up a user', async () => {
 
   dispatch.authService!.signIn('johndoe', '@ppBricks2020');
   await actionTester.done();
-  expect(actionTester.hasErrors).toBeFalsy();
 
   // return NO MFA on successful credential validation
   mockProvider.loginMethod = AUTH_NO_MFA;
@@ -89,7 +87,6 @@ it('dispatches an action to sign up a user', async () => {
 
   dispatch.authService!.signIn('johndoe', '@ppBricks2020');
   await actionTester.done();
-  expect(actionTester.hasErrors).toBeFalsy();
   expect(mockProvider.isLoggedIn).toBeTruthy();
 
   // error 
@@ -101,7 +98,6 @@ it('dispatches an action to sign up a user', async () => {
 
   dispatch.authService!.signIn('johndoe', '@ppBricks2020');
   await actionTester.done();
-  expect(actionTester.hasErrors).toBeFalsy();
 
   expect(mockProvider.signOutCounter).toEqual(0);
 
@@ -124,7 +120,6 @@ it('dispatches an action to sign up a user', async () => {
 
   dispatch.authService!.signIn('johndoe', '@ppBricks2020');
   await actionTester.done();
-  expect(actionTester.hasErrors).toBeFalsy();
   expect(mockProvider.isLoggedIn).toBeTruthy();
   
   expect(mockProvider.isLoggedInCounter).toEqual(10);

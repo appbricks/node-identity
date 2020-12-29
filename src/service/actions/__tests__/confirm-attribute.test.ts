@@ -37,7 +37,6 @@ it('dispatches an action to sign up a user', async () => {
 
   dispatch.authService!.confirmAttribute(ATTRIB_MOBILE_PHONE, '67890');
   await actionTester.done();
-  expect(actionTester.hasErrors).toBeFalsy();
 
   // set logged in state to true
   mockProvider.loggedIn = true;
@@ -51,7 +50,6 @@ it('dispatches an action to sign up a user', async () => {
 
   dispatch.authService!.confirmAttribute(ATTRIB_MOBILE_PHONE, '67890');
   await actionTester.done();
-  expect(actionTester.hasErrors).toBeFalsy();
 
   // expect no errors
   actionTester.expectAction<AuthLoggedInUserAttrPayload>(CONFIRM_ATTRIBUTE_REQ, { 
@@ -62,7 +60,6 @@ it('dispatches an action to sign up a user', async () => {
 
   dispatch.authService!.confirmAttribute(ATTRIB_MOBILE_PHONE, '12345');
   await actionTester.done();
-  expect(actionTester.hasErrors).toBeFalsy();
 
   // expect error from provider call as user is empty
   actionTester.expectAction<AuthLoggedInUserAttrPayload>(CONFIRM_ATTRIBUTE_REQ, { 
@@ -73,7 +70,6 @@ it('dispatches an action to sign up a user', async () => {
 
   dispatch.authService!.confirmAttribute('', '');
   await actionTester.done();
-  expect(actionTester.hasErrors).toBeFalsy();
 
   expect(mockProvider.isLoggedInCounter).toEqual(4);
   expect(mockProvider.confirmVerificationCodeForAttributeCounter).toEqual(2);

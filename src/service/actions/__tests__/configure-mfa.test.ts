@@ -40,7 +40,6 @@ it('dispatches an action to configure MFA for a user', async () => {
 
   dispatch.authService!.configureMFA(getTestUser());
   await actionTester.done();
-  expect(actionTester.hasErrors).toBeFalsy();
 
   // set logged in state to true
   mockProvider.loggedIn = true;
@@ -58,7 +57,6 @@ it('dispatches an action to configure MFA for a user', async () => {
 
   dispatch.authService!.configureMFA(user);
   await actionTester.done();
-  expect(actionTester.hasErrors).toBeFalsy();
 
   // create user that will cause mock
   // provider to throw and error
@@ -72,7 +70,6 @@ it('dispatches an action to configure MFA for a user', async () => {
 
   dispatch.authService!.configureMFA(userWithError);
   await actionTester.done();
-  expect(actionTester.hasErrors).toBeFalsy();
 
   expect(mockProvider.isLoggedInCounter).toEqual(3);
   expect(mockProvider.configureMFACounter).toEqual(2);
