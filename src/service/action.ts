@@ -74,7 +74,6 @@ export interface AuthActionProps {
     verifyTOTP: (code: string) => redux.Action
 
     saveUser: (user: User) => redux.Action
-
     readUser: () => redux.Action
   }
 }
