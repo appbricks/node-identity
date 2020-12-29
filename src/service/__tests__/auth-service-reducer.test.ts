@@ -2,16 +2,17 @@ import * as redux from 'redux';
 import { createEpicMiddleware } from 'redux-observable';
 
 import { 
+  Logger,
   LOG_LEVEL_TRACE, 
   setLogLevel, 
   reduxLogger, 
   combineEpicsWithGlobalErrorHandler, 
   setLocalStorageImpl, 
-  ActionResult 
+  ActionResult
 } from '@appbricks/utils';
 import { StateTester } from '@appbricks/test-utils';
 
-import User, { 
+import { 
   UserStatus, 
   VerificationInfo, 
   VerificationType 
@@ -44,14 +45,16 @@ import { getTestUser, expectTestUserToBeSet } from './test-user';
 if (process.env.DEBUG) {
   setLogLevel(LOG_LEVEL_TRACE);
 }
+const logger = new Logger('auth-service-reducer.test');
 
 // Local store implementation
 const localStore: { [key: string]: Object } = {};
 
-const mockProvider = new MockProvider();
-const authService = new AuthService(mockProvider);
+const stateTester = new StateTester<AuthState>(logger);
+let mockProvider = new MockProvider();
 
-let store: any;
+let getState: () => AuthState;
+
 let dispatch: AuthActionProps;
 let timestamp = -1;
 
@@ -69,326 +72,32 @@ setLocalStorageImpl({
   }
 });
 
-const stateTester = new StateTester<AuthState>(
-  (counter, state) => {
-    switch (counter) {
-      case 1: { // Initial loadAuthState request
-        expect(state.actionStatus.actionType).toEqual(LOAD_AUTH_STATE_REQ);
-        expect(state.actionStatus.result).toEqual(ActionResult.pending);
+beforeEach(async () => {
 
-        expect(state.session.activityTimestamp).toEqual(-1);
-        expect(state.isLoggedIn).toBeFalsy();
-        expect(state.user).toBeUndefined();
-        break;
-      }
-      case 2: { // Initial loadAuthState request response
-        expect(state.actionStatus.actionType).toEqual(LOAD_AUTH_STATE_REQ);
-        expect(state.actionStatus.result).toEqual(ActionResult.success);
+  const authService = new AuthService(mockProvider);
+  await authService.init();
 
-        expect(state.session.activityTimestamp).toEqual(-1);
-        expect(state.isLoggedIn).toBeFalsy();
-        expect(state.user).toBeUndefined();
-        break;
-      }
-      case 3: { // New user sign-up request
-        expect(state.actionStatus.actionType).toEqual(SIGN_UP_REQ);
-        expect(state.actionStatus.result).toEqual(ActionResult.pending);
+  // initialize redux store
+  let rootReducer = redux.combineReducers({
+    auth: authService.reducer()
+  });
 
-        expectTestUserToBeSet(state.user, false);
-        expect(state.user!.status).toEqual(UserStatus.Unregistered);
-        break;
-      }
-      case 4: { // New user sign-up response
-        expect(state.actionStatus.actionType).toEqual(SIGN_UP_REQ);
-        expect(state.actionStatus.result).toEqual(ActionResult.success);
+  let epicMiddleware = createEpicMiddleware();
+  const store = redux.createStore(
+    rootReducer,
+    redux.applyMiddleware(reduxLogger, epicMiddleware)
+  );
 
-        let sendTimestamp = state.awaitingUserConfirmation!.timestamp!;
-        validateStateAfterNewUserSignUp(state, sendTimestamp);
-        timestamp = sendTimestamp;
-        break;
-      }
-      case 5: { // Starting new session so expecting loadAuthState
-                // request to retrieve saved user and session
-        expect(state.actionStatus.actionType).toEqual(LOAD_AUTH_STATE_REQ);
-        expect(state.actionStatus.result).toEqual(ActionResult.pending);
+  let rootEpic = combineEpicsWithGlobalErrorHandler(authService.epics());
+  epicMiddleware.run(rootEpic);
+  
+  getState = () => store.getState().auth;
+  store.subscribe(
+    stateTester.test(getState)
+  );
 
-        validateStateAfterNewUserSignUp(state, timestamp);
-        break;
-      }
-      case 6: { // Starting new session so expecting loadAuthState
-                // response to contain saved user and session
-        expect(state.actionStatus.actionType).toEqual(LOAD_AUTH_STATE_REQ);
-        expect(state.actionStatus.result).toEqual(ActionResult.success);
-
-        validateStateAfterNewUserSignUp(state, timestamp);
-        break;
-      }
-      case 7: { // Request sign-up code to be resent
-        expect(state.actionStatus.actionType).toEqual(RESEND_SIGN_UP_CODE_REQ);
-        expect(state.actionStatus.result).toEqual(ActionResult.pending);
-
-        let user = state.user;
-        expectTestUserToBeSet(user, false);
-        expect(state.user!.status).toEqual(UserStatus.Unconfirmed);
-
-        expect(state.isLoggedIn).toBe(false);
-        break;
-      }
-      case 8: { // Response of new sign-up code
-        expect(state.actionStatus.actionType).toEqual(RESEND_SIGN_UP_CODE_REQ);
-        expect(state.actionStatus.result).toEqual(ActionResult.success);
-
-        let sendTimestamp = state.awaitingUserConfirmation!.timestamp!;
-        expect(sendTimestamp).toBeGreaterThan(timestamp);
-        validateStateAfterNewUserSignUp(state, sendTimestamp);
-        timestamp = sendTimestamp;
-        break;
-      }
-      case 9: { // Request to confirm sign-up code
-        expect(state.actionStatus.actionType).toEqual(CONFIRM_SIGN_UP_CODE_REQ);
-        expect(state.actionStatus.result).toEqual(ActionResult.pending);
-
-        validateStateAfterNewUserSignUp(state, timestamp);
-        timestamp = -1;
-        break;
-      }
-      case 10: { // Response of sign-up code confirmation
-        expect(state.actionStatus.actionType).toEqual(CONFIRM_SIGN_UP_CODE_REQ);
-        expect(state.actionStatus.result).toEqual(ActionResult.success);
-
-        let user = state.user;
-        expectTestUserToBeSet(user, true);
-        expect(state.awaitingUserConfirmation).toBeUndefined();
-        break;
-      }
-      case 11: { // Starting new session and loadAuthState request should have an empty session
-        expect(state.actionStatus.actionType).toEqual(LOAD_AUTH_STATE_REQ);
-        expect(state.actionStatus.result).toEqual(ActionResult.pending);
-
-        expect(state.session.activityTimestamp).toEqual(-1);
-        expect(state.isLoggedIn).toBeFalsy();
-        expect(state.user).toBeUndefined();
-        break;
-      }
-      case 12: { // Starting new session and loadAuthState request should have an empty session
-        expect(state.actionStatus.actionType).toEqual(LOAD_AUTH_STATE_REQ);
-        expect(state.actionStatus.result).toEqual(ActionResult.success);
-
-        expect(state.session.activityTimestamp).toEqual(-1);
-        expect(state.isLoggedIn).toBeFalsy();
-        expect(state.user).toBeUndefined();
-        break;
-      }
-      case 13: { // Sign in request
-        expect(state.actionStatus.actionType).toEqual(SIGN_IN_REQ);
-        expect(state.actionStatus.result).toEqual(ActionResult.pending);
-
-        expect(state.session.activityTimestamp).toEqual(-1);
-        expect(state.isLoggedIn).toBeFalsy();
-        expect(state.user).toBeDefined();
-        expect(state.user!.username).toEqual('johndoe');
-        break;
-      }
-      case 14: { // Sign in response
-        expect(state.actionStatus.actionType).toEqual(SIGN_IN_REQ);
-        expect(state.actionStatus.result).toEqual(ActionResult.success);
-
-        timestamp = state.session.activityTimestamp;
-        expect(state.session.activityTimestamp).toBeGreaterThan(0);
-        expect(state.isLoggedIn).toBeTruthy();
-        expect(state.user).toBeDefined();
-        expect(state.user!.username).toEqual('johndoe');
-        break;
-      }
-      case 15: { // Read user request after successful sign in
-        expect(state.actionStatus.actionType).toEqual(READ_USER_REQ);
-        expect(state.actionStatus.result).toEqual(ActionResult.pending);
-
-        expect(state.session.activityTimestamp).toBeGreaterThan(timestamp);
-        expect(state.isLoggedIn).toBeTruthy();
-        break;
-      }
-      case 16: { // Read user response
-        expect(state.actionStatus.actionType).toEqual(READ_USER_REQ);
-        expect(state.actionStatus.result).toEqual(ActionResult.success);
-
-        expect(state.session.activityTimestamp).toBeGreaterThan(timestamp);
-        expect(state.isLoggedIn).toBeTruthy();
-        expectTestUserToBeSet(state.user!, true);
-        break;
-      }
-      case 17: { // Configure MFA request after successful sign in
-        expect(state.actionStatus.actionType).toEqual(CONFIGURE_MFA_REQ);
-        expect(state.actionStatus.result).toEqual(ActionResult.pending);
-        break;
-      }
-      case 18: { // Configure MFA response
-        expect(state.actionStatus.actionType).toEqual(CONFIGURE_MFA_REQ);
-        expect(state.actionStatus.result).toEqual(ActionResult.success);
-
-        expectTestUserToBeSet(state.user!, true, true);
-        break;
-      }
-      case 19: { // Request verification of mobile phone attribute
-        expect(state.actionStatus.actionType).toEqual(VERIFY_ATTRIBUTE_REQ);
-        expect(state.actionStatus.result).toEqual(ActionResult.pending);
-        break;
-      }
-      case 20: { // Response of verification request
-        expect(state.actionStatus.actionType).toEqual(VERIFY_ATTRIBUTE_REQ);
-        expect(state.actionStatus.result).toEqual(ActionResult.success);
-        break;
-      }
-      case 21: { // Request to confirm mobile phone attribute
-        expect(state.actionStatus.actionType).toEqual(CONFIRM_ATTRIBUTE_REQ);
-        expect(state.actionStatus.result).toEqual(ActionResult.pending);
-        break;
-      }
-      case 22: { // Response of confirmation request
-        expect(state.actionStatus.actionType).toEqual(CONFIRM_ATTRIBUTE_REQ);
-        expect(state.actionStatus.result).toEqual(ActionResult.success);
-
-        expectTestUserToBeSet(state.user!, true, true, true);
-        break;
-      }
-      case 23: { // Request password reset
-        expect(state.actionStatus.actionType).toEqual(RESET_PASSWORD_REQ);
-        expect(state.actionStatus.result).toEqual(ActionResult.pending);
-        break;
-      }
-      case 24: { // Response of password reset request
-        expect(state.actionStatus.actionType).toEqual(RESET_PASSWORD_REQ);
-        expect(state.actionStatus.result).toEqual(ActionResult.success);
-        break;
-      }
-      case 25: { // Update password request
-        expect(state.actionStatus.actionType).toEqual(UPDATE_PASSWORD_REQ);
-        expect(state.actionStatus.result).toEqual(ActionResult.pending);
-        break;
-      }
-      case 26: { // Response of update password request
-        expect(state.actionStatus.actionType).toEqual(UPDATE_PASSWORD_REQ);
-        expect(state.actionStatus.result).toEqual(ActionResult.success);
-        break;
-      }
-      case 27: { // Save user reset
-        expect(state.actionStatus.actionType).toEqual(SAVE_USER_REQ);
-        expect(state.actionStatus.result).toEqual(ActionResult.pending);
-        break;
-      }
-      case 28: { // Response of Save user request
-        expect(state.actionStatus.actionType).toEqual(SAVE_USER_REQ);
-        expect(state.actionStatus.result).toEqual(ActionResult.success);
-        break;
-      }
-      case 29: { // Starting new session so expecting loadAuthState
-                 // request to retrieve saved user and session
-        expect(state.actionStatus.actionType).toEqual(LOAD_AUTH_STATE_REQ);
-        expect(state.actionStatus.result).toEqual(ActionResult.pending);
-
-        expect(state.isLoggedIn).toBeFalsy();
-        expectTestUserToBeSet(state.user, true, true, true);
-        expect(state.user!.rememberFor24h).toBeTruthy();
-        break;
-      }
-      case 30: { // Starting new session so expecting loadAuthState
-                 // response to contain saved user and session
-        expect(state.actionStatus.actionType).toEqual(LOAD_AUTH_STATE_REQ);
-        expect(state.actionStatus.result).toEqual(ActionResult.success);
-
-        expect(state.session.activityTimestamp).toEqual(-1);
-        expect(state.isLoggedIn).toBeFalsy();
-        break;
-      }
-      case 31: { // Sign in request
-        expect(state.actionStatus.actionType).toEqual(SIGN_IN_REQ);
-        expect(state.actionStatus.result).toEqual(ActionResult.pending);
-
-        expect(state.session.activityTimestamp).toEqual(-1);
-        expect(state.isLoggedIn).toBeFalsy();
-        expect(state.user).toBeDefined();
-        expect(state.user!.username).toEqual('johndoe');
-        break;
-      }
-      case 32: { // Sign in response waiting for MFA code
-        expect(state.actionStatus.actionType).toEqual(SIGN_IN_REQ);
-        expect(state.actionStatus.result).toEqual(ActionResult.success);
-
-        timestamp = state.session.activityTimestamp;
-        expect(state.session.activityTimestamp).toEqual(-1);
-        expect(state.isLoggedIn).toBeFalsy();
-        expect(state.user).toBeDefined();
-        expect(state.user!.username).toEqual('johndoe');
-        expect(state.awaitingMFAConfirmation).toEqual(AUTH_MFA_SMS);
-        break;
-      }
-      case 33: { // NOOP action as user read not issued
-        break;
-      }
-      case 34: { // Validate MFA code in request
-        expect(state.actionStatus.actionType).toEqual(VALIDATE_MFA_CODE_REQ);
-        expect(state.actionStatus.result).toEqual(ActionResult.pending);
-
-        expect(state.session.activityTimestamp).toEqual(-1);
-        expect(state.isLoggedIn).toBeFalsy();
-        expect(state.user).toBeDefined();
-        expect(state.user!.username).toEqual('johndoe');
-        break;
-      }
-      case 35: { // Validate MFA code response
-        expect(state.actionStatus.actionType).toEqual(VALIDATE_MFA_CODE_REQ);
-        expect(state.actionStatus.result).toEqual(ActionResult.success);
-
-        timestamp = state.session.activityTimestamp;
-        expect(state.session.activityTimestamp).toBeGreaterThan(0);
-        expect(state.isLoggedIn).toBeTruthy();
-        expect(state.user).toBeDefined();
-        expect(state.user!.username).toEqual('johndoe');
-        break;
-      }
-      case 36: { // Read user request after successful sign in
-        expect(state.actionStatus.actionType).toEqual(READ_USER_REQ);
-        expect(state.actionStatus.result).toEqual(ActionResult.pending);
-
-        expect(state.session.activityTimestamp).toBeGreaterThan(timestamp);
-        expect(state.isLoggedIn).toBeTruthy();
-        expect(state.user).toBeDefined();
-        expect(state.user!.username).toEqual('johndoe');
-        break;
-      }
-      case 37: { // Read user response
-        expect(state.actionStatus.actionType).toEqual(READ_USER_REQ);
-        expect(state.actionStatus.result).toEqual(ActionResult.success);
-
-        expect(state.session.activityTimestamp).toBeGreaterThan(timestamp);
-        expect(state.isLoggedIn).toBeTruthy();
-        expectTestUserToBeSet(state.user, true, true, true);
-        break;
-      }
-      case 38: { // Sign out request
-        expect(state.actionStatus.actionType).toEqual(SIGN_OUT_REQ);
-        expect(state.actionStatus.result).toEqual(ActionResult.pending);
-
-        expect(state.session.activityTimestamp).toBeGreaterThan(timestamp);
-        expect(state.isLoggedIn).toBeTruthy();
-        break;
-      }
-      case 39: { // Sign out response
-        expect(state.actionStatus.actionType).toEqual(SIGN_OUT_REQ);
-        expect(state.actionStatus.result).toEqual(ActionResult.success);
-
-        expect(state.session.activityTimestamp).toEqual(-1);
-        expect(state.isLoggedIn).toBeFalsy();
-        expect(state.user).toBeUndefined();
-        break;
-      }
-      default: {
-        console.error('Unexpected state at count %d:', counter, state);
-        fail('Unexpected state change.');
-      }
-    }
-  }
-);
+  dispatch = AuthService.dispatchProps(<redux.Dispatch<redux.Action>>store.dispatch);
+})
 
 function validateStateAfterNewUserSignUp(state: AuthState, timestamp: number) {
 
@@ -400,39 +109,11 @@ function validateStateAfterNewUserSignUp(state: AuthState, timestamp: number) {
   expect(state.awaitingUserConfirmation!).toEqual(<VerificationInfo>{
     timestamp: timestamp,
     type: VerificationType.Email,
-    destination: 'johndoe@gmail.com',
+    destination: 'test.appbricks@gmail.com',
     attrName: 'email',
     isConfirmed: false
   });
 }
-
-beforeEach(async () => {
-
-  mockProvider.loggedIn = false;
-
-  // initialize redux store
-  let rootReducer = redux.combineReducers({
-    auth: authService.reducer()
-  });
-
-  let epicMiddleware = createEpicMiddleware();
-  store = redux.createStore(
-    rootReducer,
-    redux.applyMiddleware(reduxLogger, epicMiddleware)
-  );
-
-  let rootEpic = combineEpicsWithGlobalErrorHandler(authService.epics());
-  epicMiddleware.run(rootEpic);
-
-  dispatch = AuthService.dispatchProps(<redux.Dispatch<redux.Action>>store.dispatch);
-  store.subscribe(stateTester.tester(store));
-
-  await authService.init();
-})
-
-afterEach(() => {
-  stateTester.isOk();
-})
 
 /**
  * NOTE: The following tests need to be run sequentially as
@@ -440,13 +121,46 @@ afterEach(() => {
  */
 
 it('loads initial auth state and signs up a new user', async () => {
-  dispatch.authService!.loadAuthState();
-  // wait until state has been loaded
-  await stateTester.until(2);
 
+  stateTester.expectStateTest(
+    LOAD_AUTH_STATE_REQ, ActionResult.pending,
+    (counter, state, status) => {
+      expect(status.timestamp).toBeGreaterThan(0);
+      expect(state.session.timestamp).toEqual(-1);
+      expect(state.session.activityTimestamp).toEqual(-1);
+      expect(state.isLoggedIn).toBeFalsy();
+      expect(state.user).toBeUndefined();
+    }
+  );
+  stateTester.expectStateTest(
+    LOAD_AUTH_STATE_REQ, ActionResult.success,
+    (counter, state, status) => {
+      expect(state.session.timestamp).toBeGreaterThan(0);
+      expect(state.session.activityTimestamp).toEqual(-1);
+      expect(state.isLoggedIn).toBeFalsy();
+      expect(state.user).toBeUndefined();
+    }
+  );
+  dispatch.authService!.loadAuthState();
+  await stateTester.done();
+
+  stateTester.expectStateTest(
+    SIGN_UP_REQ, ActionResult.pending,
+    (counter, state, status) => {
+      expectTestUserToBeSet(state.user, false);
+      expect(state.user!.status).toEqual(UserStatus.Unregistered);
+    }
+  );
+  stateTester.expectStateTest(
+    SIGN_UP_REQ, ActionResult.success,
+    (counter, state, status) => {
+      let sendTimestamp = state.awaitingUserConfirmation!.timestamp!;
+      validateStateAfterNewUserSignUp(state, sendTimestamp);
+      timestamp = sendTimestamp;
+    }
+  );
   dispatch.authService!.signUp(getTestUser());
-  // wait until sign up response has been received
-  await stateTester.until(4);
+  await stateTester.done();
 
   expect(localStore).toEqual({
     auth: {
@@ -460,7 +174,7 @@ it('loads initial auth state and signs up a new user', async () => {
         middleName: 'Bee',
         familyName: 'Doe',
         preferredName: 'JD',
-        emailAddress: 'johndoe@gmail.com',
+        emailAddress: 'test.appbricks@gmail.com',
         emailAddressVerified: false,
         mobilePhone: '9999999999',
         mobilePhoneVerified: false,
@@ -472,7 +186,7 @@ it('loads initial auth state and signs up a new user', async () => {
       userConfirmation: {
         type: VerificationType.Email,
         timestamp: timestamp,
-        destination: "johndoe@gmail.com",
+        destination: "test.appbricks@gmail.com",
         attrName: "email",
         isConfirmed: false,
       }
@@ -482,17 +196,66 @@ it('loads initial auth state and signs up a new user', async () => {
 
 it('starts new session and initial auth state loads previous state and confirms new user', async () => {
 
+  stateTester.expectStateTest(
+    LOAD_AUTH_STATE_REQ, ActionResult.pending,
+    (counter, state, status) => {
+      expect(status.timestamp).toBeGreaterThan(0);
+      expect(state.session.timestamp).toEqual(-1);
+      expect(state.session.activityTimestamp).toEqual(-1);
+      expect(state.isLoggedIn).toBeFalsy();
+      validateStateAfterNewUserSignUp(state, timestamp);
+    }
+  );
+  stateTester.expectStateTest(
+    LOAD_AUTH_STATE_REQ, ActionResult.success,
+    (counter, state, status) => {
+      expect(state.session.timestamp).toBeGreaterThan(0);
+      expect(state.session.activityTimestamp).toEqual(-1);
+      expect(state.isLoggedIn).toBeFalsy();
+      validateStateAfterNewUserSignUp(state, timestamp);
+    }
+  );
   dispatch.authService!.loadAuthState();
-  // wait until state has been loaded
-  await stateTester.until(6);
+  await stateTester.done();
 
+  stateTester.expectStateTest(
+    RESEND_SIGN_UP_CODE_REQ, ActionResult.pending,
+    (counter, state, status) => {
+      let user = state.user;
+      expectTestUserToBeSet(user, false);
+      expect(state.user!.status).toEqual(UserStatus.Unconfirmed);
+      expect(state.isLoggedIn).toBe(false);
+    }
+  );
+  stateTester.expectStateTest(
+    RESEND_SIGN_UP_CODE_REQ, ActionResult.success,
+    (counter, state, status) => {
+      let sendTimestamp = state.awaitingUserConfirmation!.timestamp!;
+      expect(sendTimestamp).toBeGreaterThan(timestamp);
+      validateStateAfterNewUserSignUp(state, sendTimestamp);
+      timestamp = sendTimestamp;
+    }
+  );
   dispatch.authService!.resendSignUpCode('johndoe');
-  // wait for state after request for new sign-up code has been set
-  await stateTester.until(8);
+  await stateTester.done();
 
+  stateTester.expectStateTest(
+    CONFIRM_SIGN_UP_CODE_REQ, ActionResult.pending,
+    (counter, state, status) => {
+      validateStateAfterNewUserSignUp(state, timestamp);
+      timestamp = -1;
+    }
+  );
+  stateTester.expectStateTest(
+    CONFIRM_SIGN_UP_CODE_REQ, ActionResult.success,
+    (counter, state, status) => {
+      let user = state.user;
+      expectTestUserToBeSet(user, true);
+      expect(state.awaitingUserConfirmation).toBeUndefined();
+    }
+  );
   dispatch.authService!.confirmSignUpCode('12345', 'johndoe');
-  // wait for state after request for sign-up confirmation has been set
-  await stateTester.until(10);
+  await stateTester.done();
 
   expect(localStore).toEqual({
     auth: {
@@ -506,7 +269,7 @@ it('starts new session and initial auth state loads previous state and confirms 
         middleName: 'Bee',
         familyName: 'Doe',
         preferredName: 'JD',
-        emailAddress: 'johndoe@gmail.com',
+        emailAddress: 'test.appbricks@gmail.com',
         emailAddressVerified: true,
         mobilePhone: '9999999999',
         mobilePhoneVerified: false,
@@ -524,34 +287,126 @@ it('starts new session and initial auth state loads previous state and confirms 
 
 it('loads initial auth state and signs in as new user and performs some updates', async () => {
 
+  stateTester.expectStateTest(
+    LOAD_AUTH_STATE_REQ, ActionResult.pending,
+    (counter, state, status) => {
+      expect(status.timestamp).toBeGreaterThan(0);
+      expect(state.session.timestamp).toEqual(-1);
+      expect(state.session.activityTimestamp).toEqual(-1);
+      expect(state.isLoggedIn).toBeFalsy();
+      expect(state.user).toBeUndefined();
+    }
+  );
+  stateTester.expectStateTest(
+    LOAD_AUTH_STATE_REQ, ActionResult.success,
+    (counter, state, status) => {
+      expect(state.session.timestamp).toBeGreaterThan(0);
+      expect(state.session.activityTimestamp).toEqual(-1);
+      expect(state.isLoggedIn).toBeFalsy();
+      expect(state.user).toBeUndefined();
+    }
+  );
   dispatch.authService!.loadAuthState();
-  // wait until state has been loaded
-  await stateTester.until(12);
+  await stateTester.done();
 
+  stateTester.expectStateTest(
+    SIGN_IN_REQ, ActionResult.pending,
+    (counter, state, status) => {
+      expect(state.session.activityTimestamp).toEqual(-1);
+      expect(state.isLoggedIn).toBeFalsy();
+      expect(state.user).toBeDefined();
+      expect(state.user!.username).toEqual('johndoe');
+    }
+  );
+  stateTester.expectStateTest(
+    SIGN_IN_REQ, ActionResult.success,
+    (counter, state, status) => {
+      timestamp = state.session.activityTimestamp;
+      expect(state.session.activityTimestamp).toBeGreaterThan(0);
+      expect(state.isLoggedIn).toBeTruthy();
+      expect(state.user).toBeDefined();
+      expect(state.user!.username).toEqual('johndoe');
+    }
+  );
+  stateTester.expectStateTest(
+    READ_USER_REQ, ActionResult.pending,
+    (counter, state, status) => {
+      expect(state.session.activityTimestamp).toBeGreaterThan(timestamp);
+      expect(state.isLoggedIn).toBeTruthy();
+    }
+  );
+  stateTester.expectStateTest(
+    READ_USER_REQ, ActionResult.success,
+    (counter, state, status) => {
+      expect(state.session.activityTimestamp).toBeGreaterThan(timestamp);
+      expect(state.isLoggedIn).toBeTruthy();
+      expectTestUserToBeSet(state.user!, true);
+    }
+  );  
   dispatch.authService!.signIn('johndoe', '@ppBricks2020');
-  // wait until logged in state
-  await stateTester.until(16);
+  await stateTester.done();
 
-  let user = <User>store.getState().auth.user;
+  stateTester.expectStateTest(
+    CONFIGURE_MFA_REQ, ActionResult.pending
+  );
+  stateTester.expectStateTest(
+    CONFIGURE_MFA_REQ, ActionResult.success,
+    (counter, state, status) => {
+      expectTestUserToBeSet(state.user!, true, true);
+    }
+  );
+  let user = getState().user!;
   user.enableMFA = true;
   dispatch.authService!.configureMFA(user);
-  // wait until MFA has been configured
-  await stateTester.until(18);
+  await stateTester.done();
 
+  stateTester.expectStateTest(
+    VERIFY_ATTRIBUTE_REQ, ActionResult.pending
+  );
+  stateTester.expectStateTest(
+    VERIFY_ATTRIBUTE_REQ, ActionResult.success
+  );
   dispatch.authService!.verifyAttribute(ATTRIB_MOBILE_PHONE);
-  await stateTester.until(20);
+  await stateTester.done();
+  stateTester.expectStateTest(
+    CONFIRM_ATTRIBUTE_REQ, ActionResult.pending
+  );
+  stateTester.expectStateTest(
+    CONFIRM_ATTRIBUTE_REQ, ActionResult.success,
+    (counter, state, status) => {
+      expectTestUserToBeSet(state.user!, true, true, true);
+    }
+  );
   dispatch.authService!.confirmAttribute(ATTRIB_MOBILE_PHONE, '12345');
-  await stateTester.until(22);
+  await stateTester.done();
 
+  stateTester.expectStateTest(
+    RESET_PASSWORD_REQ, ActionResult.pending
+  );
+  stateTester.expectStateTest(
+    RESET_PASSWORD_REQ, ActionResult.success
+  );
   dispatch.authService!.resetPassword('johndoe');
-  await stateTester.until(24);
+  await stateTester.done();
+  stateTester.expectStateTest(
+    UPDATE_PASSWORD_REQ, ActionResult.pending
+  );
+  stateTester.expectStateTest(
+    UPDATE_PASSWORD_REQ, ActionResult.success
+  );
   dispatch.authService!.updatePassword('password', '12345', 'johndoe');
-  await stateTester.until(26);
+  await stateTester.done();
 
-  user = <User>store.getState().auth.user;
+  stateTester.expectStateTest(
+    SAVE_USER_REQ, ActionResult.pending
+  );
+  stateTester.expectStateTest(
+    SAVE_USER_REQ, ActionResult.success
+  );
+  user = getState().user!;
   user.rememberFor24h = true;
   dispatch.authService!.saveUser(user);
-  await stateTester.until(28);
+  await stateTester.done();
 
   let auth: any = localStore['auth'];
   expect(auth.session.activityTimestamp).toBeGreaterThan(0);
@@ -561,11 +416,12 @@ it('loads initial auth state and signs in as new user and performs some updates'
     firstName: 'John',
     middleName: 'Bee',
     familyName: 'Doe',
-    preferredName: 'JD',
-    emailAddress: 'johndoe@gmail.com',
+    preferredName: 'JD',    
+    emailAddress: 'test.appbricks@gmail.com',
     emailAddressVerified: true,
     mobilePhone: '9999999999',
     mobilePhoneVerified: true,
+    profilePictureUrl: "https://s.gravatar.com/avatar/d9ef80abd8bcc51c54f1daaad268ad58?default=404&size=42",
     enableBiometric: false,
     enableMFA: true,
     enableTOTP: false,
@@ -575,23 +431,128 @@ it('loads initial auth state and signs in as new user and performs some updates'
 
 it('starts new session and signs-in using MFA and signs-out', async () => {
 
+  stateTester.expectStateTest(
+    LOAD_AUTH_STATE_REQ, ActionResult.pending,
+    (counter, state, status) => {
+      expect(state.session.timestamp).toEqual(-1);
+      expect(state.session.activityTimestamp).toBeGreaterThan(0);
+      expect(state.isLoggedIn).toBeFalsy();
+      expectTestUserToBeSet(state.user, true, true, true);
+      expect(state.user!.rememberFor24h).toBeTruthy();
+    }
+  );
+  stateTester.expectStateTest(
+    LOAD_AUTH_STATE_REQ, ActionResult.success,
+    (counter, state, status) => {
+      expect(state.session.timestamp).toBeGreaterThan(0);
+      expect(state.session.activityTimestamp).toBeGreaterThan(0);
+      expect(state.isLoggedIn).toBeTruthy();
+    }
+  );
   dispatch.authService!.loadAuthState();
-  // wait until state has been loaded
-  await stateTester.until(30);
-  let userLoadedFromStore = <User>store.getState().auth.user;
+  await stateTester.done();
 
+  const userLoadedFromStore = getState().user;
+
+  stateTester.expectStateTest(
+    SIGN_OUT_REQ, ActionResult.pending,
+    (counter, state, status) => {
+      expect(state.session.activityTimestamp).toBeGreaterThan(timestamp);
+      expect(state.isLoggedIn).toBeTruthy();
+    }
+  );
+  stateTester.expectStateTest(
+    SIGN_OUT_REQ, ActionResult.success,
+    (counter, state, status) => {
+      expect(state.session.activityTimestamp).toEqual(-1);
+      expect(state.isLoggedIn).toBeFalsy();
+      expect(state.user).toBeUndefined();
+    }
+  );  
+  dispatch.authService!.signOut()
+  await stateTester.done();
+  
+  stateTester.expectStateTest(
+    SIGN_IN_REQ, ActionResult.pending,
+    (counter, state, status) => {
+      expect(state.session.activityTimestamp).toEqual(-1);
+      expect(state.isLoggedIn).toBeFalsy();
+      expect(state.user).toBeDefined();
+      expect(state.user!.username).toEqual('johndoe');
+    }
+  );
+  stateTester.expectStateTest(
+    SIGN_IN_REQ, ActionResult.success,
+    (counter, state, status) => {
+      expect(state.session.activityTimestamp).toEqual(-1);
+      expect(state.isLoggedIn).toBeFalsy();
+      expect(state.user).toBeDefined();
+      expect(state.user!.username).toEqual('johndoe');
+      expect(state.awaitingMFAConfirmation).toEqual(AUTH_MFA_SMS);
+    }
+  );
+  stateTester.expectState(35); // skip NOOP
   dispatch.authService!.signIn('johndoe', 'password');
-  // wait until MFA code sent state
-  await stateTester.until(33);
+  await stateTester.done();
+  
+  stateTester.expectStateTest(
+    VALIDATE_MFA_CODE_REQ, ActionResult.pending,
+    (counter, state, status) => {
+      timestamp = state.session.activityTimestamp;
+      expect(state.session.activityTimestamp).toEqual(-1);
+      expect(state.isLoggedIn).toBeFalsy();
+      expect(state.user).toBeDefined();
+      expect(state.user!.username).toEqual('johndoe');
+    }
+  );
+  stateTester.expectStateTest(
+    VALIDATE_MFA_CODE_REQ, ActionResult.success,
+    (counter, state, status) => {
+      timestamp = state.session.activityTimestamp;
+      expect(state.session.activityTimestamp).toBeGreaterThan(0);
+      expect(state.isLoggedIn).toBeTruthy();
+      expect(state.user).toBeDefined();
+      expect(state.user!.username).toEqual('johndoe');
+    }
+  );
+  stateTester.expectStateTest(
+    READ_USER_REQ, ActionResult.pending,
+    (counter, state, status) => {
+      expect(state.session.activityTimestamp).toBeGreaterThan(timestamp);
+      expect(state.isLoggedIn).toBeTruthy();
+      expect(state.user).toBeDefined();
+      expect(state.user!.username).toEqual('johndoe');
+    }
+  );
+  stateTester.expectStateTest(
+    READ_USER_REQ, ActionResult.success,
+    (counter, state, status) => {
+      expect(state.session.activityTimestamp).toBeGreaterThan(timestamp);
+      expect(state.isLoggedIn).toBeTruthy();
+      expectTestUserToBeSet(state.user!, true, true, true);
+    }
+  );
+  dispatch.authService!.validateMFACode('12345', AUTH_MFA_SMS);
+  await stateTester.done();
 
-  dispatch.authService!.validateMFACode('12345');
-  // wait until logged in state
-  await stateTester.until(37);
-
-  let userLoadedFromProvider = <User>store.getState().auth.user;
+  const userLoadedFromProvider = getState().user;
   expect(userLoadedFromStore !== userLoadedFromStore).toBeFalsy();
 
+  stateTester.expectStateTest(
+    SIGN_OUT_REQ, ActionResult.pending,
+    (counter, state, status) => {
+      expect(state.session.activityTimestamp).toBeGreaterThan(timestamp);
+      expect(state.isLoggedIn).toBeTruthy();
+    }
+  );
+  stateTester.expectStateTest(
+    SIGN_OUT_REQ, ActionResult.success,
+    (counter, state, status) => {
+      expect(state.session.activityTimestamp).toEqual(-1);
+      expect(state.isLoggedIn).toBeFalsy();
+      expect(state.user).toBeUndefined();
+    }
+  );
   dispatch.authService!.signOut()
-  // wait until logged out state
-  await stateTester.until(39);
+  await stateTester.done();
 });
