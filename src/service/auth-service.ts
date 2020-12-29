@@ -11,6 +11,7 @@ import {
   ActionResult,
   setActionStatus,
   resetActionStatus,
+  reducerDelegate,
   LocalStorage,
   Logger,
 } from '@appbricks/utils';
@@ -106,12 +107,12 @@ export default class AuthService {
 
     this.serviceRequests = new Set();
     this.serviceRequests
+      .add(LOAD_AUTH_STATE_REQ)
       .add(SIGN_UP_REQ)
       .add(RESEND_SIGN_UP_CODE_REQ)
       .add(CONFIRM_SIGN_UP_CODE_REQ)
       .add(RESET_PASSWORD_REQ)
       .add(UPDATE_PASSWORD_REQ)
-      .add(LOAD_AUTH_STATE_REQ)
       .add(SIGN_IN_REQ)
       .add(VALIDATE_MFA_CODE_REQ)
       .add(SIGN_OUT_REQ)
@@ -322,48 +323,14 @@ export default class AuthService {
         };
         break;
       }
-
-      case SUCCESS:
-        return this.reduceServiceResponse(state, action);
-
-      case ERROR:
-        const relatedAction = action.meta.relatedAction;
-        if (relatedAction &&
-          this.serviceRequests.has(relatedAction.type)) {
-
-          this.logger.error(
-            'Handling service request error for action: ',
-            relatedAction.type);
-
-          return setActionStatus<AuthState>(
-            state,
-            relatedAction,
-            ActionResult.error,
-            {
-              error: action.payload
-            }
-          );
-        }
-        break;
-
-      case RESET_STATUS:
-        const actionStatusMetaType = (<ResetStatusPayload>action.payload)
-          .actionStatus.actionType
-
-        if (this.serviceRequests.has(actionStatusMetaType)) {
-          return resetActionStatus(actionStatusMetaType, state);
-        }
     }
 
-    if (this.serviceRequests.has(action.type)) {
-
-      return setActionStatus<AuthState>(
-        state,
-        action,
-        ActionResult.pending
-      );
-    }
-    return state;
+    return reducerDelegate<AuthState, AuthPayload>(
+      state,
+      action,
+      this.serviceRequests,
+      this.reduceServiceResponse.bind(this)
+    );
   }
 
   private reduceServiceResponse(
@@ -372,235 +339,232 @@ export default class AuthService {
   ): AuthState {
 
     let relatedAction = action.meta.relatedAction!;
-    if (this.serviceRequests.has(relatedAction.type)) {
-      this.logger.trace('Handling successful service response: ', relatedAction.type);
 
-      switch (relatedAction.type) {
-        case LOAD_AUTH_STATE_REQ: {
-          const session = Object.assign(new Session(), state.session);
-          session.reset();
+    switch (relatedAction.type) {
+      case LOAD_AUTH_STATE_REQ: {
+        const session = Object.assign(new Session(), state.session);
+        session.reset();
 
-          let payload = <AuthStatePayload>action.payload!;
-          if (payload.isLoggedIn) {
+        let payload = <AuthStatePayload>action.payload!;
+        if (payload.isLoggedIn) {
 
-            if (state.user &&
-              state.user.status == UserStatus.Confirmed &&
-              state.user.username == payload.username) {
+          if (state.user &&
+            state.user.status == UserStatus.Confirmed &&
+            state.user.username == payload.username) {
 
-              session.updateActivityTimestamp();
-
-              state = {
-                ...state,
-                session,
-                isLoggedIn: true
-              };
-
-              this.logger.trace(
-                'Logged in user session rehydrated:',
-                state.session, state.user);
-
-            } else {
-              // session is logged in but user
-              // in state is not confirmed or does
-              // not match logged in username
-              this.logger.trace(
-                'Invalid login state detected. User session will be reset:',
-                payload, state.user);
-
-                state = {
-                  ...state,
-                  session,
-                  isLoggedIn: false,
-                  user: undefined
-                };
-            }
-
-          } else {
-            // reset session activity
-            session.reset();
+            session.updateActivityTimestamp();
 
             state = {
               ...state,
               session,
-              isLoggedIn: false
-            }
-          }
-          break;
-        }
+              isLoggedIn: true
+            };
 
-        case SIGN_UP_REQ: {
-          let awaitingUserConfirmation = (<AuthVerificationPayload>action.payload).info;
-          if (!awaitingUserConfirmation.isConfirmed) {
-            // save sign-up confirmation code request response to local store
-            this.store().setItem('userConfirmation', awaitingUserConfirmation);
-          }
+            this.logger.trace(
+              'Logged in user session rehydrated:',
+              state.session, state.user);
 
-          state = {
-            ...state,
-            user: Object.assign(new User(), (<AuthUserPayload>relatedAction.payload!).user),
-            awaitingUserConfirmation
-          };
-          break;
-        }
-
-        case RESEND_SIGN_UP_CODE_REQ: {
-          let awaitingUserConfirmation = (<AuthVerificationPayload>action.payload).info;
-          // save confirmation code request response to local store
-          this.store().setItem('userConfirmation', awaitingUserConfirmation);
-
-          state = {
-            ...state,
-            awaitingUserConfirmation
-          };
-          break;
-        }
-
-        case CONFIRM_SIGN_UP_CODE_REQ: {
-          if (state.user) {
-            const user = Object.assign(new User(), state.user);
-
-            if ((<AuthVerificationPayload>action.payload).info.isConfirmed) {
-              user.setConfirmed(true);
-
-              let awaitingUserConfirmation = state.awaitingUserConfirmation!;
-              if (awaitingUserConfirmation.type == VerificationType.Email) {
-                user.emailAddressVerified = true;
-              } else if (awaitingUserConfirmation.type == VerificationType.SMS) {
-                user.mobilePhoneVerified = true;
-              }
-              // remove saved confirmation response data from store
-              this.store().removeItem('userConfirmation');
+          } else {
+            // session is logged in but user
+            // in state is not confirmed or does
+            // not match logged in username
+            this.logger.trace(
+              'Invalid login state detected. User session will be reset:',
+              payload, state.user);
 
               state = {
                 ...state,
-                user,
-                awaitingUserConfirmation: undefined
+                session,
+                isLoggedIn: false,
+                user: undefined
               };
-
-            } else {
-              user.setConfirmed(false);
-              state = {
-                ...state,
-                user
-              };
-            }
-          } else {
-            this.logger.error(
-              'Received successful user confirmed service response, but user instance was not found in state.'
-            );
-          }
-          break;
-        }
-
-        case RESET_PASSWORD_REQ: {
-          break;
-        }
-
-        case UPDATE_PASSWORD_REQ: {
-          break;
-        }
-
-        case SIGN_IN_REQ: {
-          const session = Object.assign(new Session(), state.session);
-
-          let payload = <AuthLoggedInPayload>action.payload!;
-          if (payload.isLoggedIn) {
-            session.updateActivityTimestamp();
-          } else {
-            session.reset();
           }
 
-          // ensure any saved confirmation response
-          // data is removed from store
-          this.store().removeItem('userConfirmation');
-
-          state = {
-            ...state,
-            session,
-            isLoggedIn: payload.isLoggedIn,
-            awaitingMFAConfirmation: payload.isLoggedIn ? AUTH_NO_MFA : payload.mfaType
-          };
-          break;
-        }
-
-        case VALIDATE_MFA_CODE_REQ: {
-          const session = Object.assign(new Session(), state.session);
-          session.updateActivityTimestamp();
-
-          let payload = <AuthLoggedInPayload>action.payload!;
-
-          state = {
-            ...state,
-            session,
-            isLoggedIn: payload.isLoggedIn,
-            awaitingMFAConfirmation: undefined
-          };
-          break;
-        }
-
-        case SIGN_OUT_REQ: {
-
-          const session = Object.assign(new Session(), state.session);
+        } else {
+          // reset session activity
           session.reset();
 
           state = {
             ...state,
             session,
-            isLoggedIn: false,
-            user: undefined,
-            awaitingUserConfirmation: undefined,
-            awaitingMFAConfirmation: undefined
-          };
-          break;
+            isLoggedIn: false
+          }
+        }
+        break;
+      }
+
+      case SIGN_UP_REQ: {
+        let awaitingUserConfirmation = (<AuthVerificationPayload>action.payload).info;
+        if (!awaitingUserConfirmation.isConfirmed) {
+          // save sign-up confirmation code request response to local store
+          this.store().setItem('userConfirmation', awaitingUserConfirmation);
         }
 
-        case CONFIRM_ATTRIBUTE_REQ: {
-          let payload = <AuthLoggedInUserAttrPayload>relatedAction.payload!;
+        state = {
+          ...state,
+          user: Object.assign(new User(), (<AuthUserPayload>relatedAction.payload!).user),
+          awaitingUserConfirmation
+        };
+        break;
+      }
+
+      case RESEND_SIGN_UP_CODE_REQ: {
+        let awaitingUserConfirmation = (<AuthVerificationPayload>action.payload).info;
+        // save confirmation code request response to local store
+        this.store().setItem('userConfirmation', awaitingUserConfirmation);
+
+        state = {
+          ...state,
+          awaitingUserConfirmation
+        };
+        break;
+      }
+
+      case CONFIRM_SIGN_UP_CODE_REQ: {
+        if (state.user) {
           const user = Object.assign(new User(), state.user);
-          switch (payload.attrName!) {
-            case ATTRIB_EMAIL_ADDRESS:
+
+          if ((<AuthVerificationPayload>action.payload).info.isConfirmed) {
+            user.setConfirmed(true);
+
+            let awaitingUserConfirmation = state.awaitingUserConfirmation!;
+            if (awaitingUserConfirmation.type == VerificationType.Email) {
               user.emailAddressVerified = true;
-              break;
-            case ATTRIB_MOBILE_PHONE:
+            } else if (awaitingUserConfirmation.type == VerificationType.SMS) {
               user.mobilePhoneVerified = true;
-              break;
+            }
+            // remove saved confirmation response data from store
+            this.store().removeItem('userConfirmation');
+
+            state = {
+              ...state,
+              user,
+              awaitingUserConfirmation: undefined
+            };
+
+          } else {
+            user.setConfirmed(false);
+            state = {
+              ...state,
+              user
+            };
           }
+        } else {
+          this.logger.error(
+            'Received successful user confirmed service response, but user instance was not found in state.'
+          );
+        }
+        break;
+      }
 
-          state = {
-            ...state,
-            user
-          };
-          break;
+      case RESET_PASSWORD_REQ: {
+        break;
+      }
+
+      case UPDATE_PASSWORD_REQ: {
+        break;
+      }
+
+      case SIGN_IN_REQ: {
+        const session = Object.assign(new Session(), state.session);
+
+        let payload = <AuthLoggedInPayload>action.payload!;
+        if (payload.isLoggedIn) {
+          session.updateActivityTimestamp();
+        } else {
+          session.reset();
         }
 
-        case SETUP_TOTP_REQ:
-          let payload = <AuthTOTPSecretPayload>action.payload!;
-          state = {
-            ...state,
-            tokenSecret: payload.secret
-          }
-          break;
+        // ensure any saved confirmation response
+        // data is removed from store
+        this.store().removeItem('userConfirmation');
 
-        case CONFIGURE_MFA_REQ:
-        case SAVE_USER_REQ: {
-          let payload = <AuthUserPayload>relatedAction.payload!;
+        state = {
+          ...state,
+          session,
+          isLoggedIn: payload.isLoggedIn,
+          awaitingMFAConfirmation: payload.isLoggedIn ? AUTH_NO_MFA : payload.mfaType
+        };
+        break;
+      }
 
-          state = {
-            ...state,
-            user: payload.user!
-          };
-          break;
+      case VALIDATE_MFA_CODE_REQ: {
+        const session = Object.assign(new Session(), state.session);
+        session.updateActivityTimestamp();
+
+        let payload = <AuthLoggedInPayload>action.payload!;
+
+        state = {
+          ...state,
+          session,
+          isLoggedIn: payload.isLoggedIn,
+          awaitingMFAConfirmation: undefined
+        };
+        break;
+      }
+
+      case SIGN_OUT_REQ: {
+
+        const session = Object.assign(new Session(), state.session);
+        session.reset();
+
+        state = {
+          ...state,
+          session,
+          isLoggedIn: false,
+          user: undefined,
+          awaitingUserConfirmation: undefined,
+          awaitingMFAConfirmation: undefined
+        };
+        break;
+      }
+
+      case CONFIRM_ATTRIBUTE_REQ: {
+        let payload = <AuthLoggedInUserAttrPayload>relatedAction.payload!;
+        const user = Object.assign(new User(), state.user);
+        switch (payload.attrName!) {
+          case ATTRIB_EMAIL_ADDRESS:
+            user.emailAddressVerified = true;
+            break;
+          case ATTRIB_MOBILE_PHONE:
+            user.mobilePhoneVerified = true;
+            break;
         }
 
-        case READ_USER_REQ: {
-          let payload = <AuthUserPayload>action.payload!;
+        state = {
+          ...state,
+          user
+        };
+        break;
+      }
 
-          state = {
-            ...state,
-            user: payload.user!
-          };
-          break;
+      case SETUP_TOTP_REQ:
+        let payload = <AuthTOTPSecretPayload>action.payload!;
+        state = {
+          ...state,
+          tokenSecret: payload.secret
         }
+        break;
+
+      case CONFIGURE_MFA_REQ:
+      case SAVE_USER_REQ: {
+        let payload = <AuthUserPayload>relatedAction.payload!;
+
+        state = {
+          ...state,
+          user: payload.user!
+        };
+        break;
+      }
+
+      case READ_USER_REQ: {
+        let payload = <AuthUserPayload>action.payload!;
+
+        state = {
+          ...state,
+          user: payload.user!
+        };
+        break;
       }
     }
 
@@ -612,14 +576,9 @@ export default class AuthService {
       this.store().removeItem('user');
     }
 
-    state = {
+    return {
       ...state,
       session: state.session
     };
-    return setActionStatus<AuthState>(
-      state,
-      action.meta.relatedAction!,
-      ActionResult.success
-    );
   }
 }
