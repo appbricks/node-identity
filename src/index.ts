@@ -1,5 +1,4 @@
 import {
-  SERVICE_RESPONSE_OK,
   SIGN_UP_REQ,
   RESEND_SIGN_UP_CODE_REQ,
   CONFIRM_SIGN_UP_CODE_REQ,
@@ -19,7 +18,6 @@ import {
 } from './service/action';
 
 export {
-  SERVICE_RESPONSE_OK,
   SIGN_UP_REQ,
   RESEND_SIGN_UP_CODE_REQ,
   CONFIRM_SIGN_UP_CODE_REQ,
