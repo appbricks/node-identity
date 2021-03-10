@@ -2,15 +2,9 @@ import * as redux from 'redux';
 import { Epic } from 'redux-observable';
 
 import {
-  SUCCESS,
-  ERROR,
-  RESET_STATUS,
   ErrorPayload,
   ResetStatusPayload,
   Action,
-  ActionResult,
-  setActionStatus,
-  resetActionStatus,
   reducerDelegate,
   LocalStorage,
   Logger,
