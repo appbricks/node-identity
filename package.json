@@ -1,6 +1,6 @@
 {
   "name": "@appbricks/identity",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "description": "Authentication and Identity SDK",
   "main": "lib/index.js",
   "scripts": {
@@ -25,7 +25,7 @@
   },
   "homepage": "https://github.com/appbricks/node-identity",
   "dependencies": {
-    "@appbricks/utils": "^0.0.3",
+    "@appbricks/utils": "^0.0.4",
     "aws-amplify": "^3.3.8",
     "axios": "^0.21.0",
     "gravatar": "^1.8.1",
