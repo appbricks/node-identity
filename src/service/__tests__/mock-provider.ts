@@ -1,7 +1,47 @@
 import Provider from '../provider';
-import User, { VerificationInfo, VerificationType } from '../../model/user';
+import User, { 
+  VerificationInfo, 
+  VerificationType 
+} from '../../model/user';
 
-import { AUTH_NO_MFA, AUTH_MFA_SMS, ATTRIB_MOBILE_PHONE } from '../constants';
+import { 
+  AUTH_NO_MFA, 
+  AUTH_MFA_SMS, 
+  ATTRIB_MOBILE_PHONE 
+} from '../constants';
+
+import { AuthActionProps } from '../action';
+import AuthService from '../auth-service';
+
+import { 
+  ActionTester,
+  testActionDispatcher
+} from '@appbricks/test-utils';
+
+export const initServiceDispatch = (
+  actionTester: ActionTester,
+  userConfirmed = false
+): {
+  dispatch: AuthActionProps
+  mockProvider: MockProvider
+} => {
+
+  const mockProvider = new MockProvider(userConfirmed);
+  const authService = new AuthService(mockProvider)
+
+  const dispatch = testActionDispatcher<AuthActionProps>(
+    actionTester,
+    authService.epics(),
+    dispatch => {
+      return AuthService.dispatchProps(dispatch)
+    }
+  );
+
+  return {
+    dispatch,
+    mockProvider
+  };
+}
 
 export class MockProvider implements Provider {
 

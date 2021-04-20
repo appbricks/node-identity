@@ -19,10 +19,9 @@ import {
 } from '../../constants';
 
 import { 
-  MockProvider,
+  initServiceDispatch,
   getTestUser
 } from '../../__tests__/mock-provider';
-import { initServiceDispatch }  from './initialize-test';
 
 // set log levels
 if (process.env.DEBUG) {
@@ -31,10 +30,9 @@ if (process.env.DEBUG) {
 const logger = new Logger('sign-in.test');
 
 // test reducer validates action flows
-const mockProvider = new MockProvider(true);
 const actionTester = new ActionTester(logger);
-// test service dispatcher
-const dispatch = initServiceDispatch(mockProvider, actionTester);
+// test service dispatcher with confirmed user in mock provider
+const { dispatch, mockProvider } = initServiceDispatch(actionTester, true);
 
 it('dispatches an action to sign up a user', async () => {  
   

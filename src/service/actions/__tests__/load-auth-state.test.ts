@@ -4,7 +4,10 @@ import {
   setLogLevel,
   NOOP
 } from '@appbricks/utils';
-import { ActionTester } from '@appbricks/test-utils';
+import { 
+  ActionTester,
+  store
+} from '@appbricks/test-utils';
 
 import { 
   LOAD_AUTH_STATE_REQ,
@@ -16,11 +19,7 @@ import {
   initialAuthState 
 } from '../../state';
 
-import { 
-  initServiceDispatch, 
-  store 
-} from './initialize-test';
-import { MockProvider } from '../../__tests__/mock-provider';
+import { initServiceDispatch } from '../../__tests__/mock-provider';
 
 // set log levels
 if (process.env.DEBUG) {
@@ -29,10 +28,9 @@ if (process.env.DEBUG) {
 const logger = new Logger('load-auth-state.test');
 
 // test reducer validates action flows
-const mockProvider = new MockProvider(true);
 const actionTester = new ActionTester(logger, initialAuthState());
 // test service dispatcher
-const dispatch = initServiceDispatch(mockProvider, actionTester);
+const { dispatch, mockProvider } = initServiceDispatch(actionTester);
 
 it('dispatches an action to sign up a user', async () => {
 

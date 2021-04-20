@@ -11,8 +11,7 @@ import {
   AuthVerificationPayload
 } from '../../action';
 
-import { MockProvider } from '../../__tests__/mock-provider';
-import { initServiceDispatch } from './initialize-test';
+import { initServiceDispatch } from '../../__tests__/mock-provider';
 
 // set log levels
 if (process.env.DEBUG) {
@@ -21,10 +20,9 @@ if (process.env.DEBUG) {
 const logger = new Logger('confirm-sign-up-code.test');
 
 // test reducer validates action flows
-const mockProvider = new MockProvider();
 const actionTester = new ActionTester(logger);
 // test service dispatcher
-const dispatch = initServiceDispatch(mockProvider, actionTester);
+const { dispatch, mockProvider } = initServiceDispatch(actionTester);
 
 it('dispatches an action to sign up a user', async () => {
 
