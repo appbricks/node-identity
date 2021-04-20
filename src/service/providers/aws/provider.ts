@@ -1,11 +1,21 @@
-import { CognitoUserSession, CognitoUser } from 'amazon-cognito-identity-js';
+import { 
+  CognitoUserSession, 
+  CognitoUser 
+} from 'amazon-cognito-identity-js';
 import { AuthClass } from '@aws-amplify/auth/lib-esm/Auth'
 import { Auth } from 'aws-amplify';
 
-import { Logger, Error } from '@appbricks/utils';
+import { 
+  Logger, 
+  Error 
+} from '@appbricks/utils';
 
-import ProviderInterface from '../../provider'
-import User, { UserStatus, VerificationInfo, VerificationType } from '../../../model/user'
+import ProviderInterface from '../../provider';
+import User, { 
+  UserStatus, 
+  VerificationInfo, 
+  VerificationType 
+} from '../../../model/user';
 
 import {
   AUTH_NO_MFA,
