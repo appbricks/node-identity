@@ -18,10 +18,8 @@ import {
   AUTH_MFA_SMS 
 } from '../../constants';
 
-import { 
-  initServiceDispatch,
-  getTestUser
-} from '../../__tests__/mock-provider';
+import { initServiceDispatch } from '../../__tests__/mock-provider';
+import { getTestUser } from '../../__tests__/test-user';
 
 // set log levels
 if (process.env.DEBUG) {
