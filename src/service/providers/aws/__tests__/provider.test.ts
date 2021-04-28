@@ -231,7 +231,7 @@ it('attempts to sign in using mfa with invalid code', async () => {
     .then(authType => expect(authType).toEqual(AUTH_MFA_SMS));
 
   console.info('Attempting MFA authentication with invalid code and expecting an error...');
-  await provider.validateMFACode('0000')
+  await provider.validateMFACode('0000', AUTH_MFA_SMS)
     .catch(err => expect(err.name).toEqual(ERROR_INVALID_CODE));
 
   expect(await provider.isLoggedIn()).toBeFalsy();
@@ -248,7 +248,7 @@ it('signs in using mfa and reads the user\'s attributes', async () => {
     /Your SMS authentication code for Identity Test Module is ([0-9]+)/);
 
   console.info(`Performing MFA authentication with valid code ${authCode}...`);
-  await provider.validateMFACode(authCode);
+  await provider.validateMFACode(authCode, AUTH_MFA_SMS);
   expect(await provider.isLoggedIn()).toBeTruthy();
 
   let user = await provider.readUser();
@@ -291,6 +291,6 @@ it('does a password reset and signs-in using the new password', async () => {
     /Your SMS authentication code for Identity Test Module is ([0-9]+)/);
 
   console.info(`Performing MFA authentication with code ${authCode}...`);
-  await provider.validateMFACode(authCode);
+  await provider.validateMFACode(authCode, AUTH_MFA_SMS);
   expect(await provider.isLoggedIn()).toBeTruthy();
 });
