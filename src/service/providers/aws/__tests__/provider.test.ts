@@ -32,6 +32,18 @@ Auth.configure({
   authenticationFlowType: 'USER_PASSWORD_AUTH'
 })
 
+import { 
+  LOG_LEVEL_TRACE, 
+  setLogLevel, 
+  sleep 
+} from '@appbricks/utils';
+
+// set log levels
+if (process.env.DEBUG) {
+  Amplify.Logger.LOG_LEVEL = 'DEBUG';
+  setLogLevel(LOG_LEVEL_TRACE);
+}
+
 // gmail test account credentials
 const gmail = require("gmail-tester");
 const GMAIL_CREDS_PATH = '../../../../../etc/gmail-creds.json';
@@ -69,14 +81,6 @@ async function lookupCodeFromEmail(subject: string, bodyPattern: RegExp): Promis
   expect(code).toBeDefined();
   expect(code.length).toBeGreaterThan(0);
   return code;
-}
-
-import { LOG_LEVEL_TRACE, setLogLevel, sleep } from '@appbricks/utils';
-
-// set log levels
-if (process.env.DEBUG) {
-  Amplify.Logger.LOG_LEVEL = 'DEBUG';
-  setLogLevel(LOG_LEVEL_TRACE);
 }
 
 import User, { UserStatus, VerificationType } from '../../../../model/user';
