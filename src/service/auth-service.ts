@@ -119,6 +119,30 @@ export default class AuthService {
       .add(READ_USER_REQ);
   }
 
+  async init() {
+    this.localStore = new LocalStorage('auth');
+    await this.localStore.init();
+  }
+
+  async finalize() {
+    await this.localStore!.flush();
+  }
+
+  private store(): LocalStorage {
+    if (!this.localStore) {
+      throw Error('The AuthService store is undefined. It is possible AuthService.init() was not called.');
+    }
+    return this.localStore!;
+  }
+
+  static stateProps<S extends AuthStateProps, C extends AuthStateProps>(
+    state: S, ownProps?: C): AuthStateProps {
+
+    return {
+      auth: state.auth
+    };
+  }
+
   static dispatchProps<C extends AuthStateProps>(
     dispatch: redux.Dispatch<redux.Action>, ownProps?: C): AuthActionProps {
 
@@ -167,30 +191,6 @@ export default class AuthService {
         readUser: () => readUserAction(dispatch)
       }
     };
-  }
-
-  static stateProps<S extends AuthStateProps, C extends AuthStateProps>(
-    state: S, ownProps?: C): AuthStateProps {
-
-    return {
-      auth: state.auth
-    };
-  }
-
-  async init() {
-    this.localStore = new LocalStorage('auth');
-    await this.localStore.init();
-  }
-
-  async finalize() {
-    await this.localStore!.flush();
-  }
-
-  private store(): LocalStorage {
-    if (!this.localStore) {
-      throw Error('The AuthService store is undefined. It is possible AuthService.init() was not called.');
-    }
-    return this.localStore!;
   }
 
   epics(): Epic[] {
