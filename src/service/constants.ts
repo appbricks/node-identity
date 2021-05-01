@@ -2,8 +2,6 @@
  * Provider common constants
  */
 
-import { Error } from '@appbricks/utils';
-
 export const AUTH_NO_MFA = 0;
 export const AUTH_MFA_SMS = 1;
 export const AUTH_MFA_TOTP = 2;
