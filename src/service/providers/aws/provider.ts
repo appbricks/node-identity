@@ -58,7 +58,7 @@ export default class Provider implements ProviderInterface {
   private auth!: AuthClass;
 
   constructor(auth: AuthClass | undefined) {
-    this.logger = new Logger('AwsProvider');
+    this.logger = new Logger('AwsIdentityProvider');
     
     this.cognitoSession = undefined;
     this.cognitoUser = undefined;
