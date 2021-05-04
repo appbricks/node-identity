@@ -35,6 +35,7 @@ export const initServiceDispatch = (
   const authService = new AuthService(mockProvider)
 
   const dispatch = testActionDispatcher<AuthActionProps>(
+    'auth',
     actionTester,
     authService.epics(),
     dispatch => {
@@ -48,7 +49,7 @@ export const initServiceDispatch = (
   };
 }
 
-export class MockProvider implements Provider {
+export default class MockProvider implements Provider {
 
   loggedIn = false;
   sessionValid = false;
