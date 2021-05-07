@@ -25,7 +25,7 @@
   },
   "homepage": "https://github.com/appbricks/node-identity",
   "dependencies": {
-    "@appbricks/utils": "^0.0.10",
+    "@appbricks/utils": "^0.0.11",
     "aws-amplify": "^3.3.27",
     "axios": "^0.21.1",
     "gravatar": "^1.8.1",
@@ -34,7 +34,7 @@
     "rxjs": "^6.6.7"
   },
   "devDependencies": {
-    "@appbricks/test-utils": "^0.0.9",
+    "@appbricks/test-utils": "^0.0.11",
     "@types/gravatar": "^1.8.1",
     "@types/jest": "^26.0.22",
     "@types/node": "^14.14.41",
