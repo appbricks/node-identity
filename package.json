@@ -34,7 +34,7 @@
     "rxjs": "^6.6.7"
   },
   "devDependencies": {
-    "@appbricks/test-utils": "^0.0.11",
+    "@appbricks/test-utils": "^0.0.12",
     "@types/gravatar": "^1.8.1",
     "@types/jest": "^26.0.22",
     "@types/node": "^14.14.41",
