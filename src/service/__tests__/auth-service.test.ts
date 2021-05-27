@@ -468,7 +468,8 @@ it('starts new session and signs-in using MFA and signs-out', async () => {
       expect(state.isLoggedIn).toBeFalsy();
       expect(state.user).toBeUndefined();
     }
-  );  
+  );
+  stateTester.expectState(33); // RESET_STATE
   dispatch.authService!.signOut()
   await stateTester.done();
   
@@ -491,7 +492,7 @@ it('starts new session and signs-in using MFA and signs-out', async () => {
       expect(state.awaitingMFAConfirmation).toEqual(AUTH_MFA_SMS);
     }
   );
-  stateTester.expectState(35); // skip NOOP
+  stateTester.expectState(36); // skip NOOP
   dispatch.authService!.signIn('johndoe', 'password');
   await stateTester.done();
   
@@ -553,6 +554,7 @@ it('starts new session and signs-in using MFA and signs-out', async () => {
       expect(state.user).toBeUndefined();
     }
   );
+  stateTester.expectState(43); // RESET_STATE
   dispatch.authService!.signOut()
   await stateTester.done();
 });

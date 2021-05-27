@@ -3,6 +3,7 @@ import {
   LOG_LEVEL_TRACE,
   setLogLevel,
 } from '@appbricks/utils';
+import { RESET_STATE } from '@appbricks/utils';
 import { ActionTester } from '@appbricks/test-utils';
 
 import { 
@@ -42,7 +43,8 @@ it('dispatches an action to sign up a user', async () => {
   actionTester.expectAction<AuthStatePayload>(SIGN_OUT_REQ)
     .success<AuthStatePayload>({
       isLoggedIn: false
-    });
+    })
+      .followUpAction(RESET_STATE);
 
   dispatch.authService!.signOut();
   await actionTester.done();
