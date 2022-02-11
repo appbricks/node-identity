@@ -42,6 +42,23 @@ export default class Session {
     return (this.activityTimestamp + TIMEOUT_15M) < Date.now();
   }
 
+  /**
+   * Get number of milliseconds before session times out
+   * 
+   * @param {User} user  the user to check timeout
+   */
+  timeoutIn(user: User): number {    
+    const now = Date.now();
+    const timestamp = this.activityTimestamp == -1 ? now : this.activityTimestamp;
+
+    if (user.rememberFor24h) {
+      return (TIMEOUT_24H - (now - timestamp));
+    }
+
+    // default session timeout is 15m
+    return (TIMEOUT_15M - (now - timestamp));
+  }
+
   fromJSON(data: {
     activityTimestamp: number
   }) {
