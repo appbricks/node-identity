@@ -8,7 +8,8 @@ import {
   reduxLogger, 
   combineEpicsWithGlobalErrorHandler, 
   setLocalStorageImpl, 
-  ActionResult
+  ActionResult,
+  BROADCAST
 } from '@appbricks/utils';
 import { StateTester } from '@appbricks/test-utils';
 
@@ -169,6 +170,7 @@ it('loads initial auth state and signs up a new user', async () => {
       },
       user: {
         status: UserStatus.Unconfirmed,
+        userID: 'jdtestid1234',
         username: 'johndoe',
         firstName: 'John',
         middleName: 'Bee',
@@ -264,6 +266,7 @@ it('starts new session and initial auth state loads previous state and confirms 
       },
       user: {
         status: UserStatus.Confirmed,
+        userID: 'jdtestid1234',
         username: 'johndoe',
         firstName: 'John',
         middleName: 'Bee',
@@ -343,6 +346,7 @@ it('loads initial auth state and signs in as new user and performs some updates'
       expectTestUserToBeSet(state.user!, true);
     }
   );  
+  stateTester.expectState(1); 
   dispatch.authService!.signIn('johndoe', '@ppBricks2020');
   await stateTester.done();
 
@@ -412,6 +416,7 @@ it('loads initial auth state and signs in as new user and performs some updates'
   expect(auth.session.activityTimestamp).toBeGreaterThan(0);
   expect(auth.user).toEqual({
     status: UserStatus.Confirmed,
+    userID: 'jdtestid1234',
     username: 'johndoe',
     firstName: 'John',
     middleName: 'Bee',
@@ -469,7 +474,7 @@ it('starts new session and signs-in using MFA and signs-out', async () => {
       expect(state.user).toBeUndefined();
     }
   );
-  stateTester.expectState(33); // RESET_STATE
+  stateTester.expectState(1);
   dispatch.authService!.signOut()
   await stateTester.done();
   
@@ -492,7 +497,7 @@ it('starts new session and signs-in using MFA and signs-out', async () => {
       expect(state.awaitingMFAConfirmation).toEqual(AUTH_MFA_SMS);
     }
   );
-  stateTester.expectState(36); // skip NOOP
+  stateTester.expectState(1); // skip NOOP
   dispatch.authService!.signIn('johndoe', 'password');
   await stateTester.done();
   
@@ -533,6 +538,7 @@ it('starts new session and signs-in using MFA and signs-out', async () => {
       expectTestUserToBeSet(state.user!, true, true, true);
     }
   );
+  stateTester.expectState(1); // skip BROADCAST
   dispatch.authService!.validateMFACode('12345', AUTH_MFA_SMS);
   await stateTester.done();
 
@@ -554,7 +560,7 @@ it('starts new session and signs-in using MFA and signs-out', async () => {
       expect(state.user).toBeUndefined();
     }
   );
-  stateTester.expectState(43); // RESET_STATE
+  stateTester.expectState(1);
   dispatch.authService!.signOut()
   await stateTester.done();
 });

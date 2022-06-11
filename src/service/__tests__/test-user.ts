@@ -3,6 +3,7 @@ import User from '../../model/user';
 export const getTestUser = (): User => {
 
   let user = new User();
+  user.userID = 'jdtestid1234'
   user.username = 'johndoe';
   user.firstName = 'John';
   user.middleName = 'Bee'
