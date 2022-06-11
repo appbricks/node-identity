@@ -6,6 +6,7 @@ export default class User {
 
   status: UserStatus;
 
+  userID: string;
   username: string;
 
   firstName?: string;
@@ -33,6 +34,9 @@ export default class User {
   constructor(username = '', password = '') {
 
     this.status = UserStatus.Unknown;
+    
+    this.userID = '';
+
     this.username = username;
     this.password = password;
 
@@ -55,6 +59,7 @@ export default class User {
 
   toJSON(): {
     status: UserStatus
+    userID: string
     username: string
     firstName?: string
     middleName?: string
@@ -80,6 +85,7 @@ export default class User {
 
     return {
       status: this.status,
+      userID: this.userID,
       username: this.username,
       firstName: this.firstName,
       middleName: this.middleName,
@@ -99,6 +105,7 @@ export default class User {
 
   fromJSON(data: {
     status: UserStatus
+    userID: string
     username: string
     firstName?: string
     middleName?: string
@@ -124,6 +131,7 @@ export default class User {
       this.status = data.status;
     }
 
+    this.userID = data.userID;
     this.username = data.username;
     this.firstName = data.firstName;
     this.middleName = data.middleName;
@@ -165,6 +173,7 @@ export default class User {
    */
   isValid(): boolean {
     return (
+      this.userID !== undefined && this.userID.length > 0 &&
       this.username !== undefined && this.username.length > 0 &&
       this.emailAddress !== undefined  && this.emailAddress.length > 0 &&
       this.mobilePhone !== undefined  && this.mobilePhone.length > 0

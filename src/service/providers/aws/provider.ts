@@ -769,6 +769,9 @@ export default class Provider implements ProviderInterface {
                   case 'phone_number_verified':
                     user.mobilePhoneVerified = (a.getValue() == 'true');
                     break;
+                  case 'custom:userID':
+                    user.userID = a.getValue();
+                    break;
                   case 'custom:preferences':
                     let prefs = JSON.parse(a.getValue());
                     user.preferredName = prefs.preferredName;
