@@ -172,8 +172,7 @@ export default class User {
    * data to be considered valid
    */
   isValid(): boolean {
-    return (
-      this.userID !== undefined && this.userID.length > 0 &&
+    return (      
       this.username !== undefined && this.username.length > 0 &&
       this.emailAddress !== undefined  && this.emailAddress.length > 0 &&
       this.mobilePhone !== undefined  && this.mobilePhone.length > 0

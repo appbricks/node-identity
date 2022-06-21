@@ -1,6 +1,6 @@
 {
   "name": "@appbricks/identity",
-  "version": "0.0.18",
+  "version": "0.0.19",
   "description": "Authentication and Identity SDK",
   "main": "lib/index.js",
   "scripts": {
