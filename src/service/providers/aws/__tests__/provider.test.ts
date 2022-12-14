@@ -1,4 +1,3 @@
-import { promisify } from 'util';
 import path from 'path';
 
 import fetch from 'node-fetch';
@@ -18,9 +17,9 @@ jest.setTimeout(120000);
 // runtime.
 
 // https://github.com/aws-amplify/amplify-js/issues/1181
-import 'crypto-js/lib-typedarrays';
+// import 'crypto-js/lib-typedarrays';
 
-import Amplify, { Auth } from 'aws-amplify';
+import { Amplify, Auth } from 'aws-amplify';
 import awsconfig from '../../../../../etc/aws-exports';
 Amplify.configure(awsconfig);
 
@@ -50,7 +49,7 @@ const GMAIL_CREDS_PATH = '../../../../../etc/gmail-creds.json';
 const GMAIL_AUTH_TOKEN_PATH = '../../../../../.gmail-token';
 
 const testEmail = process.env.TEST_EMAIL || 'test.appbricks@gmail.com';
-const testPhone = process.env.TEST_PHONE || '+19782950877';
+const testPhone = process.env.TEST_PHONE || '+19782951552';
 
 async function lookupCodeFromEmail(subject: string, bodyPattern: RegExp): Promise<string> {
   console.info('Waiting for an email with a verification or authentication code...');
@@ -121,8 +120,8 @@ it('registers a new user, confirms registration and signs-in', async () => {
   await provider.signUp(user)
     .then(info => {
       expect(info.type).toBe(VerificationType.Email);
-      expect(info.destination).toEqual('t***@g***.com');
-      expect(info.attrName).toEqual('email');      
+      expect(info.destination).toEqual('t***@g***');
+      expect(info.attrName).toEqual('email');
       expect(info.isConfirmed).toBeFalsy();
     });
 
@@ -142,7 +141,7 @@ it('registers a new user, confirms registration and signs-in', async () => {
   await provider.resendSignUpCode(user.username)
     .then(info => {
       expect(info.type).toBe(VerificationType.Email);
-      expect(info.destination).toEqual('t***@g***.com');
+      expect(info.destination).toEqual('t***@g***');
       expect(info.attrName).toEqual('email');      
       expect(info.isConfirmed).toBeFalsy();
     });
