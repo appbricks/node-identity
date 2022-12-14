@@ -52,6 +52,26 @@ Outputs:
 Resources:
   # Allow the UserPool SMS Config to publish via the
   # Simple Notification Service during MFA Process
+  PinpointApp:
+    Type: AWS::Pinpoint::App
+    Properties: 
+      Name: 
+        Fn::Sub: '${prefix}_pinpointApp'
+
+  PinpointAppSettings:
+    Type: AWS::Pinpoint::ApplicationSettings
+    Properties: 
+      ApplicationId:
+        Ref: PinpointApp
+      CloudWatchMetricsEnabled: true
+
+  PinpointSMS:
+    Type: AWS::Pinpoint::SMSChannel
+    Properties: 
+      ApplicationId:
+        Ref: PinpointApp
+      Enabled: true
+      
   SNSRole:
     Type: AWS::IAM::Role
     Properties:
